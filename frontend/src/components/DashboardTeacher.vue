@@ -4,23 +4,23 @@
     <div class="td-header">
       <div class="td-header-left">
         <span class="td-badge">TEACHER</span>
-        <h1 class="td-title">Analytics Dashboard</h1>
+        <h1 class="td-title">{{ t('title') }}</h1>
       </div>
       <div class="td-header-right">
         <div class="td-filter-group">
           <div class="td-date-field">
-            <label>FROM</label>
+            <label>{{ t('from') }}</label>
             <input type="date" v-model="dateFrom" />
           </div>
           <div class="td-date-field">
-            <label>TO</label>
+            <label>{{ t('to') }}</label>
             <input type="date" v-model="dateTo" />
           </div>
           <button class="td-btn td-btn-primary" @click="loadStats">
-            Apply
+            {{ t('apply') }}
           </button>
           <button class="td-btn td-btn-ghost" @click="clearFilter">
-            Clear
+            {{ t('clear') }}
           </button>
         </div>
       </div>
@@ -28,7 +28,7 @@
 
     <div v-if="isLoading" class="td-loading">
       <div class="td-spinner"></div>
-      <p>Loading analytics…</p>
+      <p>{{ t('loading') }}</p>
     </div>
     <div v-else-if="error" class="td-error">{{ error }}</div>
 
@@ -51,10 +51,10 @@
       <!-- Info Row: Completion Rate -->
       <div class="td-charts-row">
         <div class="td-chart-card td-chart-narrow td-info-card">
-          <div class="td-chart-title">Interview Completion Rate</div>
+          <div class="td-chart-title">{{ t('completionRate') }}</div>
           <div class="td-big-stat">{{ completionRate }}%</div>
           <div class="td-chart-sub">
-            {{ stats.total_completed }} of {{ stats.total_students }} students completed
+            {{ stats.total_completed }} {{ t('of') }} {{ stats.total_students }} {{ t('studentsCompleted') }}
           </div>
           <div class="td-progress-bar-wrap">
             <div
@@ -70,11 +70,11 @@
         <div class="td-chart-card td-chart-wide">
           <div class="td-chart-header-row">
             <div>
-              <span class="td-chart-title">Drop-off by Interview Step</span>
-              <span class="td-chart-sub">where students leave</span>
+              <span class="td-chart-title">{{ t('dropoffTitle') }}</span>
+              <span class="td-chart-sub">{{ t('dropoffSub') }}</span>
             </div>
             <button class="td-toggle-btn" @click="toggle('dropoff')">
-              {{ showTable.dropoff ? "Show Chart" : "Show Table" }}
+              {{ showTable.dropoff ? t('showChart') : t('showTable') }}
             </button>
           </div>
           <div class="td-canvas-wrap" v-if="!showTable.dropoff">
@@ -83,19 +83,19 @@
               v-if="!stats.dropoff_distribution || !stats.dropoff_distribution.length"
               class="td-empty"
             >
-              No data yet
+              {{ t('noData') }}
             </div>
           </div>
           <table v-else class="td-table td-table-mt">
             <thead>
               <tr>
-                <th>Step</th>
-                <th>Students</th>
+                <th>{{ t('step') }}</th>
+                <th>{{ t('students') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!stats.dropoff_distribution || !stats.dropoff_distribution.length">
-                <td colspan="2" class="td-empty-row">No data yet</td>
+                <td colspan="2" class="td-empty-row">{{ t('noData') }}</td>
               </tr>
               <tr v-for="r in stats.dropoff_distribution" :key="r.step">
                 <td>{{ r.step }}</td>
@@ -107,11 +107,11 @@
         <div class="td-chart-card td-chart-narrow">
           <div class="td-chart-header-row">
             <div>
-              <span class="td-chart-title">Completion Funnel</span>
-              <span class="td-chart-sub">students per step</span>
+              <span class="td-chart-title">{{ t('funnelTitle') }}</span>
+              <span class="td-chart-sub">{{ t('funnelSub') }}</span>
             </div>
             <button class="td-toggle-btn" @click="toggle('funnel')">
-              {{ showTable.funnel ? "Show Chart" : "Show Table" }}
+              {{ showTable.funnel ? t('showChart') : t('showTable') }}
             </button>
           </div>
           <div class="td-canvas-wrap" v-if="!showTable.funnel">
@@ -120,19 +120,19 @@
               v-if="!stats.completion_funnel || !stats.completion_funnel.length"
               class="td-empty"
             >
-              No data yet
+              {{ t('noData') }}
             </div>
           </div>
           <table v-else class="td-table td-table-mt">
             <thead>
               <tr>
-                <th>Step</th>
-                <th>Reached</th>
+                <th>{{ t('step') }}</th>
+                <th>{{ t('reached') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!stats.completion_funnel || !stats.completion_funnel.length">
-                <td colspan="2" class="td-empty-row">No data yet</td>
+                <td colspan="2" class="td-empty-row">{{ t('noData') }}</td>
               </tr>
               <tr v-for="r in stats.completion_funnel" :key="r.step">
                 <td>{{ r.step }}</td>
@@ -148,11 +148,11 @@
         <div class="td-chart-card" style="flex: 1">
           <div class="td-chart-header-row">
             <div>
-              <span class="td-chart-title">Weekly Activity</span>
-              <span class="td-chart-sub">responses &amp; unique users per week</span>
+              <span class="td-chart-title">{{ t('weeklyTitle') }}</span>
+              <span class="td-chart-sub">{{ t('weeklySub') }}</span>
             </div>
             <button class="td-toggle-btn" @click="toggle('weekly')">
-              {{ showTable.weekly ? "Show Chart" : "Show Table" }}
+              {{ showTable.weekly ? t('showChart') : t('showTable') }}
             </button>
           </div>
           <div class="td-canvas-wrap" v-if="!showTable.weekly">
@@ -161,20 +161,20 @@
               v-if="!stats.weekly_activity || !stats.weekly_activity.length"
               class="td-empty"
             >
-              No data yet
+              {{ t('noData') }}
             </div>
           </div>
           <table v-else class="td-table td-table-mt">
             <thead>
               <tr>
-                <th>Week</th>
-                <th>Responses</th>
-                <th>Users</th>
+                <th>{{ t('week') }}</th>
+                <th>{{ t('responses') }}</th>
+                <th>{{ t('users') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!stats.weekly_activity || !stats.weekly_activity.length">
-                <td colspan="3" class="td-empty-row">No data yet</td>
+                <td colspan="3" class="td-empty-row">{{ t('noData') }}</td>
               </tr>
               <tr v-for="r in stats.weekly_activity" :key="r.week">
                 <td>{{ r.week }}</td>
@@ -196,8 +196,107 @@ import Chart from "chart.js";
 var GREEN = "#16a34a";
 var GREEN_MID = "rgba(22,163,74,0.5)";
 
+var TRANSLATIONS = {
+  de: {
+    title: "Analyse-Dashboard",
+    from: "VON",
+    to: "BIS",
+    apply: "Anwenden",
+    clear: "Zurücksetzen",
+    loading: "Lade Daten…",
+    noData: "Noch keine Daten",
+    showChart: "Diagramm",
+    showTable: "Tabelle",
+    // KPI labels
+    totalStudents: "Studierende gesamt",
+    completedInterviews: "Abgeschlossene Interviews",
+    avgDuration: "Ø Dauer",
+    surveyResponses: "Umfrage-Antworten",
+    repeatedInterviews: "Wiederholte Interviews",
+    // Info card
+    completionRate: "Interview-Abschlussquote",
+    of: "von",
+    studentsCompleted: "Studierenden abgeschlossen",
+    // Charts
+    dropoffTitle: "Abbruch nach Interview-Schritt",
+    dropoffSub: "wo Studierende aussteigen",
+    funnelTitle: "Abschluss-Trichter",
+    funnelSub: "Studierende pro Schritt",
+    weeklyTitle: "Wöchentliche Aktivität",
+    weeklySub: "Antworten & aktive Nutzer pro Woche",
+    // Table headers
+    step: "Schritt",
+    students: "Studierende",
+    reached: "Erreicht",
+    week: "Woche",
+    responses: "Antworten",
+    users: "Nutzer",
+    // Chart axis labels
+    axisStudentsLeft: "Ausgestiegene Studierende",
+    axisInterviewStep: "Interview-Schritt",
+    axisStudentsReached: "Erreichte Studierende",
+    axisStep: "Schritt",
+    axisResponses: "Antworten",
+    axisUsers: "Nutzer",
+    axisWeek: "Woche",
+    // Duration sub
+    variance: "Var",
+  },
+  en: {
+    title: "Analytics Dashboard",
+    from: "FROM",
+    to: "TO",
+    apply: "Apply",
+    clear: "Clear",
+    loading: "Loading analytics…",
+    noData: "No data yet",
+    showChart: "Show Chart",
+    showTable: "Show Table",
+    // KPI labels
+    totalStudents: "Total Students",
+    completedInterviews: "Completed Interviews",
+    avgDuration: "Avg Duration",
+    surveyResponses: "Survey Responses",
+    repeatedInterviews: "Repeated Interviews",
+    // Info card
+    completionRate: "Interview Completion Rate",
+    of: "of",
+    studentsCompleted: "students completed",
+    // Charts
+    dropoffTitle: "Drop-off by Interview Step",
+    dropoffSub: "where students leave",
+    funnelTitle: "Completion Funnel",
+    funnelSub: "students per step",
+    weeklyTitle: "Weekly Activity",
+    weeklySub: "responses & unique users per week",
+    // Table headers
+    step: "Step",
+    students: "Students",
+    reached: "Reached",
+    week: "Week",
+    responses: "Responses",
+    users: "Users",
+    // Chart axis labels
+    axisStudentsLeft: "Students who left",
+    axisInterviewStep: "Interview Step",
+    axisStudentsReached: "Students Reached",
+    axisStep: "Step",
+    axisResponses: "Responses",
+    axisUsers: "Users",
+    axisWeek: "Week",
+    // Duration sub
+    variance: "var",
+  },
+};
+
 export default {
   name: "DashboardTeacher",
+  props: {
+    lang: {
+      type: String,
+      default: "de",
+    },
+  },
   data: function() {
     return {
       isLoading: true,
@@ -227,30 +326,31 @@ export default {
       );
     },
     kpiCards: function() {
+      var tr = TRANSLATIONS[this.lang] || TRANSLATIONS["de"];
       return [
         {
-          label: "Total Students",
+          label: tr.totalStudents,
           value: this.stats.total_students,
           color: GREEN,
         },
         {
-          label: "Completed Interviews",
+          label: tr.completedInterviews,
           value: this.stats.total_completed,
           color: GREEN,
         },
         {
-          label: "Avg Duration",
+          label: tr.avgDuration,
           value: this.stats.avg_duration_minutes + " min",
-          sub: "\u03C3 " + this.stats.std_duration_minutes + " min \u00B7 var " + this.stats.var_duration_minutes,
+          sub: "\u03C3 " + this.stats.std_duration_minutes + " min \u00B7 " + tr.variance + " " + this.stats.var_duration_minutes,
           color: GREEN,
         },
         {
-          label: "Survey Responses",
+          label: tr.surveyResponses,
           value: this.stats.survey_count,
           color: GREEN,
         },
         {
-          label: "Repeated Interviews",
+          label: tr.repeatedInterviews,
           value: this.stats.reattempts,
           color: GREEN,
         },
@@ -260,7 +360,17 @@ export default {
   mounted: function() {
     this.loadStats();
   },
+  watch: {
+    lang: function() {
+      var self = this;
+      this.$nextTick(function() { self.renderCharts(); });
+    },
+  },
   methods: {
+    t: function(key) {
+      var tr = TRANSLATIONS[this.lang] || TRANSLATIONS["de"];
+      return tr[key] || key;
+    },
     toggle: function(key) {
       this.showTable[key] = !this.showTable[key];
       if (!this.showTable[key]) {
@@ -310,12 +420,12 @@ export default {
     },
     renderCharts: function() {
       this.destroyCharts();
+      var tr = TRANSLATIONS[this.lang] || TRANSLATIONS["de"];
       var intTicks = {
         beginAtZero: true,
         stepSize: 1,
         callback: function(v) { return Number.isInteger(v) ? v : null; },
       };
-      var noGrid = { gridLines: { display: false } };
 
       // Drop-off
       var dCtx = this.$refs.dropoffChart;
@@ -345,13 +455,13 @@ export default {
               yAxes: [
                 {
                   ticks: intTicks,
-                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: "Students who left" },
+                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: tr.axisStudentsLeft },
                 },
               ],
               xAxes: [
                 {
                   gridLines: { display: false },
-                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: "Interview Step" },
+                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: tr.axisInterviewStep },
                 },
               ],
             },
@@ -386,13 +496,13 @@ export default {
               yAxes: [
                 {
                   ticks: intTicks,
-                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: "Students Reached" },
+                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: tr.axisStudentsReached },
                 },
               ],
               xAxes: [
                 {
                   gridLines: { display: false },
-                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: "Step" },
+                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: tr.axisStep },
                 },
               ],
             },
@@ -414,7 +524,7 @@ export default {
             labels: this.stats.weekly_activity.map(function(w) { return w.week; }),
             datasets: [
               {
-                label: "Responses",
+                label: tr.axisResponses,
                 data: this.stats.weekly_activity.map(function(w) { return w.messages; }),
                 borderColor: GREEN,
                 backgroundColor: "rgba(22,163,74,0.08)",
@@ -423,7 +533,7 @@ export default {
                 yAxisID: "y-responses",
               },
               {
-                label: "Users",
+                label: tr.axisUsers,
                 data: this.stats.weekly_activity.map(function(w) { return w.users; }),
                 borderColor: GREEN_MID,
                 backgroundColor: "rgba(22,163,74,0.04)",
@@ -443,17 +553,17 @@ export default {
                   id: "y-responses",
                   position: "left",
                   ticks: intTicks,
-                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: "Responses" },
+                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: tr.axisResponses },
                 },
                 {
                   id: "y-users",
                   position: "right",
                   ticks: intTicks,
                   gridLines: { drawOnChartArea: false },
-                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: "Users" },
+                  scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: tr.axisUsers },
                 },
               ],
-              xAxes: [{ scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: "Week" } }],
+              xAxes: [{ scaleLabel: { display: true, fontColor: "#9ca3af", fontSize: 11, labelString: tr.axisWeek } }],
             },
           },
         });
