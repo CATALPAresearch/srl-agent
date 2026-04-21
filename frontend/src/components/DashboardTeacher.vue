@@ -291,11 +291,11 @@ var TRANSLATIONS = {
 
 export default {
   name: "DashboardTeacher",
-  props: {
-    lang: {
-      type: String,
-      default: "de",
-    },
+ props: {
+   lang: {
+     type: String,
+     default: "de"
+ },
   },
   data: function() {
     return {
