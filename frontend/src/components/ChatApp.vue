@@ -58,12 +58,12 @@
       </div>
     </div>
     <keep-alive>
-      <router-view class="chat-app__view" />
+      <router-view class="chat-app__view" :lang="lang" />
     </keep-alive>
   </div>
 </template>
     <keep-alive>
-      <router-view class="chat-app__view" />
+      <router-view class="chat-app__view" :lang="lang" />
     </keep-alive>
   </div>
 </template>
