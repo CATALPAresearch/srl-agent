@@ -17,6 +17,9 @@
         <router-link to="/dashboard/researcher" class="tab" active-class="active">
           Researcher Dashboard
         </router-link>
+         <router-link to="/dashboard/teacher" class="tab" active-class="active">
+          Teacher Dashboard
+        </router-link>
       </nav>
 
       <!-- Role switcher (testing only) -->
