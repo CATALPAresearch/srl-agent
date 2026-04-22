@@ -95,31 +95,59 @@ def get_llm_response(
 
 
 def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1):
-    """Call Ollama directly via HTTP REST API."""
-    logger.info("Send request to Ollama via HTTP")
-    try:
-        payload = {
-            "model": MODEL,
-            "messages": messages,
-            "stream": False,
-            "options": {
+    """Call LLM via HTTP. Supports Ollama (/api/chat) and OpenAI-compatible servers (/v1/chat/completions)."""
+    headers = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
+    base = BASE_URL.rstrip("/")
+    is_openai_compat = "/v1" in base
+
+    if is_openai_compat:
+        # OpenAI-compatible API (KI-Connect, Open WebUI with /v1, etc.)
+        logger.info("Send request via OpenAI-compatible API")
+        try:
+            payload = {
+                "model": MODEL,
+                "messages": messages,
+                "stream": False,
                 "temperature": temperature,
-                "top_k": top_k,
-                "top_p": top_p,
-                "repeat_penalty": repeat_penalty,
-                "num_predict": 512,
-                "num_ctx": 4096
+                "max_tokens": 512,
             }
-        }
-        r = requests.post(BASE_URL.rstrip("/") + "/api/chat", json=payload, timeout=120)
-        data = r.json()
-        logger.info("Ollama raw response: %s", data)
-        content = data.get("message", {}).get("content", "")
-        mock = type('MockResponse', (), {'message': type('msg', (), {'content': content})()})()
-        return mock
-    except Exception as e:
-        logger.error(f"HTTP call to Ollama failed: {e}")
-        return None
+            r = requests.post(base + "/chat/completions", json=payload, headers=headers, timeout=120)
+            r.raise_for_status()
+            data = r.json()
+            logger.info("OpenAI API raw response: %s", data)
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            mock = type('MockResponse', (), {'message': type('msg', (), {'content': content})()})()
+            return mock
+        except Exception as e:
+            logger.error(f"HTTP call to OpenAI-compatible API failed: {e}")
+            return None
+    else:
+        # Native Ollama API
+        logger.info("Send request via Ollama API")
+        try:
+            payload = {
+                "model": MODEL,
+                "messages": messages,
+                "stream": False,
+                "options": {
+                    "temperature": temperature,
+                    "top_k": top_k,
+                    "top_p": top_p,
+                    "repeat_penalty": repeat_penalty,
+                    "num_predict": 512,
+                    "num_ctx": 4096
+                }
+            }
+            r = requests.post(base + "/api/chat", json=payload, headers=headers, timeout=120)
+            r.raise_for_status()
+            data = r.json()
+            logger.info("Ollama raw response: %s", data)
+            content = data.get("message", {}).get("content", "")
+            mock = type('MockResponse', (), {'message': type('msg', (), {'content': content})()})()
+            return mock
+        except Exception as e:
+            logger.error(f"HTTP call to Ollama failed: {e}")
+            return None
 
 
 def get_prompt(user, prompt_name):
