@@ -20,15 +20,15 @@
       "items": [
         {
           "id": "oase_1",
-          "text": "I am confident that I will be able to master the content and assignments in this online class."
+          "text": "I am confident that I will be able to master the content and assignments in this class."
         },
         {
           "id": "oase_2",
-          "text": "I am confident in my ability to successfully persist in this online class, even if I find the content difficult."
+          "text": "I am confident in my ability to successfully persist in this class, even if I find the content difficult."
         },
         {
           "id": "oase_3",
-          "text": "I am confident I can put in the effort required to get a high grade in this online class."
+          "text": "I am confident I can put in the effort required to get a high grade in this class."
         },
         {
           "id": "oase_4",
@@ -46,15 +46,15 @@
         },
         {
           "id": "oim_2",
-          "text": "I love learning new things in this online class."
+          "text": "I love learning new things in this class."
         },
         {
           "id": "oim_3",
-          "text": "I find studying for this online class enjoyable."
+          "text": "I find studying for this class enjoyable."
         },
         {
           "id": "oim_4",
-          "text": "I find it very satisfying when I learn new material in this online course."
+          "text": "I find it very satisfying when I learn new material in this course."
         },
         {
           "id": "oim_5",
@@ -68,7 +68,7 @@
       "items": [
         {
           "id": "oem_1",
-          "text": "I want to do well in this online course so I can show off to my friends and family."
+          "text": "I want to do well in this course so I can show off to my friends and family."
         },
         {
           "id": "oem_2",
@@ -76,7 +76,7 @@
         },
         {
           "id": "oem_3",
-          "text": "I want to get a better grade than others in my online class."
+          "text": "I want to get a better grade than others in my class."
         }
       ]
     },
@@ -86,11 +86,11 @@
       "items": [
         {
           "id": "onae_1",
-          "text": "I feel so helpless that I cannot dedicate all my effort to my online studies."
+          "text": "I feel so helpless that I cannot dedicate all my effort to my studies."
         },
         {
           "id": "onae_2",
-          "text": "I consider dropping out because I feel overwhelmed by my online studies."
+          "text": "I consider dropping out because I feel overwhelmed by my studies."
         },
         {
           "id": "onae_3",
@@ -98,11 +98,11 @@
         },
         {
           "id": "onae_4",
-          "text": "I get so anxious that I don't even want to start studying online."
+          "text": "I get so anxious that I don't even want to start studying."
         },
         {
           "id": "onae_5",
-          "text": "When I have to study online, I start to feel bad."
+          "text": "When I have to study, I start to feel bad."
         }
       ]
     },
@@ -128,7 +128,7 @@
         },
         {
           "id": "ptm_5",
-          "text": "I plan out my schedule each week so I have the appropriate amount of time available for online study."
+          "text": "I plan out my schedule each week so I have the appropriate amount of time available for study."
         }
       ]
     },
@@ -164,7 +164,7 @@
       "items": [
         {
           "id": "se_1",
-          "text": "I am able to study for my online course without distraction."
+          "text": "I am able to study for my course without distraction."
         },
         {
           "id": "se_2",
@@ -172,7 +172,7 @@
         },
         {
           "id": "se_3",
-          "text": "I know where I can study most efficiently for this online course."
+          "text": "I know where I can study most efficiently for this course."
         }
       ]
     },
@@ -182,19 +182,19 @@
       "items": [
         {
           "id": "oer_1",
-          "text": "I work hard in my online study, even when there are more interesting things to do."
+          "text": "I work hard in my study, even when there are more interesting things to do."
         },
         {
           "id": "oer_2",
-          "text": "When my online study gets difficult, I remain committed to reaching my study goals."
+          "text": "When my study gets difficult, I remain committed to reaching my study goals."
         },
         {
           "id": "oer_3",
-          "text": "When my mind begins to wander during a learning session for this online course, I make a special effort to keep concentrating."
+          "text": "When my mind begins to wander during a learning session for this course, I make a special effort to keep concentrating."
         },
         {
           "id": "oer_4",
-          "text": "No matter how I am feeling, I persevere with my online study."
+          "text": "No matter how I am feeling, I persevere with my study."
         }
       ]
     },
@@ -204,19 +204,19 @@
       "items": [
         {
           "id": "oss_1",
-          "text": "I try to help other students when they ask a question online, I can answer."
+          "text": "I try to help other students when they ask a question , I can answer."
         },
         {
           "id": "oss_2",
-          "text": "I ask for help from knowledgeable others through online channels when I am not sure what to do in my online class."
+          "text": "I ask for help from knowledgeable others through channels when I am not sure what to do in my class."
         },
         {
           "id": "oss_3",
-          "text": "I ask the teacher and/or my peers to clarify information in my online course."
+          "text": "I ask the teacher and/or my peers to clarify information in my course."
         },
         {
           "id": "oss_4",
-          "text": "When I have difficulties with my online class, I seek assistance from others through online means (discussion boards, social media, email, instant messaging etc.)."
+          "text": "When I have difficulties with my class, I seek assistance from others through means (discussion boards, social media, email, instant messaging etc.)."
         },
         {
           "id": "oss_5",
@@ -230,19 +230,19 @@
       "items": [
         {
           "id": "ots_1",
-          "text": "When studying online, I create my own examples of the content to make it more meaningful."
+          "text": "When studying , I create my own examples of the content to make it more meaningful."
         },
         {
           "id": "ots_2",
-          "text": "When studying online, I organise my thoughts by making summaries of what I am learning."
+          "text": "When studying , I organise my thoughts by making summaries of what I am learning."
         },
         {
           "id": "ots_3",
-          "text": "When studying online, I try and relate the content to what I already know."
+          "text": "When studying , I try and relate the content to what I already know."
         },
         {
           "id": "ots_4",
-          "text": "When learning the online content, I try and develop my own ideas about it."
+          "text": "When learning the content, I try and develop my own ideas about it."
         },
         {
           "id": "ots_5",
