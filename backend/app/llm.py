@@ -11,12 +11,82 @@ from .database.crud import get_language_by_id
 BASE_URL = os.getenv("BASE_URL")
 API_KEY = os.getenv("API_KEY")
 MODEL = os.getenv("MODEL")
+try:
+    OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", "256"))
+except ValueError:
+    OLLAMA_NUM_PREDICT = 256
+try:
+    OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "2048"))
+except ValueError:
+    OLLAMA_NUM_CTX = 2048
 EMBEDDING_URL = os.getenv("EMBEDDING_URL", "https://huggingface.co/")
 # https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
 EMBEDDING_TOKEN = os.getenv("EMBEDDING_TOKEN", "")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 # https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2
 logger = logging.getLogger('InterviewAgent')
+_OPENAI_MODEL_CACHE = None
+
+
+def _extract_openai_content(data):
+    """Extract text content from OpenAI-compatible chat completion responses."""
+    try:
+        message = data.get("choices", [{}])[0].get("message", {})
+        content = message.get("content", "")
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            # Some providers return structured content blocks.
+            text_parts = []
+            for block in content:
+                if isinstance(block, dict):
+                    if isinstance(block.get("text"), str):
+                        text_parts.append(block["text"])
+                    elif block.get("type") == "text" and isinstance(block.get("content"), str):
+                        text_parts.append(block["content"])
+            return "\n".join([p for p in text_parts if p])
+    except Exception as e:
+        logger.warning("Could not parse OpenAI-compatible response content: %s", e)
+    return ""
+
+
+def _resolve_openai_model(base, headers):
+    """Pick a usable chat model for OpenAI-compatible endpoints.
+
+    If MODEL is unavailable (or configured to an embedding model), pick the first
+    non-embedding model from /models. Cache the decision for this process.
+    """
+    global _OPENAI_MODEL_CACHE
+    if _OPENAI_MODEL_CACHE:
+        return _OPENAI_MODEL_CACHE
+
+    configured = MODEL
+    try:
+        r = requests.get(base + "/models", headers=headers, timeout=30)
+        r.raise_for_status()
+        data = r.json()
+        ids = [m.get("id") for m in data.get("data", []) if isinstance(m, dict) and m.get("id")]
+        if not ids:
+            _OPENAI_MODEL_CACHE = configured
+            return configured
+
+        if configured in ids and "embedding" not in configured.lower():
+            _OPENAI_MODEL_CACHE = configured
+            return configured
+
+        for mid in ids:
+            if "embedding" not in mid.lower():
+                logger.warning("Configured model '%s' not usable. Falling back to '%s'.", configured, mid)
+                _OPENAI_MODEL_CACHE = mid
+                return mid
+
+        # As a last resort, use the first model id.
+        _OPENAI_MODEL_CACHE = ids[0]
+        return ids[0]
+    except Exception as e:
+        logger.warning("Could not resolve model from /models (%s). Using configured model '%s'.", e, configured)
+        _OPENAI_MODEL_CACHE = configured
+        return configured
 
 
 def query_embeddings(text_to_embed):
@@ -88,8 +158,12 @@ def get_llm_response(
     response_content = response.message.content if (response and hasattr(response, "message")) else None
 
     if not response_content:
-        logger.info("Empty response")
-        raise AssertionError("Received empty response from LLM.")
+        logger.warning("Empty response from LLM after retries; returning fallback text")
+        return (
+            "Ich konnte gerade keine Antwort vom Sprachmodell erhalten. Bitte versuche es erneut."
+            if user_prompt and any(ch in user_prompt for ch in "äöüß")
+            else "I could not get a response from the language model right now. Please try again."
+        )
     logger.info("Response: %s", response_content)
     return response_content
 
@@ -104,8 +178,9 @@ def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1)
         # OpenAI-compatible API (KI-Connect, Open WebUI with /v1, etc.)
         logger.info("Send request via OpenAI-compatible API")
         try:
+            model_to_use = _resolve_openai_model(base, headers)
             payload = {
-                "model": MODEL,
+                "model": model_to_use,
                 "messages": messages,
                 "stream": False,
                 "temperature": temperature,
@@ -115,11 +190,11 @@ def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1)
             r.raise_for_status()
             data = r.json()
             logger.info("OpenAI API raw response: %s", data)
-            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            content = _extract_openai_content(data)
             mock = type('MockResponse', (), {'message': type('msg', (), {'content': content})()})()
             return mock
         except Exception as e:
-            logger.error(f"HTTP call to OpenAI-compatible API failed: {e}")
+            logger.error("HTTP call to OpenAI-compatible API failed: %s", e)
             return None
     else:
         # Native Ollama API
@@ -134,8 +209,8 @@ def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1)
                     "top_k": top_k,
                     "top_p": top_p,
                     "repeat_penalty": repeat_penalty,
-                    "num_predict": 512,
-                    "num_ctx": 4096
+                    "num_predict": OLLAMA_NUM_PREDICT,
+                    "num_ctx": OLLAMA_NUM_CTX
                 }
             }
             r = requests.post(base + "/api/chat", json=payload, headers=headers, timeout=120)
