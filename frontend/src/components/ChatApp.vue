@@ -132,7 +132,6 @@ export default Vue.extend({
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 4px 20px;
 }
 
 .chat-app__view {
