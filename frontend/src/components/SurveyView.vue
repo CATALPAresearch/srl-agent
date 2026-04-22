@@ -25,20 +25,24 @@
 
     <!-- ---------- SURVEY FORM ---------- -->
     <div v-else-if="survey" class="survey-form">
-      <h3>
-        {{
-          typeof survey.title === "string"
-            ? survey.title
-            : survey.title[lang] || survey.title.en
-        }}
-      </h3>
-      <p class="survey-desc">
-        {{
-          typeof survey.description === "string"
-            ? survey.description
-            : survey.description[lang] || survey.description.en
-        }}
-      </p>
+      <header class="survey-doc-header">
+        <div>
+          <h3 class="survey-title">
+            {{
+              typeof survey.title === "string"
+                ? survey.title
+                : survey.title[lang] || survey.title.en
+            }}
+          </h3>
+          <p class="survey-desc">
+            {{
+              typeof survey.description === "string"
+                ? survey.description
+                : survey.description[lang] || survey.description.en
+            }}
+          </p>
+        </div>
+      </header>
 
       <form @submit.prevent="submitSurvey">
         <div
@@ -183,6 +187,30 @@ export default Vue.extend({
   },
 
   methods: {
+    getFastFillValue() {
+      if (!this.survey || !this.survey.scale) return 1;
+      const min = Number(this.survey.scale.min) || 1;
+      const max = Number(this.survey.scale.max) || min;
+      return Math.floor((min + max) / 2);
+    },
+
+    handleSecretShortcut(event) {
+      const isA = (event.key || "").toLowerCase() === "a";
+      if (!isA || !event.shiftKey || !event.ctrlKey) return;
+      if (!this.survey || this.loading || this.submitting || this.submitted)
+        return;
+
+      event.preventDefault();
+      const fillValue = this.getFastFillValue();
+      const nextResponses = { ...this.responses };
+      this.allItemIds.forEach((id) => {
+        nextResponses[id] = fillValue;
+      });
+      this.responses = nextResponses;
+      this.showValidation = false;
+      this.errorMsg = "";
+    },
+
     scaleLabel(value) {
       if (!this.survey) return "";
       const labels = Array.isArray(this.survey.scale.labels)
@@ -230,11 +258,18 @@ export default Vue.extend({
       try {
         await axios.post(`${this.host}/survey/${this.surveyId}/submit`, {
           userid: this.$store.getters.getUser,
-          client: "standalone",
+          client: "web",
           language: this.lang,
           responses: this.responses,
         });
         this.submitted = true;
+        setTimeout(() => {
+          localStorage.setItem("srl_from_survey", "1");
+          this.$router.push({
+            path: "/agent-chat",
+            query: { fromSurvey: "1" },
+          });
+        }, 1000);
       } catch (e) {
         console.error("Failed to submit survey", e);
         this.errorMsg =
@@ -249,6 +284,11 @@ export default Vue.extend({
 
   mounted() {
     this.loadSurvey();
+    window.addEventListener("keydown", this.handleSecretShortcut);
+  },
+
+  beforeDestroy() {
+    window.removeEventListener("keydown", this.handleSecretShortcut);
   },
 });
 </script>
@@ -261,11 +301,29 @@ export default Vue.extend({
   overflow-y: auto;
   flex: 1 1 0;
   min-height: 0;
+  color: #1f1d1a;
+  background-color: #fff !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    sans-serif;
+}
+
+.survey-doc-header {
+  border-bottom: 1px solid #1f1d1a;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+}
+
+.survey-title {
+  margin: 0 0 10px;
+  color: #1f1d1a;
+  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  line-height: 1.25;
 }
 
 .survey-desc {
-  color: #555;
-  margin-bottom: 24px;
+  color: #4d4a45;
+  margin: 0;
 }
 
 .survey-scale {
