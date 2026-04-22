@@ -1,243 +1,988 @@
 <template>
   <div class="td-root">
-
-    <!-- HEADER -->
+    <!-- Header -->
     <div class="td-header">
-      <h1>Teacher Dashboard</h1>
-      <p>Overview of student learning behavior</p>
-    </div>
-
-    <!-- KPI SECTION -->
-    <div class="td-kpi-grid">
-      <div class="td-kpi" v-for="k in kpis" :key="k.label">
-        <div class="td-kpi-value">{{ k.value }}</div>
-        <div class="td-kpi-label">{{ k.label }}</div>
+      <div class="td-header-left">
+        <span class="td-badge">TEACHER</span>
+        <h1 class="td-title">{{ t("title") }}</h1>
+      </div>
+      <div class="td-header-right">
+        <div class="td-filter-group">
+          <div class="td-date-field">
+            <label>{{ t("from") }}</label>
+            <input type="date" v-model="dateFrom" />
+          </div>
+          <div class="td-date-field">
+            <label>{{ t("to") }}</label>
+            <input type="date" v-model="dateTo" />
+          </div>
+          <button class="td-btn td-btn-primary" @click="loadStats">
+            {{ t("apply") }}
+          </button>
+          <button class="td-btn td-btn-ghost" @click="clearFilter">
+            {{ t("clear") }}
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- CHARTS -->
-    <div class="td-grid">
-
-      <div class="td-card">
-        <h3>Learning Strategies</h3>
-        <canvas ref="strategyChart"></canvas>
-      </div>
-
-      <div class="td-card">
-        <h3>Drop-off by Step</h3>
-        <canvas ref="dropoffChart"></canvas>
-      </div>
-
-      <div class="td-card">
-        <h3>Completion Funnel</h3>
-        <canvas ref="funnelChart"></canvas>
-      </div>
-
+    <div v-if="isLoading" class="td-loading">
+      <div class="td-spinner"></div>
+      <p>{{ t("loading") }}</p>
     </div>
+    <div v-else-if="error" class="td-error">{{ error }}</div>
 
+    <div v-else>
+      <!-- KPI Grid -->
+      <div class="td-kpi-grid">
+        <div
+          class="td-kpi"
+          v-for="kpi in kpiCards"
+          :key="kpi.label"
+          :style="'--accent: ' + kpi.color"
+        >
+          <div class="td-kpi-value">{{ kpi.value }}</div>
+          <div class="td-kpi-label">{{ kpi.label }}</div>
+          <div class="td-kpi-sub" v-if="kpi.sub">{{ kpi.sub }}</div>
+          <div class="td-kpi-bar"></div>
+        </div>
+      </div>
+
+      <!-- Info Row: Completion Rate -->
+      <div class="td-charts-row">
+        <div class="td-chart-card td-chart-narrow td-info-card">
+          <div class="td-chart-title">{{ t("completionRate") }}</div>
+          <div class="td-big-stat">{{ completionRate }}%</div>
+          <div class="td-chart-sub">
+            {{ stats.total_completed }} {{ t("of") }}
+            {{ stats.total_students }} {{ t("studentsCompleted") }}
+          </div>
+          <div class="td-progress-bar-wrap">
+            <div
+              class="td-progress-bar"
+              :style="'width: ' + completionRate + '%'"
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row 1: Drop-off + Funnel -->
+      <div class="td-charts-row">
+        <div class="td-chart-card td-chart-wide">
+          <div class="td-chart-header-row">
+            <div>
+              <span class="td-chart-title">{{ t("dropoffTitle") }}</span>
+              <span class="td-chart-sub">{{ t("dropoffSub") }}</span>
+            </div>
+            <button class="td-toggle-btn" @click="toggle('dropoff')">
+              {{ showTable.dropoff ? t("showChart") : t("showTable") }}
+            </button>
+          </div>
+          <div class="td-canvas-wrap" v-if="!showTable.dropoff">
+            <canvas ref="dropoffChart"></canvas>
+            <div
+              v-if="
+                !stats.dropoff_distribution ||
+                !stats.dropoff_distribution.length
+              "
+              class="td-empty"
+            >
+              {{ t("noData") }}
+            </div>
+          </div>
+          <table v-else class="td-table td-table-mt">
+            <thead>
+              <tr>
+                <th>{{ t("step") }}</th>
+                <th>{{ t("students") }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-if="
+                  !stats.dropoff_distribution ||
+                  !stats.dropoff_distribution.length
+                "
+              >
+                <td colspan="2" class="td-empty-row">{{ t("noData") }}</td>
+              </tr>
+              <tr v-for="r in stats.dropoff_distribution" :key="r.step">
+                <td>{{ r.step }}</td>
+                <td>{{ r.count }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="td-chart-card td-chart-narrow">
+          <div class="td-chart-header-row">
+            <div>
+              <span class="td-chart-title">{{ t("funnelTitle") }}</span>
+              <span class="td-chart-sub">{{ t("funnelSub") }}</span>
+            </div>
+            <button class="td-toggle-btn" @click="toggle('funnel')">
+              {{ showTable.funnel ? t("showChart") : t("showTable") }}
+            </button>
+          </div>
+          <div class="td-canvas-wrap" v-if="!showTable.funnel">
+            <canvas ref="funnelChart"></canvas>
+            <div
+              v-if="!stats.completion_funnel || !stats.completion_funnel.length"
+              class="td-empty"
+            >
+              {{ t("noData") }}
+            </div>
+          </div>
+          <table v-else class="td-table td-table-mt">
+            <thead>
+              <tr>
+                <th>{{ t("step") }}</th>
+                <th>{{ t("reached") }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-if="
+                  !stats.completion_funnel || !stats.completion_funnel.length
+                "
+              >
+                <td colspan="2" class="td-empty-row">{{ t("noData") }}</td>
+              </tr>
+              <tr v-for="r in stats.completion_funnel" :key="r.step">
+                <td>{{ r.step }}</td>
+                <td>{{ r.count }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Charts Row 2: Weekly Activity -->
+      <div class="td-charts-row">
+        <div class="td-chart-card" style="flex: 1">
+          <div class="td-chart-header-row">
+            <div>
+              <span class="td-chart-title">{{ t("weeklyTitle") }}</span>
+              <span class="td-chart-sub">{{ t("weeklySub") }}</span>
+            </div>
+            <button class="td-toggle-btn" @click="toggle('weekly')">
+              {{ showTable.weekly ? t("showChart") : t("showTable") }}
+            </button>
+          </div>
+          <div class="td-canvas-wrap" v-if="!showTable.weekly">
+            <canvas ref="weeklyChart"></canvas>
+            <div
+              v-if="!stats.weekly_activity || !stats.weekly_activity.length"
+              class="td-empty"
+            >
+              {{ t("noData") }}
+            </div>
+          </div>
+          <table v-else class="td-table td-table-mt">
+            <thead>
+              <tr>
+                <th>{{ t("week") }}</th>
+                <th>{{ t("responses") }}</th>
+                <th>{{ t("users") }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-if="!stats.weekly_activity || !stats.weekly_activity.length"
+              >
+                <td colspan="3" class="td-empty-row">{{ t("noData") }}</td>
+              </tr>
+              <tr v-for="r in stats.weekly_activity" :key="r.week">
+                <td>{{ r.week }}</td>
+                <td>{{ r.messages }}</td>
+                <td>{{ r.users }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import Vue from "vue";
 import axios from "axios";
 import Chart from "chart.js";
 
-export default Vue.extend({
-  name: "TeacherDashboard",
+var GREEN = "#2563b0";
+var GREEN_MID = "rgba(37,99,176,0.5)";
 
-  data() {
+var TRANSLATIONS = {
+  de: {
+    title: "Analyse-Dashboard",
+    from: "VON",
+    to: "BIS",
+    apply: "Anwenden",
+    clear: "Zurücksetzen",
+    loading: "Lade Daten…",
+    noData: "Noch keine Daten",
+    showChart: "Diagramm",
+    showTable: "Tabelle",
+    // KPI labels
+    totalStudents: "Studierende gesamt",
+    completedInterviews: "Abgeschlossene Interviews",
+    avgDuration: "Ø Dauer",
+    surveyResponses: "Umfrage-Antworten",
+    repeatedInterviews: "Wiederholte Interviews",
+    // Info card
+    completionRate: "Interview-Abschlussquote",
+    of: "von",
+    studentsCompleted: "Studierenden abgeschlossen",
+    // Charts
+    dropoffTitle: "Abbruch nach Interview-Schritt",
+    dropoffSub: "wo Studierende aussteigen",
+    funnelTitle: "Abschluss-Trichter",
+    funnelSub: "Studierende pro Schritt",
+    weeklyTitle: "Wöchentliche Aktivität",
+    weeklySub: "Antworten & aktive Nutzer pro Woche",
+    // Table headers
+    step: "Schritt",
+    students: "Studierende",
+    reached: "Erreicht",
+    week: "Woche",
+    responses: "Antworten",
+    users: "Nutzer",
+    // Chart axis labels
+    axisStudentsLeft: "Ausgestiegene Studierende",
+    axisInterviewStep: "Interview-Schritt",
+    axisStudentsReached: "Erreichte Studierende",
+    axisStep: "Schritt",
+    axisResponses: "Antworten",
+    axisUsers: "Nutzer",
+    axisWeek: "Woche",
+    // Duration sub
+    variance: "Var",
+  },
+  en: {
+    title: "Analytics Dashboard",
+    from: "FROM",
+    to: "TO",
+    apply: "Apply",
+    clear: "Clear",
+    loading: "Loading analytics…",
+    noData: "No data yet",
+    showChart: "Show Chart",
+    showTable: "Show Table",
+    // KPI labels
+    totalStudents: "Total Students",
+    completedInterviews: "Completed Interviews",
+    avgDuration: "Avg Duration",
+    surveyResponses: "Survey Responses",
+    repeatedInterviews: "Repeated Interviews",
+    // Info card
+    completionRate: "Interview Completion Rate",
+    of: "of",
+    studentsCompleted: "students completed",
+    // Charts
+    dropoffTitle: "Drop-off by Interview Step",
+    dropoffSub: "where students leave",
+    funnelTitle: "Completion Funnel",
+    funnelSub: "students per step",
+    weeklyTitle: "Weekly Activity",
+    weeklySub: "responses & unique users per week",
+    // Table headers
+    step: "Step",
+    students: "Students",
+    reached: "Reached",
+    week: "Week",
+    responses: "Responses",
+    users: "Users",
+    // Chart axis labels
+    axisStudentsLeft: "Students who left",
+    axisInterviewStep: "Interview Step",
+    axisStudentsReached: "Students Reached",
+    axisStep: "Step",
+    axisResponses: "Responses",
+    axisUsers: "Users",
+    axisWeek: "Week",
+    // Duration sub
+    variance: "var",
+  },
+};
+
+export default {
+  name: "DashboardTeacher",
+  props: {
+    lang: {
+      type: String,
+      default: "de",
+    },
+  },
+  data: function () {
     return {
+      isLoading: true,
+      error: null,
       stats: {},
+      dateFrom: "",
+      dateTo: "",
+      selectedCourse: "",
+      courseList: [],
+      showTable: {
+        dropoff: false,
+        funnel: false,
+        weekly: false,
+      },
       charts: {
-        strategy: null,
         dropoff: null,
         funnel: null,
+        weekly: null,
       },
     };
   },
-
   computed: {
-    kpis() {
+    completionRate: function () {
+      if (!this.stats.total_students) return 0;
+      return Math.round(
+        (this.stats.total_completed / this.stats.total_students) * 100,
+      );
+    },
+    kpiCards: function () {
+      var tr = TRANSLATIONS[this.lang] || TRANSLATIONS["de"];
       return [
-        { label: "Students", value: this.stats.total_students || 0 },
-        { label: "Completed", value: this.stats.total_completed || 0 },
-        { label: "Avg Duration (min)", value: this.stats.avg_duration_minutes || 0 },
-        { label: "Messages", value: this.stats.total_messages || 0 },
+        {
+          label: tr.totalStudents,
+          value: this.stats.total_students,
+          color: GREEN,
+        },
+        {
+          label: tr.completedInterviews,
+          value: this.stats.total_completed,
+          color: GREEN,
+        },
+        {
+          label: tr.avgDuration,
+          value: this.stats.avg_duration_minutes + " min",
+          sub:
+            "\u03C3 " +
+            this.stats.std_duration_minutes +
+            " min \u00B7 " +
+            tr.variance +
+            " " +
+            this.stats.var_duration_minutes,
+          color: GREEN,
+        },
+        {
+          label: tr.surveyResponses,
+          value: this.stats.survey_count,
+          color: GREEN,
+        },
+        {
+          label: tr.repeatedInterviews,
+          value: this.stats.reattempts,
+          color: GREEN,
+        },
       ];
     },
   },
-
-  async mounted() {
-    await this.loadData();
+  mounted: function () {
+    this.loadStats();
   },
-
+  watch: {
+    lang: function () {
+      var self = this;
+      this.$nextTick(function () {
+        self.renderCharts();
+      });
+    },
+  },
   methods: {
-    async loadData() {
-      try {
-        const res = await axios.get("/dashboard/stats");
-        this.stats = res.data;
-
-        this.$nextTick(() => {
-          this.renderCharts();
+    t: function (key) {
+      var tr = TRANSLATIONS[this.lang] || TRANSLATIONS["de"];
+      return tr[key] || key;
+    },
+    toggle: function (key) {
+      this.showTable[key] = !this.showTable[key];
+      if (!this.showTable[key]) {
+        var self = this;
+        this.$nextTick(function () {
+          self.renderCharts();
         });
-
-      } catch (e) {
-        console.error("TeacherDashboard error:", e);
       }
     },
-
-    renderCharts() {
-      this.renderStrategy();
-      this.renderDropoff();
-      this.renderFunnel();
+    loadStats: function () {
+      var self = this;
+      self.isLoading = true;
+      var base = window.SRL_BACKEND_URL || "";
+      var url = base + "/dashboard/stats";
+      var params = [];
+      if (self.dateFrom) {
+        params.push(
+          "date_from=" + Math.floor(new Date(self.dateFrom).getTime() / 1000),
+        );
+      }
+      if (self.dateTo) {
+        params.push(
+          "date_to=" + Math.floor(new Date(self.dateTo).getTime() / 1000),
+        );
+      }
+      if (self.selectedCourse) {
+        params.push("course_id=" + self.selectedCourse);
+      }
+      if (params.length) {
+        url += "?" + params.join("&");
+      }
+      axios
+        .get(url)
+        .then(function (res) {
+          self.stats = res.data;
+          if (self.courseList.length === 0) {
+            axios
+              .get(base + "/dashboard/courses")
+              .then(function (cr) {
+                self.courseList = cr.data || [];
+              })
+              .catch(function () {
+                self.courseList = [];
+              });
+          }
+          setTimeout(function () {
+            self.renderCharts();
+          }, 150);
+        })
+        .catch(function (e) {
+          self.error = "Failed to load: " + e.message;
+        })
+        .finally(function () {
+          self.isLoading = false;
+        });
     },
-
-    renderStrategy() {
-      const el = this.$refs.strategyChart;
-      if (!el || !this.stats.strategy_distribution) return;
-
-      if (this.charts.strategy) this.charts.strategy.destroy();
-
-      this.charts.strategy = new Chart(el, {
-        type: "bar",
-        data: {
-          labels: this.stats.strategy_distribution.map(s => s.strategy),
-          datasets: [{
-            data: this.stats.strategy_distribution.map(s => s.count),
-            backgroundColor: "#8b5cf6"
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false
-        }
-      });
+    clearFilter: function () {
+      this.dateFrom = "";
+      this.dateTo = "";
+      this.selectedCourse = "";
+      this.loadStats();
     },
-
-    renderDropoff() {
-      const el = this.$refs.dropoffChart;
-      if (!el || !this.stats.dropoff_distribution) return;
-
-      if (this.charts.dropoff) this.charts.dropoff.destroy();
-
-      this.charts.dropoff = new Chart(el, {
-        type: "bar",
-        data: {
-          labels: this.stats.dropoff_distribution.map(d => d.step),
-          datasets: [{
-            data: this.stats.dropoff_distribution.map(d => d.count),
-            backgroundColor: "#ef4444"
-          }]
+    renderCharts: function () {
+      this.destroyCharts();
+      var tr = TRANSLATIONS[this.lang] || TRANSLATIONS["de"];
+      var intTicks = {
+        beginAtZero: true,
+        stepSize: 1,
+        callback: function (v) {
+          return Number.isInteger(v) ? v : null;
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false
-        }
-      });
+      };
+
+      // Drop-off
+      var dCtx = this.$refs.dropoffChart;
+      if (
+        dCtx &&
+        !this.showTable.dropoff &&
+        this.stats.dropoff_distribution &&
+        this.stats.dropoff_distribution.length
+      ) {
+        this.charts.dropoff = new Chart(dCtx, {
+          type: "bar",
+          data: {
+            labels: this.stats.dropoff_distribution.map(function (s) {
+              return s.step;
+            }),
+            datasets: [
+              {
+                data: this.stats.dropoff_distribution.map(function (s) {
+                  return s.count;
+                }),
+                backgroundColor: GREEN,
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { display: false },
+            scales: {
+              yAxes: [
+                {
+                  ticks: intTicks,
+                  scaleLabel: {
+                    display: true,
+                    fontColor: "#9ca3af",
+                    fontSize: 11,
+                    labelString: tr.axisStudentsLeft,
+                  },
+                },
+              ],
+              xAxes: [
+                {
+                  gridLines: { display: false },
+                  scaleLabel: {
+                    display: true,
+                    fontColor: "#9ca3af",
+                    fontSize: 11,
+                    labelString: tr.axisInterviewStep,
+                  },
+                },
+              ],
+            },
+          },
+        });
+      }
+
+      // Funnel
+      var fCtx = this.$refs.funnelChart;
+      if (
+        fCtx &&
+        !this.showTable.funnel &&
+        this.stats.completion_funnel &&
+        this.stats.completion_funnel.length
+      ) {
+        this.charts.funnel = new Chart(fCtx, {
+          type: "bar",
+          data: {
+            labels: this.stats.completion_funnel.map(function (f) {
+              return f.step;
+            }),
+            datasets: [
+              {
+                data: this.stats.completion_funnel.map(function (f) {
+                  return f.count;
+                }),
+                backgroundColor: GREEN,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { display: false },
+            scales: {
+              yAxes: [
+                {
+                  ticks: intTicks,
+                  scaleLabel: {
+                    display: true,
+                    fontColor: "#9ca3af",
+                    fontSize: 11,
+                    labelString: tr.axisStudentsReached,
+                  },
+                },
+              ],
+              xAxes: [
+                {
+                  gridLines: { display: false },
+                  scaleLabel: {
+                    display: true,
+                    fontColor: "#9ca3af",
+                    fontSize: 11,
+                    labelString: tr.axisStep,
+                  },
+                },
+              ],
+            },
+          },
+        });
+      }
+
+      // Weekly
+      var wCtx = this.$refs.weeklyChart;
+      if (
+        wCtx &&
+        !this.showTable.weekly &&
+        this.stats.weekly_activity &&
+        this.stats.weekly_activity.length
+      ) {
+        this.charts.weekly = new Chart(wCtx, {
+          type: "line",
+          data: {
+            labels: this.stats.weekly_activity.map(function (w) {
+              return w.week;
+            }),
+            datasets: [
+              {
+                label: tr.axisResponses,
+                data: this.stats.weekly_activity.map(function (w) {
+                  return w.messages;
+                }),
+                borderColor: GREEN,
+                backgroundColor: "rgba(37,99,176,0.08)",
+                fill: true,
+                tension: 0.4,
+                yAxisID: "y-responses",
+              },
+              {
+                label: tr.axisUsers,
+                data: this.stats.weekly_activity.map(function (w) {
+                  return w.users;
+                }),
+                borderColor: GREEN_MID,
+                backgroundColor: "rgba(37,99,176,0.04)",
+                fill: true,
+                tension: 0.4,
+                yAxisID: "y-users",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { position: "bottom" },
+            scales: {
+              yAxes: [
+                {
+                  id: "y-responses",
+                  position: "left",
+                  ticks: intTicks,
+                  scaleLabel: {
+                    display: true,
+                    fontColor: "#9ca3af",
+                    fontSize: 11,
+                    labelString: tr.axisResponses,
+                  },
+                },
+                {
+                  id: "y-users",
+                  position: "right",
+                  ticks: intTicks,
+                  gridLines: { drawOnChartArea: false },
+                  scaleLabel: {
+                    display: true,
+                    fontColor: "#9ca3af",
+                    fontSize: 11,
+                    labelString: tr.axisUsers,
+                  },
+                },
+              ],
+              xAxes: [
+                {
+                  scaleLabel: {
+                    display: true,
+                    fontColor: "#9ca3af",
+                    fontSize: 11,
+                    labelString: tr.axisWeek,
+                  },
+                },
+              ],
+            },
+          },
+        });
+      }
     },
-
-    renderFunnel() {
-      const el = this.$refs.funnelChart;
-      if (!el || !this.stats.completion_funnel) return;
-
-      if (this.charts.funnel) this.charts.funnel.destroy();
-
-      this.charts.funnel = new Chart(el, {
-        type: "bar",
-        data: {
-          labels: this.stats.completion_funnel.map(f => f.step),
-          datasets: [{
-            data: this.stats.completion_funnel.map(f => f.count),
-            backgroundColor: "#06b6d4"
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false
-        }
+    destroyCharts: function () {
+      Object.values(this.charts).forEach(function (c) {
+        if (c) c.destroy();
       });
+      this.charts = { dropoff: null, funnel: null, weekly: null };
+    },
+    beforeUnmount: function () {
+      this.destroyCharts();
     },
   },
-});
+};
 </script>
 
 <style scoped>
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap");
+
 .td-root {
-  padding: 24px;
-  background: #f6f7fb;
-  min-height: 100vh;
   font-family: "DM Sans", sans-serif;
+  background: #f0f4fa;
+  min-height: 100vh;
+  padding: 24px 32px;
+  color: #1a1d2e;
+  overflow-y: auto;
 }
 
-/* HEADER */
 .td-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.td-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.td-badge {
+  font-family: "DM Mono", monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: #2563b0;
+  background: #dbeafe;
+  padding: 3px 8px;
+  border-radius: 4px;
+  width: fit-content;
+}
+.td-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.td-header-right {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.td-filter-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.td-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.td-date-field label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #9ca3af;
+}
+.td-date-field input,
+.td-select {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 0.8rem;
+  font-family: "DM Sans", sans-serif;
+  background: white;
+}
+.td-select {
+  min-width: 160px;
+  max-width: 200px;
+}
+
+.td-btn {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.td-btn-primary {
+  background: #2563b0;
+  color: white;
+}
+.td-btn-primary:hover {
+  background: #1a4f9a;
+}
+.td-btn-ghost {
+  background: white;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+.td-btn-ghost:hover {
+  background: #f9fafb;
+}
+.td-toggle-btn {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563b0;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  white-space: nowrap;
+}
+.td-toggle-btn:hover {
+  background: #dbeafe;
+}
+
+.td-loading {
+  text-align: center;
+  padding: 60px;
+  color: #9ca3af;
+}
+.td-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #2563b0;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.td-error {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563b0;
+  padding: 12px 16px;
+  border-radius: 8px;
   margin-bottom: 20px;
 }
 
-.td-header h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.td-header p {
-  margin: 4px 0 0;
-  color: #6b7280;
-  font-size: 13px;
-}
-
-/* KPI GRID */
 .td-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
-
 .td-kpi {
   background: white;
   border-radius: 10px;
-  padding: 14px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
-
+.td-kpi-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+}
 .td-kpi-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: #4f46e5;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 4px;
+  font-family: "DM Mono", monospace;
 }
-
 .td-kpi-label {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #6b7280;
+  font-weight: 500;
+}
+.td-kpi-sub {
+  font-size: 0.68rem;
+  color: #9ca3af;
+  margin-top: 3px;
 }
 
-/* CHART GRID */
-.td-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.td-charts-row {
+  display: flex;
   gap: 16px;
+  margin-bottom: 16px;
 }
-
-.td-card {
+.td-chart-card {
   background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  height: 320px;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
 }
-
-.td-card h3 {
-  margin: 0 0 10px;
-  font-size: 14px;
+.td-chart-wide {
+  flex: 2;
+}
+.td-chart-narrow {
+  flex: 1;
+}
+.td-chart-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.td-chart-title {
+  font-size: 0.9rem;
   font-weight: 600;
-  color: #374151;
+  display: block;
+}
+.td-chart-sub {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+.td-canvas-wrap {
+  position: relative;
+  height: 200px;
+}
+.td-canvas-wrap canvas {
+  height: 200px !important;
+}
+.td-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #d1d5db;
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
-canvas {
-  flex: 1;
+.td-info-card {
+  justify-content: center;
+}
+.td-big-stat {
+  font-size: 2.2rem;
+  font-weight: 700;
+  font-family: "DM Mono", monospace;
+  margin: 8px 0 4px;
+  color: #2563b0;
+}
+.td-progress-bar-wrap {
+  background: #dbeafe;
+  border-radius: 99px;
+  height: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.td-progress-bar {
+  background: #2563b0;
+  height: 6px;
+  border-radius: 99px;
+  transition: width 0.6s ease;
+}
+
+.td-table-mt {
+  margin-top: 4px;
+}
+.td-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.td-table th {
+  padding: 5px 8px;
+  text-align: left;
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #f3f4f6;
+}
+.td-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f9fafb;
+  color: #374151;
+}
+.td-table tr:last-child td {
+  border-bottom: none;
+}
+.td-empty-row {
+  color: #d1d5db;
+  text-align: center;
+  padding: 12px;
+}
+
+@media print {
+  .td-header-right {
+    display: none;
+  }
+  .td-root {
+    background: white;
+    padding: 16px;
+  }
+  .td-chart-card,
+  .td-kpi {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+  }
 }
 </style>
