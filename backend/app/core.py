@@ -445,7 +445,8 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                     context_prompt = get_context_prompt(current_context.context, user)
                     update_current_conversation_step(user, "strategy")
 
-                    llm_message = get_llm_response(context_prompt + "  " + system_prompt, None, 0.1)
+                    llm_message = get_llm_response(context_prompt + "  " + system_prompt, None, 0.1,
+                                                   prev_conversation=conversation_for_current_context)
 
                     log_action(
                         LogAction.REPLY_LLM,

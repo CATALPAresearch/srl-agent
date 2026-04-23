@@ -40,6 +40,9 @@
           v-for="kpi in kpiCards"
           :key="kpi.label"
           :style="'--accent: ' + kpi.color"
+          @mouseenter="
+            logInteraction('dashboard_kpi_hovered', { kpi: kpi.label })
+          "
         >
           <div class="td-kpi-value">{{ kpi.value }}</div>
           <div class="td-kpi-label">{{ kpi.label }}</div>
@@ -106,7 +109,17 @@
               >
                 <td colspan="2" class="td-empty-row">{{ t("noData") }}</td>
               </tr>
-              <tr v-for="r in stats.dropoff_distribution" :key="r.step">
+              <tr
+                v-for="r in stats.dropoff_distribution"
+                :key="r.step"
+                @mouseenter="
+                  logInteraction('dashboard_table_row_hovered', {
+                    chart: 'dropoff',
+                    step: r.step,
+                    count: r.count,
+                  })
+                "
+              >
                 <td>{{ r.step }}</td>
                 <td>{{ r.count }}</td>
               </tr>
@@ -147,7 +160,17 @@
               >
                 <td colspan="2" class="td-empty-row">{{ t("noData") }}</td>
               </tr>
-              <tr v-for="r in stats.completion_funnel" :key="r.step">
+              <tr
+                v-for="r in stats.completion_funnel"
+                :key="r.step"
+                @mouseenter="
+                  logInteraction('dashboard_table_row_hovered', {
+                    chart: 'funnel',
+                    step: r.step,
+                    count: r.count,
+                  })
+                "
+              >
                 <td>{{ r.step }}</td>
                 <td>{{ r.count }}</td>
               </tr>
@@ -191,7 +214,18 @@
               >
                 <td colspan="3" class="td-empty-row">{{ t("noData") }}</td>
               </tr>
-              <tr v-for="r in stats.weekly_activity" :key="r.week">
+              <tr
+                v-for="r in stats.weekly_activity"
+                :key="r.week"
+                @mouseenter="
+                  logInteraction('dashboard_table_row_hovered', {
+                    chart: 'weekly',
+                    week: r.week,
+                    responses: r.messages,
+                    users: r.users,
+                  })
+                "
+              >
                 <td>{{ r.week }}</td>
                 <td>{{ r.messages }}</td>
                 <td>{{ r.users }}</td>
@@ -394,8 +428,30 @@ export default {
       var tr = TRANSLATIONS[this.lang] || TRANSLATIONS["de"];
       return tr[key] || key;
     },
+    logInteraction: function (action, value) {
+      var base = window.SRL_BACKEND_URL || "";
+      var userid =
+        (window.SRL_CONFIG && window.SRL_CONFIG.userId) ||
+        new URLSearchParams(window.location.search).get("userid") ||
+        localStorage.getItem("srl_userid");
+      axios
+        .post(base + "/log/interaction", {
+          userid: userid,
+          client: "web",
+          action: action,
+          value: value || {},
+          timestamp: Math.floor(Date.now() / 1000),
+        })
+        .catch(function () {
+          /* non-critical */
+        });
+    },
     toggle: function (key) {
       this.showTable[key] = !this.showTable[key];
+      this.logInteraction("dashboard_chart_toggled", {
+        chart: key,
+        show_table: this.showTable[key],
+      });
       if (!this.showTable[key]) {
         var self = this;
         this.$nextTick(function () {
@@ -403,8 +459,15 @@ export default {
         });
       }
     },
-    loadStats: function () {
+    loadStats: function (fromUserAction) {
       var self = this;
+      if (fromUserAction) {
+        self.logInteraction("dashboard_filter_applied", {
+          date_from: self.dateFrom,
+          date_to: self.dateTo,
+          course: self.selectedCourse,
+        });
+      }
       self.isLoading = true;
       var base = window.SRL_BACKEND_URL || "";
       var url = base + "/dashboard/stats";
@@ -454,6 +517,7 @@ export default {
       this.dateFrom = "";
       this.dateTo = "";
       this.selectedCourse = "";
+      this.logInteraction("dashboard_filter_cleared", {});
       this.loadStats();
     },
     renderCharts: function () {

@@ -84,6 +84,12 @@
                       :target="'sr-rl-' + componentId + '-' + o.idx"
                       triggers="hover focus"
                       placement="auto"
+                      @show="
+                        logInteraction('strategy_hovered', {
+                          strategy: data.radar_data[o.idx].name,
+                          idx: o.idx,
+                        })
+                      "
                     >
                       <template #title>{{
                         data.radar_data[o.idx].name
@@ -194,6 +200,12 @@
                       :target="'sr-tag-' + componentId + '-' + si"
                       triggers="hover focus"
                       placement="top"
+                      @show="
+                        logInteraction('unmentioned_strategy_hovered', {
+                          strategy: s.name,
+                          id: s.id,
+                        })
+                      "
                     >
                       <template #title>{{ s.name }}</template>
                       {{ s.definition || s.description }}
@@ -454,6 +466,20 @@ export default Vue.extend({
       if (val >= 4) return "sr-bar-high";
       if (val >= 3) return "sr-bar-mid";
       return "sr-bar-low";
+    },
+
+    logInteraction(action, value) {
+      axios
+        .post(`${this.host}/log/interaction`, {
+          userid: this.$store.getters.getUser,
+          client: "web",
+          action,
+          value,
+          timestamp: Math.floor(Date.now() / 1000),
+        })
+        .catch(() => {
+          /* non-critical */
+        });
     },
 
     async loadResults() {
