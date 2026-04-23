@@ -51,14 +51,14 @@
               study and find better ways to learn.
             </p>
             <p v-if="lang === 'de'">
-              Studierende verbringen etwa <strong>10 Minuten</strong> damit, mit
-              dem System zu chatten und Fragen zu ihren Lerngewohnheiten zu
+              Studierende verbringen etwa <strong>10-20 Minuten</strong> damit,
+              mit dem System zu chatten und Fragen zu ihren Lerngewohnheiten zu
               beantworten. Das System gibt dann umgehend jedem Studierenden
               <strong>personalisiertes Feedback</strong> – basierend auf
               Lerntheorien und empirisch validierten Instrumenten.
             </p>
             <p v-else>
-              Students will spend about <strong>10 minutes</strong> chatting
+              Students will spend about <strong>10-20 minutes</strong> chatting
               with it, answering questions about their study habits. Then, the
               system will promptly give each student
               <strong>personalized feedback</strong> (based on learning theories
@@ -218,30 +218,6 @@
               independent learners.
             </p>
 
-            <!-- Action buttons -->
-            <div class="d-flex flex-wrap gap-2 mb-4">
-              <router-link to="/agent-chat">
-                <button class="btn btn-primary mr-2 mb-2">
-                  {{
-                    lang === "de"
-                      ? "Jetzt selbst ausprobieren"
-                      : "Try it yourself"
-                  }}
-                </button>
-              </router-link>
-              <router-link to="/dashboard/teacher">
-                <button class="btn btn-outline-secondary mb-2">
-                  {{
-                    lang === "de"
-                      ? "Ergebnisse meiner Studierenden ansehen"
-                      : "View my students' results"
-                  }}
-                </button>
-              </router-link>
-            </div>
-
-            <hr />
-
             <!-- Consent not yet given -->
             <div v-if="!consentGiven" class="mb-2">
               <p class="mb-3">
@@ -251,7 +227,7 @@
                     : "To continue, we ask for your informed consent to collect and analyze data. Participation is completely voluntary, and you can stop at any time."
                 }}
               </p>
-              <button class="btn btn-outline-primary" @click="openConsentModal">
+              <button class="btn btn-primary" @click="openConsentModal">
                 {{
                   lang === "de"
                     ? "Einwilligungserklärung lesen &amp; zustimmen"
@@ -260,15 +236,39 @@
               </button>
             </div>
 
-            <!-- Consent given confirmation -->
-            <div v-else class="alert alert-success border-0 mb-0">
-              <span class="mr-2">✅</span>
-              {{
-                lang === "de"
-                  ? "Einwilligung erteilt. Vielen Dank."
-                  : "Consent given. Thank you."
-              }}
-            </div>
+            <!-- Consent given: confirmation + action buttons -->
+            <template v-else>
+              <div class="alert alert-success border-0 mb-3">
+                <span class="mr-2">✅</span>
+                {{
+                  lang === "de"
+                    ? "Einwilligung erteilt. Vielen Dank."
+                    : "Consent given. Thank you."
+                }}
+              </div>
+
+              <!-- Action buttons — only visible after consent -->
+              <div class="d-flex flex-wrap gap-2">
+                <router-link to="/agent-chat">
+                  <button class="btn btn-primary mr-2 mb-2">
+                    {{
+                      lang === "de"
+                        ? "Jetzt selbst ausprobieren"
+                        : "Try it yourself"
+                    }}
+                  </button>
+                </router-link>
+                <router-link to="/dashboard/teacher">
+                  <button class="btn btn-secondary mb-2">
+                    {{
+                      lang === "de"
+                        ? "Ergebnisse meiner Studierenden ansehen"
+                        : "View my students' results"
+                    }}
+                  </button>
+                </router-link>
+              </div>
+            </template>
 
             <!-- Consent modal -->
             <div
@@ -284,7 +284,7 @@
                 >
                   &times;
                 </button>
-                <ChatInformedConsent />
+                <ChatInformedConsent :lang="lang" />
               </div>
             </div>
           </div>
