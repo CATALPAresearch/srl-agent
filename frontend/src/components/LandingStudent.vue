@@ -241,8 +241,8 @@
                   <span class="mr-2">✅</span>
                   <span>{{
                     lang === "de"
-                      ? "Sie haben das Interview bereits abgeschlossen."
-                      : "You have already completed the interview."
+                      ? "Sie haben ein Interview bereits abgeschlossen."
+                      : "You have already completed an interview."
                   }}</span>
                 </div>
                 <router-link to="/results" class="mr-3">
@@ -250,13 +250,14 @@
                     {{ lang === "de" ? "Ergebnisse ansehen" : "View Results" }}
                   </button>
                 </router-link>
-                <router-link to="/agent-chat">
-                  <button class="btn btn-outline-secondary btn-lg">
-                    {{
-                      lang === "de" ? "Interview wiederholen" : "Redo Interview"
-                    }}
-                  </button>
-                </router-link>
+                <button
+                  class="btn btn-outline-secondary btn-lg"
+                  @click="redoInterview"
+                >
+                  {{
+                    lang === "de" ? "Interview wiederholen" : "Redo Interview"
+                  }}
+                </button>
               </div>
             </div>
           </div>
@@ -348,6 +349,19 @@ export default Vue.extend({
       this.$store.commit("setInformedConsentAgreement", "none");
       this.showConsentModal = true;
     },
+    async redoInterview() {
+      try {
+        await axios.post(`${this.host}/resetConversation`, {
+          client: "web",
+          userid: this.$store.getters.getUser,
+        });
+      } catch (e) {
+        // proceed even if archiving fails
+      }
+      localStorage.setItem("srl_fresh_start", "1");
+      this.$router.push("/agent-chat");
+    },
+
     async fetchInterviewState() {
       const userid = this.$store.getters.getUser;
       // Users are always stored with client="web" in the standalone/LTI context.
