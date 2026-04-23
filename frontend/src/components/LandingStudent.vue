@@ -283,7 +283,6 @@ export default Vue.extend({
       // 'not_started' | 'in_progress' | 'completed'
       interviewState: "not_started",
       showConsentModal: false,
-      host: "http://localhost:5000",
       progressStats: [
         {
           value: "0",
@@ -305,6 +304,9 @@ export default Vue.extend({
   },
 
   computed: {
+    host() {
+      return this.$store.getters.getApiHost;
+    },
     lang() {
       return this.$store.getters.getLanguage || "de";
     },
