@@ -145,11 +145,14 @@ export default Vue.extend({
       submitted: false,
       errorMsg: "",
       showValidation: false,
-      host: "http://localhost:5000",
     };
   },
 
   computed: {
+    host() {
+      return this.$store.getters.getApiHost;
+    },
+
     lang() {
       // Use the store language (defaults to German)
       return this.$store.getters.getLanguage || "de";
