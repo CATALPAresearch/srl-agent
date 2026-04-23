@@ -1,10 +1,12 @@
-from collections import OrderedDict
 import json
 import os
+import re
+import time
+import threading
 from flask import jsonify, session
 import logging
 
-from . import db
+from . import db, app
 from .actions import LogAction
 from .llm import (
     get_llm_response,
@@ -35,12 +37,181 @@ from .database.crud import (
     save_evaluation_for_strategy,
     update_most_recent_strategy_for_frequency,
     store_study_subject,
-    archive_conversation
+    archive_conversation,
+    reset_user_run_state,
+    get_active_run_started_at,
 )
 from .logging_utlis import log_action
 from .steps import strategy_step, frequency_step, validate_strategies, intro_step
 
 logger = logging.getLogger("InterviewAgent")
+_SUMMARY_THREADS = set()
+_STRATEGY_CODE_PATTERN = re.compile(r"\b\d{3}-\d{3}\b")
+_STRATEGY_NAME_CACHE = {}
+
+
+def _pending_summary_message(user):
+    user_lang = get_language(user.language_id)
+    if user_lang and user_lang.lang_code == "de":
+        return (
+            "Das Interview ist abgeschlossen. Bitte fülle jetzt den Fragebogen aus. "
+            "Deine Zusammenfassung wird im Hintergrund erstellt."
+        )
+    return (
+        "The interview is complete. Please fill out the survey now. "
+        "Your summary is being generated in the background."
+    )
+
+
+def _is_pending_summary_message(text):
+    if not text or not isinstance(text, str):
+        return False
+
+    normalized = text.strip().lower()
+    return (
+        "summary is being generated in the background" in normalized
+        or "zusammenfassung wird im hintergrund erstellt" in normalized
+        or "bitte fuelle jetzt den fragebogen aus" in normalized
+        or "bitte fülle jetzt den fragebogen aus" in normalized
+    )
+
+
+def _summary_fallback_message(user):
+    user_lang = get_language(user.language_id)
+    if user_lang and user_lang.lang_code == "de":
+        return (
+            "Vielen Dank fuers Ausfuellen des Fragebogens. "
+            "Die ausfuehrliche Zusammenfassung konnte gerade nicht automatisch erzeugt werden. "
+            "Bitte oeffne die Ergebnisse, um deine Lernstrategien einzusehen."
+        )
+    return (
+        "Thank you for completing the survey. "
+        "The detailed summary could not be generated automatically just now. "
+        "Please open the results to review your learning strategies."
+    )
+
+
+def _get_latest_complete_message(user):
+    run_started_at = get_active_run_started_at(user)
+    complete_msgs = []
+    for response in user.llm_responses:
+        if response.conversation_step != "complete":
+            continue
+        if run_started_at is not None and response.message_time < run_started_at:
+            continue
+        complete_msgs.append(response)
+    if not complete_msgs:
+        return None
+    complete_msgs.sort(key=lambda r: (r.message_time, r.turn), reverse=True)
+    return complete_msgs[0].message
+
+
+def _replace_strategy_codes_with_names(user, text):
+    if not text or not isinstance(text, str):
+        return text
+
+    def _sub(match):
+        code = match.group(0)
+        cache_key = (user.language_id, code)
+        if cache_key in _STRATEGY_NAME_CACHE:
+            return _STRATEGY_NAME_CACHE[cache_key]
+
+        replacement = code
+        try:
+            strategy = get_strategy_translation_by_id(user, code)
+            if strategy and strategy.name:
+                replacement = strategy.name
+        except Exception as e:
+            logger.warning("Could not resolve strategy code %s: %s", code, e)
+
+        _STRATEGY_NAME_CACHE[cache_key] = replacement
+        return replacement
+
+    return _STRATEGY_CODE_PATTERN.sub(_sub, text)
+
+
+def _spawn_summary_generation(user_id, client):
+    key = f"{user_id}:{client}"
+    if key in _SUMMARY_THREADS:
+        return
+    _SUMMARY_THREADS.add(key)
+
+    def _worker():
+        try:
+            with app.app_context():
+                user = get_user(user_id, client)
+                if user is None or not user.conversation_state:
+                    return
+
+                latest_complete = _get_latest_complete_message(user)
+                if latest_complete and not _is_pending_summary_message(latest_complete):
+                    # Real summary already present for this run – nothing to do.
+                    return
+
+                llm_message = sign_off_interview(user)
+                llm_message = _replace_strategy_codes_with_names(user, llm_message)
+                turn = update_current_turn(user)
+                store_llm_answer(
+                    user,
+                    llm_message,
+                    None,
+                    user.conversation_state.strategy_for_frequency,
+                    turn,
+                    "complete",
+                )
+                db.session.commit()
+                logger.info("Background summary generated for %s/%s", user_id, client)
+        except Exception as e:
+            logger.error("Background summary generation failed for %s/%s: %s", user_id, client, e)
+            try:
+                with app.app_context():
+                    user = get_user(user_id, client)
+                    if user is None or not user.conversation_state:
+                        return
+                    latest_complete = _get_latest_complete_message(user)
+                    if latest_complete and not _is_pending_summary_message(latest_complete):
+                        return
+
+                    fallback = _replace_strategy_codes_with_names(user, _summary_fallback_message(user))
+                    turn = update_current_turn(user)
+                    store_llm_answer(
+                        user,
+                        fallback,
+                        None,
+                        user.conversation_state.strategy_for_frequency,
+                        turn,
+                        "complete",
+                    )
+                    db.session.commit()
+                    logger.info("Stored fallback summary for %s/%s", user_id, client)
+            except Exception as fallback_err:
+                logger.error(
+                    "Failed to store fallback summary for %s/%s: %s",
+                    user_id,
+                    client,
+                    fallback_err,
+                )
+        finally:
+            _SUMMARY_THREADS.discard(key)
+
+    threading.Thread(target=_worker, daemon=True, name=f"summary-{user_id[:8]}").start()
+
+
+def trigger_summary_generation_if_needed(user_id, client):
+    """Ensure summary generation is queued for a completed interview run."""
+    user = get_user(user_id, client)
+    if user is None or not user.conversation_state:
+        return {"queued": False, "reason": "user_not_found"}
+
+    if not user.conversation_state.interview_completed:
+        return {"queued": False, "reason": "interview_not_completed"}
+
+    latest_complete = _get_latest_complete_message(user)
+    if latest_complete and not _is_pending_summary_message(latest_complete):
+        return {"queued": False, "reason": "summary_already_present"}
+
+    _spawn_summary_generation(user.id, user.client)
+    return {"queued": True, "reason": "summary_requested"}
 
 
 def start_conversation_core(language, client, userid) -> tuple[str, int]:
@@ -99,6 +270,29 @@ def start_conversation_core(language, client, userid) -> tuple[str, int]:
                 context="conversation_start",
                 strategy="strategy_not_detected"
             )
+        elif user.conversation_state and user.conversation_state.interview_completed:
+            # Completed runs should not be resumed. Archive and reset to a fresh run state.
+            reset_conversation(user)
+
+            # Keep the same user identity; only reset active run state.
+            user.context_id = session.get("lti_context") or user.context_id or "0"
+            user.context_title = session.get("lti_context_title") or user.context_title
+            reset_user_run_state(user)
+
+            log_action(
+                LogAction.USER_CREATED,
+                user=user,
+                value={
+                    "language": language,
+                    "client": client,
+                    "restart_after_completion": True,
+                },
+                http_status=201,
+                turn=0,
+                step="user_recreated_after_completion",
+                context="conversation_start",
+                strategy="strategy_not_detected"
+            )
 
         logger.info("Created new user (%s): %s - %s", language, user.id, user.client)
 
@@ -117,7 +311,18 @@ def start_conversation_core(language, client, userid) -> tuple[str, int]:
         intro_prompt = get_prompt(user, "intro")
         update_current_conversation_step(user, "intro")
 
-        llm_message = get_llm_response(system_prompt + " " + intro_prompt, None, 0.1)
+        try:
+            llm_message = get_llm_response(system_prompt + " " + intro_prompt, None, 0.1)
+        except Exception as e:
+            logger.error("Initial LLM call failed in start_conversation_core: %s", e)
+            llm_message = (
+                "Hallo! Lass uns mit dem Interview beginnen. "
+                "In welchem Fach möchtest du einen Abschluss machen?"
+                if language == "de"
+                else "Hello! Let's begin the interview. What subject are you studying?"
+            )
+
+        llm_message = _replace_strategy_codes_with_names(user, llm_message)
 
         turn = update_current_turn(user)
         store_llm_answer(user, llm_message, None, None, turn, step="intro")
@@ -133,8 +338,19 @@ def start_conversation_core(language, client, userid) -> tuple[str, int]:
         )
 
         return jsonify({"message": llm_message}), 200
-    except Exception:
-        raise
+    except Exception as e:
+        logger.error("Unhandled error in start_conversation_core: %s", e)
+        log_action(
+            LogAction.ERROR_OCCURRED,
+            user=user if 'user' in locals() else None,
+            value={"error": str(e)},
+            http_status=500,
+            step="start_conversation",
+            context="conversation_start",
+            strategy="strategy_not_detected",
+        )
+        fallback = translations["translations"].get(language, translations["translations"]["en"])["create_error"]
+        return fallback, 500
 
 
 def reply_core(client, userid, user_message) -> tuple[str, int]:
@@ -199,10 +415,8 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
         logger.info(user_message)
 
         if user.conversation_state.interview_completed:
-            llm_message = sign_off_interview(user)
-            store_llm_answer(user, llm_message, current_context,
-                             user.conversation_state.strategy_for_frequency, turn,
-                             user.conversation_state.current_conversation_step)
+            llm_message = _get_latest_complete_message(user) or _pending_summary_message(user)
+            llm_message = _replace_strategy_codes_with_names(user, llm_message)
             return jsonify({"message": llm_message, "complete": True}), 200
 
         logger.info("Replying to user: %s - %s. Step: %s", user.id, user.client, conversation_step)
@@ -316,6 +530,8 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
             case _:
                 pass
 
+        llm_message = _replace_strategy_codes_with_names(user, llm_message)
+
         store_llm_answer(user, llm_message, current_context,
                          user.conversation_state.strategy_for_frequency, turn,
                          user.conversation_state.current_conversation_step
@@ -338,8 +554,27 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
             context=current_context.context if current_context else None,
             strategy=user.conversation_state.strategy_for_frequency if user else None
         )
+        # Avoid hard frontend failure (Axios 500) and keep conversation usable.
+        fallback_text = (
+            "Entschuldigung, ich hatte gerade ein internes Problem. "
+            "Kannst du die letzte Antwort bitte noch einmal kurz formulieren?"
+        )
+        try:
+            if user and user.language_id:
+                lang = get_language_by_id(user.language_id)
+                if lang and lang.lang_code == "en":
+                    fallback_text = (
+                        "Sorry, I had an internal issue just now. "
+                        "Could you briefly repeat your last answer?"
+                    )
+        except Exception:
+            pass
 
-        return "An error occurred", 500
+        return jsonify({
+            "message": fallback_text,
+            "complete": bool(user.conversation_state.interview_completed) if user and user.conversation_state else False,
+            "degraded": True,
+        }), 200
 
 
 def set_current_context_complete(user, current_context):
@@ -358,24 +593,28 @@ def set_current_context_complete(user, current_context):
 
 
 def retrieve_full_conversation(user, context_id=None, step=None, strategy_id=None):
-    conversation = {}
+    # Use a list of (turn, role_order, message) tuples to avoid collisions when
+    # both a user answer and a bot reply share the same turn number.
+    # role_order=0 → user (spoke first), role_order=1 → assistant (replied second).
+    run_started_at = get_active_run_started_at(user)
+    entries = []
     for response in user.llm_responses:
         if context_id is None or response.context == context_id:
             if step is None or response.conversation_step == step:
                 if strategy_id is None or response.strategy == strategy_id:
-                    conversation[response.turn] = {"role": "assistant", "content": response.message}
+                    if run_started_at is not None and response.message_time < run_started_at:
+                        continue
+                    entries.append((response.turn, 1, {"role": "assistant", "content": response.message}))
     for response in user.interview_answers:
         if context_id is None or response.context == context_id:
             if step is None or response.conversation_step == step:
                 if strategy_id is None or response.strategy == strategy_id:
-                    conversation[response.turn] = {"role": "user", "content": response.message}
-    ordered_conversation = OrderedDict(sorted(conversation.items()))
+                    if run_started_at is not None and response.message_time < run_started_at:
+                        continue
+                    entries.append((response.turn, 0, {"role": "user", "content": response.message}))
 
-    messages = []
-    for turn, data in ordered_conversation.items():
-        messages.append(data)
-
-    return messages
+    entries.sort(key=lambda e: (e[0], e[1]))
+    return [msg for _, _, msg in entries]
 
 
 def ask_about_frequency(user, current_context):
@@ -400,13 +639,30 @@ def ask_about_frequency(user, current_context):
             update_most_recent_strategy_for_frequency(user, strategy)
             conversation_so_far = retrieve_full_conversation(user, context.id, "strategy")
             llm_message = get_llm_response(frequency_prompt + " " + system_prompt,
-                                                  prev_conversation=conversation_so_far)
+                                                  prev_conversation=_user_only_conv(conversation_so_far))
             new_context = current_context
             break
     # if all answers have frequency, move to next context
     else:
         llm_message, new_context = move_to_next_context(user, current_context)
     return llm_message, new_context
+
+
+def _generate_summary_now(user):
+    """Generate the interview summary synchronously.
+
+    Called directly from move_to_next_context so the summary is ready
+    in the same DB transaction as the interview completion – no background
+    thread, no race conditions, no server-restart-kills-thread issues.
+    """
+    try:
+        llm_message = sign_off_interview(user)
+        llm_message = _replace_strategy_codes_with_names(user, llm_message)
+        logger.info("Summary generated synchronously for %s/%s", user.id, user.client)
+        return llm_message
+    except Exception as e:
+        logger.error("Synchronous summary generation failed for %s/%s: %s", user.id, user.client, e)
+        return _replace_strategy_codes_with_names(user, _summary_fallback_message(user))
 
 
 def move_to_next_context(user, current_context):
@@ -421,10 +677,7 @@ def move_to_next_context(user, current_context):
     if stop_after_contexts > 0 and len(completed_contexts) >= stop_after_contexts:
         set_interview_complete(user)
         update_current_conversation_step(user, "complete")
-        llm_message = (
-            f"[TEST MODE] Interview stopped early after {len(completed_contexts)} "
-            "context(s)."
-        )
+        llm_message = _generate_summary_now(user)
         return llm_message, None
 
     if next_context:
@@ -432,10 +685,10 @@ def move_to_next_context(user, current_context):
         prompt = get_context_prompt(next_context.context, user)
         update_current_conversation_step(user, "strategy")
         llm_message = get_llm_response(prompt + system_prompt,
-                                              prev_conversation=conversation_so_far)
+                                              prev_conversation=_user_only_conv(conversation_so_far))
     else:
         update_current_conversation_step(user, "complete")
-        llm_message = sign_off_interview(user)
+        llm_message = _generate_summary_now(user)
 
     return llm_message, next_context
 
@@ -487,14 +740,21 @@ def generate_summary(user, strategy_scores):
     for strat in consistently_used:
         const_strategies.append(get_strategy_translation_by_id(user, strat).description)
     full_conversation = retrieve_full_conversation(user)
+    # Use only user messages as conversation context for the summary LLM call.
+    # With interleaved user+bot history the list can end on an assistant message,
+    # which confuses the model into producing dialogue instead of a summary.
+    user_only_conv = [m for m in full_conversation if isinstance(m, dict) and m.get("role") == "user"]
     system_prompt = get_prompt(user, "system")
     prompt = get_complete_prompt(user, most_contexts_strat, const_strategy, avg_freq, total_strat, const_strategies)
-    llm_message = get_llm_response(prompt + " " + system_prompt, prev_conversation=full_conversation)
+    llm_message = get_llm_response(prompt + " " + system_prompt, prev_conversation=user_only_conv)
     return llm_message
 
 
 def reset_conversation(user):
     try:
+        user_id = user.id if user else None
+        user_client = user.client if user else None
+
         log_action(
             LogAction.RESET_CONVERSATION,
             user=user,
@@ -508,13 +768,20 @@ def reset_conversation(user):
         conversation = retrieve_full_conversation(user)
         state = user.conversation_state
 
+        completed_contexts = get_completed_contexts(user) or []
+        total_contexts = len(get_contexts(user.language_id) or [])
         archive = {
+            "user_id": user.id,
+            "user_client": user.client,
+            "archived_at": int(time.time()),
             "messages": conversation,
             "state": {
                 "complete": state.interview_completed,
                 "current_context": state.current_context,
-                "step": state.current_conversation_step
-            }
+                "step": state.current_conversation_step,
+                "completed_contexts": len(completed_contexts),
+                "total_contexts": total_contexts,
+            },
         }
 
         success = archive_conversation(user, archive)
@@ -522,8 +789,11 @@ def reset_conversation(user):
         if success:
             log_action(
                 LogAction.CONVERSATION_ARCHIVED,
-                user=user,
-                value={"archived_messages": len(conversation)},
+                value={
+                    "user_id": user_id,
+                    "user_client": user_client,
+                    "archived_messages": len(conversation),
+                },
                 http_status=200,
                 step="complete",
                 context="conversation archived",
@@ -542,8 +812,11 @@ def reset_conversation(user):
     except Exception as e:
         log_action(
             LogAction.ERROR_OCCURRED,
-            user=user,
-            value={"error": str(e)},
+            value={
+                "user_id": user_id if 'user_id' in locals() else None,
+                "user_client": user_client if 'user_client' in locals() else None,
+                "error": str(e),
+            },
             http_status=500
         )
         raise

@@ -131,10 +131,10 @@ def get_llm_response(
     logger.info("System Prompt: %s", system_prompt)
     logger.info("User Prompt: %s", user_prompt)
 
-    # Use user/assistant format instead of system role for llama3.2 compatibility
+    # This backend responds reliably to instruction text in a user message,
+    # but not to a standalone system-role message.
     messages = [
         {"role": "user", "content": system_prompt},
-        {"role": "assistant", "content": "Understood, I will conduct the interview."},
     ]
     if prev_conversation:
         messages.extend(prev_conversation)

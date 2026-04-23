@@ -1,6 +1,6 @@
 <template>
   <div id="container" class="content" role="main">
-    <div class="chat-header mb-3 w100">
+    <div class="chat-header w100">
       <h3 class="d-flex justify-content-betweenx xalign-items-center mb-3">
         <span id="chat-title">LLM-Chat</span>
         <button

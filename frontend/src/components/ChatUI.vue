@@ -13,10 +13,6 @@
         </div>
         <h2 class="chat-title">{{ translatedTitle }}</h2>
       </div>
-      <div class="chat-meta" aria-hidden="true">
-        <div>{{ today }}</div>
-        <div>{{ now }} local</div>
-      </div>
     </header>
 
     <!-- Transcript body -->
@@ -71,6 +67,30 @@
             flavor="github"
             :options="{ emoji: true }"
           />
+
+          <div v-if="m.isSurveyCTA" class="chat-inline-cta">
+            <button
+              type="button"
+              class="chat-send"
+              @click="$emit('openSurvey')"
+            >
+              <span>{{ lang === "de" ? "Zur Umfrage" : "Open Survey" }}</span>
+              <font-awesome-icon icon="arrow-up" aria-hidden="true" />
+            </button>
+          </div>
+
+          <div v-if="m.isResultsCTA" class="chat-inline-cta">
+            <button
+              type="button"
+              class="chat-send"
+              @click="$emit('openResults')"
+            >
+              <span>{{
+                lang === "de" ? "Zu den Ergebnissen" : "Open Results"
+              }}</span>
+              <font-awesome-icon icon="arrow-up" aria-hidden="true" />
+            </button>
+          </div>
 
           <!-- Bot message actions -->
           <div v-if="m.author == 'bot' && m.message != ''" class="chat-actions">
@@ -189,7 +209,10 @@ import { VueShowdown } from "vue-showdown";
 export default Vue.extend({
   name: "ChatUI",
   props: {
-    messages: Object,
+    messages: {
+      type: Array,
+      default: () => [],
+    },
     is_loading: {
       type: Boolean,
       default: false,
@@ -209,6 +232,7 @@ export default Vue.extend({
       error_msg: "",
       copied: false,
       copiedIndex: null,
+      scrollTimers: [],
     };
   },
   components: {
@@ -239,16 +263,24 @@ export default Vue.extend({
       return d.toTimeString().slice(0, 5);
     },
   },
-  mounted() {},
+  mounted() {
+    this.scrollTranscriptToBottom();
+  },
+  beforeDestroy() {
+    this.clearScrollTimers();
+  },
+  updated() {
+    this.scrollTranscriptToBottom();
+  },
   watch: {
     messages: {
       deep: true,
       handler() {
-        this.$nextTick(() => {
-          const el = this.$refs.messageList;
-          if (el) el.scrollTop = el.scrollHeight;
-        });
+        this.scrollTranscriptToBottom();
       },
+    },
+    is_loading() {
+      this.scrollTranscriptToBottom();
     },
   },
   methods: {
@@ -265,6 +297,7 @@ export default Vue.extend({
       if (!this.chat_message || this.chat_message.length === 0) return;
       this.$emit("requestChatResponse", this.chat_message);
       this.chat_message = ""; // reset input field
+      this.scrollTranscriptToBottom();
       this.$nextTick(() => {
         const ta = this.$refs.chatTextarea;
         if (ta) {
@@ -314,6 +347,38 @@ export default Vue.extend({
         value: JSON.stringify({ index: message_index, rating, params }),
       });
     },
+    clearScrollTimers() {
+      this.scrollTimers.forEach((timerId) => clearTimeout(timerId));
+      this.scrollTimers = [];
+    },
+    applyScrollToBottom() {
+      const transcriptEl = this.$refs.messageList;
+      if (transcriptEl) {
+        transcriptEl.scrollTop = transcriptEl.scrollHeight;
+      }
+
+      const appViewEl = this.$el ? this.$el.closest(".chat-app__view") : null;
+      if (appViewEl) {
+        appViewEl.scrollTop = appViewEl.scrollHeight;
+      }
+
+      const root = document.scrollingElement || document.documentElement;
+      if (root) {
+        root.scrollTop = root.scrollHeight;
+      }
+    },
+    scrollTranscriptToBottom() {
+      this.clearScrollTimers();
+      this.$nextTick(() => {
+        this.applyScrollToBottom();
+
+        // Repeat shortly after render because markdown/typing nodes can change height asynchronously.
+        const t1 = setTimeout(() => this.applyScrollToBottom(), 40);
+        const t2 = setTimeout(() => this.applyScrollToBottom(), 120);
+        const t3 = setTimeout(() => this.applyScrollToBottom(), 240);
+        this.scrollTimers.push(t1, t2, t3);
+      });
+    },
   },
 });
 </script>
@@ -333,7 +398,7 @@ export default Vue.extend({
 /* -------------------------------------------------------------
  * Layout root
  * -----------------------------------------------------------*/
-#chat .chat-ui {
+#chat.chat-ui {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
@@ -343,6 +408,7 @@ export default Vue.extend({
   color: #1f1d1a;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
     sans-serif;
+  background: #fff;
 }
 
 /* -------------------------------------------------------------
@@ -354,6 +420,7 @@ export default Vue.extend({
   margin: 0 auto;
   padding: 24px 24px 14px;
   border-bottom: 1px solid #1f1d1a;
+  background: #fff;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -391,6 +458,7 @@ export default Vue.extend({
   min-height: 0;
   overflow-y: auto;
   padding: 28px 24px 20px;
+  background: #fff;
 }
 #chat .chat-row {
   max-width: 760px;
@@ -446,14 +514,12 @@ export default Vue.extend({
   color: #1f1d1a;
   line-height: 1.65;
   word-break: break-word;
-}
-#chat .chat-body.is-user {
   font-family: inherit;
   font-size: 15px;
 }
 #chat .chat-body.is-bot {
-  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
-  font-size: 17px;
+  font-family: inherit;
+  font-size: 15px;
 }
 #chat .chat-body p {
   margin: 0 0 0.6em;
@@ -567,10 +633,12 @@ export default Vue.extend({
 #chat .chat-composer {
   border: 0;
   margin: 0;
-  padding: 16px 24px 24px;
+  padding: 16px 24px 24px 6px;
   background: #faf8f3;
   border-top: 1px solid #ecebe7;
   flex-shrink: 0;
+  max-height: 100%;
+  min-height: 85px;
 }
 #chat .chat-composer-row {
   max-width: 760px;
@@ -658,6 +726,10 @@ export default Vue.extend({
 #chat .chat-send:disabled {
   color: #c9c4bc;
   cursor: not-allowed;
+}
+
+#chat .chat-inline-cta {
+  margin-top: 12px;
 }
 
 /* -------------------------------------------------------------

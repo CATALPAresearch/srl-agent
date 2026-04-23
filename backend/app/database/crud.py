@@ -1,8 +1,11 @@
 import logging
 import numpy as np
+import json
+import datetime
 from app import app, db
 from app.models import (
     Archive,
+    ActivityLog,
     User,
     Language,
     LlmResponse,
@@ -13,7 +16,7 @@ from app.models import (
     InterviewAnswer,
     ConversationCompletedContexts,
     UserStrategy,
-    StrategyEvaluation
+    StrategyEvaluation,
 )
 import sqlalchemy as sa
 import uuid
@@ -121,21 +124,48 @@ def get_strategies(lang_id):
 
 
 def get_strategies_for_context(user, context_id):
-    answers = db.session.scalars(
+    run_started_at = get_active_run_started_at(user)
+    q = (
         sa.select(UserStrategy)
+        .join(InterviewAnswer, InterviewAnswer.id == UserStrategy.interview_answer_id)
         .where(UserStrategy.user == user)
         .where(UserStrategy.context == context_id)
-    ).all()
+    )
+    if run_started_at is not None:
+        q = q.where(InterviewAnswer.message_time >= run_started_at)
+
+    answers = db.session.scalars(q).all()
     return answers
 
 
 def get_strategy_mentions_for_user(user, strategy):
-    strategy_mentions = db.session.scalars(
+    run_started_at = get_active_run_started_at(user)
+    q = (
         sa.select(UserStrategy)
+        .join(InterviewAnswer, InterviewAnswer.id == UserStrategy.interview_answer_id)
         .where(UserStrategy.user == user)
         .where(UserStrategy.strategy == strategy.strategy)
-    ).all()
+    )
+    if run_started_at is not None:
+        q = q.where(InterviewAnswer.message_time >= run_started_at)
+
+    strategy_mentions = db.session.scalars(q).all()
     return strategy_mentions
+
+
+def get_active_run_started_at(user):
+    """Return the timestamp of the latest reset for this user/client, if any."""
+    ts = db.session.scalar(
+        sa.select(ActivityLog.timestamp)
+        .where(ActivityLog.user_id == user.id)
+        .where(ActivityLog.user_client == user.client)
+        .where(ActivityLog.action == "reset_conversation")
+        .order_by(ActivityLog.timestamp.desc())
+        .limit(1)
+    )
+    if ts is None:
+        return None
+    return datetime.datetime.fromtimestamp(int(ts))
 
 
 def first_time_setup(userid, client, language, context_id="0", context_title=None):
@@ -228,12 +258,28 @@ def store_strategy(user, interview_answer, context_id, strategy_id):
 
 
 def update_strategy_with_frequency(user, context_id, strategy_id, frequency):
-    strategy = db.session.scalar(
+    run_started_at = get_active_run_started_at(user)
+    q = (
         sa.select(UserStrategy)
+        .join(InterviewAnswer, InterviewAnswer.id == UserStrategy.interview_answer_id)
         .where(UserStrategy.user == user)
         .where(UserStrategy.context == context_id)
         .where(UserStrategy.strategy == strategy_id)
     )
+    if run_started_at is not None:
+        q = q.where(InterviewAnswer.message_time >= run_started_at)
+
+    strategy = db.session.scalar(q.order_by(InterviewAnswer.message_time.desc()).limit(1))
+    if strategy is None:
+        logger.warning(
+            "No strategy row found for frequency update: user=%s/%s context=%s strategy=%s",
+            user.id,
+            user.client,
+            context_id,
+            strategy_id,
+        )
+        return
+
     strategy.frequency = frequency
     logger.info("Updating strategy %s for context %s with frequency %s", strategy_id, context_id, frequency)
     db.session.flush()
@@ -283,9 +329,23 @@ def save_evaluation_for_strategy(user, strategy, SU, SF, SC):
 
 
 def archive_conversation(user, conversation_data):
-    archive = Archive(archived_conversation=str(conversation_data))
+    archive = Archive(archived_conversation=json.dumps(conversation_data, ensure_ascii=False))
     db.session.add(archive)
-    delete_user = sa.delete(User).where(User.id == user.id).where(User.client == user.client)
-    db.session.execute(delete_user)
-    db.session.commit()
+    db.session.flush()
     return True
+
+
+def reset_user_run_state(user):
+    """Prepare an existing user record for a new interview run without deleting data."""
+    state = user.conversation_state
+    state.interview_completed = False
+    state.current_turn = 0
+    state.current_context = None
+    state.strategy_for_frequency = None
+    state.current_conversation_step = "intro"
+
+    db.session.execute(
+        sa.delete(ConversationCompletedContexts)
+        .where(ConversationCompletedContexts.conversation_id == state.id)
+    )
+    db.session.flush()
