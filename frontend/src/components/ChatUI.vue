@@ -71,7 +71,7 @@
           <div v-if="m.isSurveyCTA" class="chat-inline-cta">
             <button
               type="button"
-              class="chat-send"
+              class="btn btn-primary"
               @click="$emit('openSurvey')"
             >
               <span>{{ lang === "de" ? "Zur Umfrage" : "Open Survey" }}</span>
@@ -82,11 +82,13 @@
           <div v-if="m.isResultsCTA" class="chat-inline-cta">
             <button
               type="button"
-              class="chat-send"
+              class="btn btn-primary"
               @click="$emit('openResults')"
             >
               <span>{{
-                lang === "de" ? "Zu den Ergebnissen" : "Open Results"
+                lang === "de"
+                  ? "Details der Ergebnisse anzeigen"
+                  : "Open Detailed Results"
               }}</span>
               <font-awesome-icon icon="arrow-up" aria-hidden="true" />
             </button>
