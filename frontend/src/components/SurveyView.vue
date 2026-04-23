@@ -91,6 +91,7 @@
                       :value="v"
                       v-model.number="responses[item.id]"
                       class="likert-radio"
+                      @change="logSurveyItem(item.id, v)"
                     />
                   </label>
                 </td>
@@ -190,6 +191,20 @@ export default Vue.extend({
   },
 
   methods: {
+    logSurveyItem(itemId, value) {
+      axios
+        .post(`${this.host}/log/interaction`, {
+          userid: this.$store.getters.getUser,
+          client: "web",
+          action: "survey_item_answered",
+          value: { item_id: itemId, response: value, survey_id: this.surveyId },
+          timestamp: Math.floor(Date.now() / 1000),
+        })
+        .catch(() => {
+          /* non-critical */
+        });
+    },
+
     getFastFillValue() {
       if (!this.survey || !this.survey.scale) return 1;
       const min = Number(this.survey.scale.min) || 1;

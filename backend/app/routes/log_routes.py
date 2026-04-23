@@ -126,6 +126,8 @@ def log_page_view():
         path = content.get("path")
         timestamp = content.get("timestamp")
 
+        page_name = content.get("page_name")
+
         if not path:
             return jsonify({"error": "Missing path"}), 400
 
@@ -133,7 +135,7 @@ def log_page_view():
         log_action(
             LogAction.PAGE_VIEW,
             user=user,
-            value={"path": path, "timestamp": timestamp, "userid": userid, "client": client},
+            value={"path": path, "page_name": page_name, "timestamp": timestamp, "userid": userid, "client": client},
             http_status=200,
             step="navigation",
         )
@@ -142,4 +144,52 @@ def log_page_view():
 
     except Exception as e:
         app.logger.error("Error logging page view: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@logs_bp.route("/log/interaction", methods=["POST", "OPTIONS"])
+@cross_origin()
+def log_interaction():
+    """
+    Log a generic UI interaction event.
+    Expected JSON body:
+    {
+        "userid": "...",
+        "client": "...",
+        "action": "strategy_hovered",
+        "value": {"strategy": "...", ...},
+        "timestamp": 1234567890
+    }
+    """
+    try:
+        content = request.json
+        userid = content.get("userid")
+        client = content.get("client")
+        action_str = content.get("action")
+        value = content.get("value") or {}
+        timestamp = content.get("timestamp")
+
+        if not action_str:
+            return jsonify({"error": "Missing action"}), 400
+
+        try:
+            action = LogAction(action_str)
+        except ValueError:
+            return jsonify({"error": f"Unknown action: {action_str}"}), 400
+
+        if timestamp:
+            value["timestamp"] = timestamp
+
+        user = get_user(userid, client)
+        log_action(
+            action,
+            user=user,
+            value=value,
+            http_status=200,
+        )
+
+        return jsonify({"status": "logged", "action": action_str}), 200
+
+    except Exception as e:
+        app.logger.error("Error logging interaction: %s", e)
         return jsonify({"error": str(e)}), 500
