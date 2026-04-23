@@ -286,19 +286,19 @@ export default Vue.extend({
       host: "http://localhost:5000",
       progressStats: [
         {
-          value: "0 / 7",
-          labelDe: "Interview-Fragen beantwortet",
-          labelEn: "Interview questions answered",
+          value: "0",
+          labelDe: "Abgeschlossene Interviews",
+          labelEn: "Completed interviews",
+        },
+        {
+          value: "0 / 0",
+          labelDe: "Fortschritt letztes Interview",
+          labelEn: "Last interview progress",
         },
         {
           value: "–",
           labelDe: "Fragebogen abgeschlossen",
           labelEn: "Survey completed",
-        },
-        {
-          value: "–",
-          labelDe: "Empfohlene Strategien",
-          labelEn: "Recommended strategies",
         },
       ],
     };
@@ -348,7 +348,8 @@ export default Vue.extend({
     },
     async fetchInterviewState() {
       const userid = this.$store.getters.getUser;
-      const client = this.$store.getters.getChatModus || "web";
+      // Users are always stored with client="web" in the standalone/LTI context.
+      const client = "web";
       if (!userid) return;
       try {
         const res = await axios.get(`${this.host}/student/results`, {
@@ -367,14 +368,19 @@ export default Vue.extend({
           this.interviewState = "not_started";
         }
 
-        this.progressStats[2].value =
-          strategies.length > 0 ? String(strategies.length) : "–";
+        this.progressStats[0].value = String(data.completed_runs || 0);
+
+        const lastDone = Number(data.last_progress_done || 0);
+        const lastTotal = Number(
+          data.last_progress_total || data.total_contexts || 0,
+        );
+        this.progressStats[1].value = `${lastDone} / ${lastTotal}`;
+
         if (data.survey) {
-          this.progressStats[1].value = "✓";
+          this.progressStats[2].value = "✓";
+        } else {
+          this.progressStats[2].value = "–";
         }
-        const total = data.total_contexts || 7;
-        const done = data.answers_count || 0;
-        this.progressStats[0].value = `${done} / ${total}`;
       } catch {
         // backend unreachable or no data — keep defaults
       }
