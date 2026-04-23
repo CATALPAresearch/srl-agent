@@ -94,7 +94,7 @@ def query_embeddings(text_to_embed):
     headers = {"Authorization": f"Bearer {EMBEDDING_TOKEN}"}
     response = requests.post(
         api_url,
-        # headers=headers,
+        headers=headers,
         json={"inputs": text_to_embed, "options": {"wait_for_model": True}})
     return response.json()
 

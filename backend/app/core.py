@@ -16,6 +16,7 @@ from .llm import (
     get_complete_prompt)
 from .database.crud import (
     get_language,
+    get_language_by_id,
     get_user,
     first_time_setup,
     get_contexts,
@@ -429,7 +430,7 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                 logger.info(study_subject)
                 logger.info('@intro status: %s',status)
 
-                if status in ("completed", "complete", "abandon", "in_progress"):
+                if status in ("completed", "complete", "abandon"):
                     store_study_subject(user, study_subject)
                     contexts = set(get_contexts(user.language_id))
                     if get_completed_contexts(user) is not None:
@@ -461,6 +462,9 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
 
                     logger.info('@intro step, second llm call ')
                     logger.info(llm_message)
+                else:
+                    # in_progress: study subject not yet identified — return the retry comment
+                    llm_message = comment
 
             case "strategy":
                 strategies_mentioned, status, llm_message = strategy_step(user, str(current_context.context),

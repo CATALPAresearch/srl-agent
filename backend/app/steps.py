@@ -94,7 +94,7 @@ def intro_step(user: User, prev_conversation: list[str]):
     if not json_valid:
         return "", "in_progress", _json_retry_comment(user, "intro")
     if json_output["study_subject"] == "" and len(prev_conversation) >= ABANDON_AFTER_STEPS:
-        json_output["study_subject"] = ["unknown"]
+        json_output["study_subject"] = "unknown"
         json_output["status"] = "abandon"
     return json_output["study_subject"], json_output["status"], json_output["comment"]
 
@@ -288,7 +288,11 @@ def frequency_step(user: User, prev_conversation: list[str], conversation_for_st
     if json_output["status"] == "in_progress" and len(prev_conversation) > (ABANDON_AFTER_STEPS * 2):
         json_output["status"] = "abandon"
         json_output["frequency"] = 0
-    return strategy_for_frequency, json_output["frequency"], json_output["status"], json_output["comment"]
+    try:
+        freq_val = int(json_output["frequency"])
+    except (ValueError, TypeError):
+        freq_val = 0
+    return strategy_for_frequency, freq_val, json_output["status"], json_output["comment"]
 
 
 

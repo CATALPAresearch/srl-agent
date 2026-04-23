@@ -133,10 +133,15 @@ def get_student_results():
         return jsonify({"error": "userid required"}), 400
 
     def _load_user_archives(user_id: str, user_client: str):
-        rows = Archive.query.order_by(Archive.id.desc()).all()
+        rows = db.session.scalars(
+            sa.select(Archive)
+            .where(sa.text("archived_conversation::jsonb->>'user_id' = :uid"))
+            .where(sa.text("archived_conversation::jsonb->>'user_client' = :client"))
+            .params(uid=user_id, client=user_client)
+            .order_by(Archive.id.desc())
+        ).all()
         parsed = []
         for row in rows:
-            payload = None
             try:
                 payload = json.loads(row.archived_conversation)
             except Exception:
@@ -144,12 +149,8 @@ def get_student_results():
                     payload = ast.literal_eval(row.archived_conversation)
                 except Exception:
                     payload = None
-
-            if not isinstance(payload, dict):
-                continue
-            if payload.get("user_id") != user_id or payload.get("user_client") != user_client:
-                continue
-            parsed.append(payload)
+            if isinstance(payload, dict):
+                parsed.append(payload)
         return parsed
 
     user_archives = _load_user_archives(userid, client)
@@ -372,10 +373,15 @@ def get_student_interview_runs():
         return jsonify({"error": "userid required"}), 400
 
     def _load_user_archives(user_id: str, user_client: str):
-        rows = Archive.query.order_by(Archive.id.desc()).all()
+        rows = db.session.scalars(
+            sa.select(Archive)
+            .where(sa.text("archived_conversation::jsonb->>'user_id' = :uid"))
+            .where(sa.text("archived_conversation::jsonb->>'user_client' = :client"))
+            .params(uid=user_id, client=user_client)
+            .order_by(Archive.id.desc())
+        ).all()
         parsed = []
         for row in rows:
-            payload = None
             try:
                 payload = json.loads(row.archived_conversation)
             except Exception:
@@ -383,12 +389,8 @@ def get_student_interview_runs():
                     payload = ast.literal_eval(row.archived_conversation)
                 except Exception:
                     payload = None
-
-            if not isinstance(payload, dict):
-                continue
-            if payload.get("user_id") != user_id or payload.get("user_client") != user_client:
-                continue
-            parsed.append((row.id, payload))
+            if isinstance(payload, dict):
+                parsed.append((row.id, payload))
         return parsed
 
     archive_rows = _load_user_archives(userid, client)
