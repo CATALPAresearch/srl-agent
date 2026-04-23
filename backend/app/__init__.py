@@ -30,7 +30,13 @@ dictConfig(
             },
         },
         "root": {"level": "INFO", "handlers": ["console", "fileRotate"]},
-        "InterviewAgent": {"level": "DEBUG", "handlers": ["console", "fileRotate"]},
+        "loggers": {
+            "InterviewAgent": {
+                "level": "DEBUG",
+                "handlers": ["console", "fileRotate"],
+                "propagate": False,
+            }
+        },
     }
 )
 

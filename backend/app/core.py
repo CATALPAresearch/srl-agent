@@ -42,7 +42,7 @@ from .database.crud import (
     get_active_run_started_at,
 )
 from .logging_utlis import log_action
-from .steps import strategy_step, frequency_step, validate_strategies, intro_step
+from .steps import strategy_step, frequency_step, validate_strategies, intro_step, _user_only_conv
 
 logger = logging.getLogger("InterviewAgent")
 _SUMMARY_THREADS = set()
@@ -473,7 +473,7 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                         store_strategy(user, user_answer_db, current_context.id, mentioned_strategy)
                         if mentioned_strategy == "008-001":
                             update_strategy_with_frequency(user, current_context.id, mentioned_strategy, 0)
-                    llm_message, current_context = ask_about_frequency(user, current_context)
+                    llm_message, current_context = ask_about_frequency(user, current_context, conversation_for_current_context)
 
                     log_action(
                         LogAction.REPLY_LLM,
@@ -515,7 +515,7 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                     update_strategy_with_frequency(user, current_context_id, strategy_rated,
                                                    rated_frequency)
                     # check if further strategies need to be checked for frequency
-                    llm_message, current_context = ask_about_frequency(user, current_context)
+                    llm_message, current_context = ask_about_frequency(user, current_context, conversation_for_current_context)
 
                 log_action(
                     LogAction.REPLY_LLM,
@@ -543,7 +543,7 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
         }), 200
     except Exception as e:
         db.session.rollback()
-        logger.error("Error in reply_core: %s", e)
+        logger.error("Error in reply_core: %s", e, exc_info=True)
 
         log_action(
             LogAction.DB_ROLLBACK,
@@ -618,10 +618,14 @@ def retrieve_full_conversation(user, context_id=None, step=None, strategy_id=Non
     return [msg for _, _, msg in entries]
 
 
-def ask_about_frequency(user, current_context):
+def ask_about_frequency(user, current_context, conversation=None):
     # retrieve all interview answers for current context
     answers = get_strategies_for_context(user, current_context.id)
-    system_prompt = get_prompt(user, "system")
+
+    logger.info(
+        "ask_about_frequency: %d strategies stored for context %s (language_id=%s)",
+        len(answers), current_context.id, user.language_id,
+    )
 
     def list_filter(a):
         if a.frequency is None and a.strategy != "008-001":
@@ -630,19 +634,46 @@ def ask_about_frequency(user, current_context):
             return False
 
     answers_without_frequency = list(filter(list_filter, answers))
+    logger.info(
+        "ask_about_frequency: %d strategies still need frequency rating: %s",
+        len(answers_without_frequency), [a.strategy for a in answers_without_frequency],
+    )
+
     if len(answers_without_frequency):
         for answer in answers_without_frequency:
             context = get_context_by_id(answer.context)
+            if context is None:
+                logger.error(
+                    "ask_about_frequency: context %s not found — skipping strategy %s",
+                    answer.context, answer.strategy,
+                )
+                continue
+
             strategy = get_strategy_translation_by_id(user, answer.strategy)
+            if strategy is None:
+                logger.error(
+                    "ask_about_frequency: no StrategyTranslation for strategy='%s' "
+                    "language_id='%s' — skipping. Check DB has translation for this strategy.",
+                    answer.strategy, user.language_id,
+                )
+                continue
+
             logger.info("Asking about frequency for strategy: %s", strategy.name)
             frequency_prompt = get_frequency_prompt(user, context.context, strategy.name)
             update_current_conversation_step(user, "frequency")
             update_most_recent_strategy_for_frequency(user, strategy)
-            conversation_so_far = retrieve_full_conversation(user, context.id, "strategy")
-            llm_message = get_llm_response(frequency_prompt + " " + system_prompt,
-                                                  prev_conversation=_user_only_conv(conversation_so_far))
+            user_turns = _user_only_conv(conversation) if conversation else []
+            llm_message = get_llm_response(frequency_prompt, prev_conversation=user_turns)
             new_context = current_context
-            break
+            return llm_message, new_context
+
+        # All stored strategies were skipped (missing translations) — move on
+        logger.warning(
+            "ask_about_frequency: all %d strategies were skipped (missing translations). "
+            "Moving to next context.",
+            len(answers_without_frequency),
+        )
+        llm_message, new_context = move_to_next_context(user, current_context)
     # if all answers have frequency, move to next context
     else:
         llm_message, new_context = move_to_next_context(user, current_context)
@@ -678,7 +709,8 @@ def move_to_next_context(user, current_context):
     if stop_after_contexts > 0 and len(completed_contexts) >= stop_after_contexts:
         set_interview_complete(user)
         update_current_conversation_step(user, "complete")
-        llm_message = _generate_summary_now(user)
+        _spawn_summary_generation(user.id, user.client)
+        llm_message = _pending_summary_message(user)
         return llm_message, None
 
     if next_context:
@@ -689,7 +721,10 @@ def move_to_next_context(user, current_context):
                                               prev_conversation=_user_only_conv(conversation_so_far))
     else:
         update_current_conversation_step(user, "complete")
-        llm_message = _generate_summary_now(user)
+        # Return a simple pending message now; spawn background generation so the
+        # full AI summary is ready by the time the user returns from the survey.
+        _spawn_summary_generation(user.id, user.client)
+        llm_message = _pending_summary_message(user)
 
     return llm_message, next_context
 
@@ -733,13 +768,17 @@ def generate_summary(user, strategy_scores):
     strategies_used = list({strategy: item for strategy, item in strategy_scores.items() if len(item["contexts"]) > 0})
     consistently_used = list({strategy: item for strategy, item in strategy_scores.items() if item["RC"] > 2.5})
 
-    most_contexts_strat = get_strategy_translation_by_id(user, most_contexts[0][0]).description
-    const_strategy = get_strategy_translation_by_id(user, most_consistently[0][0]).description
-    avg_freq = most_consistently[0][1]["RC"]
+    _t = get_strategy_translation_by_id(user, most_contexts[0][0]) if most_contexts else None
+    most_contexts_strat = _t.description if _t else (most_contexts[0][0] if most_contexts else "")
+    _t2 = get_strategy_translation_by_id(user, most_consistently[0][0]) if most_consistently else None
+    const_strategy = _t2.description if _t2 else (most_consistently[0][0] if most_consistently else "")
+    avg_freq = most_consistently[0][1]["RC"] if most_consistently else 0
     total_strat = len(strategies_used)
     const_strategies = []
     for strat in consistently_used:
-        const_strategies.append(get_strategy_translation_by_id(user, strat).description)
+        _ts = get_strategy_translation_by_id(user, strat)
+        if _ts:
+            const_strategies.append(_ts.description)
     full_conversation = retrieve_full_conversation(user)
     # Use only user messages as conversation context for the summary LLM call.
     # With interleaved user+bot history the list can end on an assistant message,
@@ -747,7 +786,7 @@ def generate_summary(user, strategy_scores):
     user_only_conv = [m for m in full_conversation if isinstance(m, dict) and m.get("role") == "user"]
     system_prompt = get_prompt(user, "system")
     prompt = get_complete_prompt(user, most_contexts_strat, const_strategy, avg_freq, total_strat, const_strategies)
-    llm_message = get_llm_response(prompt + " " + system_prompt, prev_conversation=user_only_conv)
+    llm_message = get_llm_response(prompt + " " + system_prompt, prev_conversation=user_only_conv, max_tokens=1024)
     return llm_message
 
 

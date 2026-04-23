@@ -119,6 +119,7 @@ def get_llm_response(
         repeat_penalty=1.1,
         prev_conversation=None,
         expected_fields_model=None,
+        max_tokens=512,
 ):
     # --- HARD DEV GUARD: skip LLM entirely ---
     if os.getenv("DISABLE_LLM", "false").lower() == "true":
@@ -143,11 +144,11 @@ def get_llm_response(
 
     attempts = 5
     retry_delay = 1.0
-    response = get_response(messages, temperature, top_k, top_p, repeat_penalty)
+    response = get_response(messages, temperature, top_k, top_p, repeat_penalty, max_tokens=max_tokens)
     while attempts > 0:
         if response is None or not hasattr(response, "message") or response.message.content == "":
             time.sleep(retry_delay)
-            response = get_response(messages, temperature + 0.1, top_k, top_p, repeat_penalty)
+            response = get_response(messages, temperature + 0.1, top_k, top_p, repeat_penalty, max_tokens=max_tokens)
             attempts -= 1
             retry_delay *= 2
         else:
@@ -168,7 +169,7 @@ def get_llm_response(
     return response_content
 
 
-def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1):
+def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1, max_tokens=512):
     """Call LLM via HTTP. Supports Ollama (/api/chat) and OpenAI-compatible servers (/v1/chat/completions)."""
     headers = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
     base = BASE_URL.rstrip("/")
@@ -184,7 +185,7 @@ def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1)
                 "messages": messages,
                 "stream": False,
                 "temperature": temperature,
-                "max_tokens": 512,
+                "max_tokens": max_tokens,
             }
             r = requests.post(base + "/chat/completions", json=payload, headers=headers, timeout=120)
             r.raise_for_status()
