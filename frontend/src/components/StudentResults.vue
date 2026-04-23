@@ -14,9 +14,17 @@
               </h2>
             </div>
             <p class="text-muted mb-0">
-              Thank you for taking the time to share how you learn with us!
-              We've carefully analysed your answers, and your results are now
-              shown in the two graphs below so you can explore them.
+              <template v-if="lang === 'de'">
+                Vielen Dank, dass du dir die Zeit genommen hast, uns zu
+                erzählen, wie du lernst! Wir haben deine Antworten sorgfältig
+                ausgewertet. Deine Ergebnisse werden nun in den beiden Grafiken
+                unten dargestellt, damit du sie erkunden kannst.
+              </template>
+              <template v-else>
+                Thank you for taking the time to share how you learn with us!
+                We've carefully analysed your answers, and your results are now
+                shown in the two graphs below so you can explore them.
+              </template>
             </p>
           </div>
         </div>
@@ -36,13 +44,25 @@
           <div class="card border-0 shadow-sm">
             <div class="card-body">
               <p>
-                The spider chart shows the learning strategies you mentioned
-                when describing how you study. Higher values mean that you
-                reported using that strategy more often and more frequently. It
-                is completely normal that the whole chart is not filled.
-                Everyone learns in different ways, and no one uses all
-                strategies equally. However, the chart may help you notice
-                strategies that you use less often.
+                <template v-if="lang === 'de'">
+                  Das Spinnendiagramm zeigt die Lernstrategien, die du beim
+                  Beschreiben deines Lernens erwähnt hast. Höhere Werte
+                  bedeuten, dass du diese Strategie häufiger und regelmäßiger
+                  eingesetzt hast. Es ist völlig normal, dass das Diagramm nicht
+                  vollständig ausgefüllt ist. Jeder lernt anders und niemand
+                  nutzt alle Strategien gleich häufig. Das Diagramm kann dir
+                  aber helfen, Strategien zu entdecken, die du seltener
+                  verwendest.
+                </template>
+                <template v-else>
+                  The spider chart shows the learning strategies you mentioned
+                  when describing how you study. Higher values mean that you
+                  reported using that strategy more often and more frequently.
+                  It is completely normal that the whole chart is not filled.
+                  Everyone learns in different ways, and no one uses all
+                  strategies equally. However, the chart may help you notice
+                  strategies that you use less often.
+                </template>
               </p>
 
               <div class="row mt-3">
@@ -53,23 +73,35 @@
                 <!-- Strategies not mentioned -->
                 <div class="col-md-5 mb-3">
                   <h6 class="font-weight-600 mb-2">
-                    Strategies not yet mentioned
+                    {{
+                      lang === "de"
+                        ? "Noch nicht erwähnte Strategien"
+                        : "Strategies not yet mentioned"
+                    }}
                   </h6>
                   <p class="text-muted small mb-2">
-                    These have been shown to be helpful — consider trying them:
+                    {{
+                      lang === "de"
+                        ? "Diese haben sich als hilfreich erwiesen – probiere sie aus:"
+                        : "These have been shown to be helpful — consider trying them:"
+                    }}
                   </p>
                   <div
                     v-if="!unmentiondStrategies.length"
                     class="text-muted small"
                   >
-                    Great — you mentioned all strategies!
+                    {{
+                      lang === "de"
+                        ? "Super – du hast alle Strategien erwähnt!"
+                        : "Great — you mentioned all strategies!"
+                    }}
                   </div>
                   <div v-else class="sr-tag-cloud">
                     <span
                       v-for="s in unmentiondStrategies"
                       :key="s.id"
                       class="sr-strategy-tag"
-                      :data-tip="s.description"
+                      :data-tip="s.definition || s.description"
                       >{{ s.name }}</span
                     >
                   </div>
@@ -77,16 +109,32 @@
               </div>
 
               <p class="mt-2">
-                On the right side of the chart, you will also see some
-                strategies that were not mentioned in your answers. These
-                strategies have been shown in educational research to be helpful
-                for many students. You might want to explore whether some of
-                them could work for you too.
+                <template v-if="lang === 'de'">
+                  Auf der rechten Seite des Diagramms siehst du außerdem einige
+                  Strategien, die in deinen Antworten nicht erwähnt wurden.
+                  Diese Strategien haben sich in der Bildungsforschung für viele
+                  Studierende als hilfreich erwiesen. Vielleicht möchtest du
+                  erkunden, ob einige davon auch für dich funktionieren könnten.
+                </template>
+                <template v-else>
+                  On the right side of the chart, you will also see some
+                  strategies that were not mentioned in your answers. These
+                  strategies have been shown in educational research to be
+                  helpful for many students. You might want to explore whether
+                  some of them could work for you too.
+                </template>
               </p>
               <p>
-                If you'd like to learn more about any of these strategies, get
-                tips on how to use them, or if something in the graph isn't
-                clear, feel free to send us a mail below.
+                <template v-if="lang === 'de'">
+                  Wenn du mehr über eine dieser Strategien erfahren, Tipps zu
+                  deren Anwendung erhalten oder etwas im Diagramm unklar ist,
+                  schick uns gerne unten eine E-Mail.
+                </template>
+                <template v-else>
+                  If you'd like to learn more about any of these strategies, get
+                  tips on how to use them, or if something in the graph isn't
+                  clear, feel free to send us a mail below.
+                </template>
               </p>
             </div>
           </div>
@@ -99,83 +147,91 @@
           <div class="card border-0 shadow-sm">
             <div class="card-header bg-white">
               <h5 class="mb-0 sr-section-title">
-                Your Motivation and Learning Beliefs
+                {{
+                  lang === "de"
+                    ? "Deine Motivation und Lernüberzeugungen"
+                    : "Your Motivation and Learning Beliefs"
+                }}
               </h5>
             </div>
             <div class="card-body">
               <p>
-                The second graph shows your beliefs about your motivation and
-                learning skills.
+                {{
+                  lang === "de"
+                    ? "Die zweite Grafik zeigt deine Überzeugungen zu Motivation und Lernfähigkeiten."
+                    : "The second graph shows your beliefs about your motivation and learning skills."
+                }}
               </p>
               <ul>
                 <li>
-                  <strong>How to read this graph:</strong> The blue line shows
-                  your answers and the orange line shows the average results
-                  from other students in a recent large scale study.
+                  <template v-if="lang === 'de'">
+                    <strong>So liest du diese Grafik:</strong> Die blaue Linie
+                    zeigt deine Antworten und die orangefarbene Linie zeigt die
+                    Durchschnittsergebnisse anderer Studierender aus einer
+                    aktuellen Großstudie.
+                  </template>
+                  <template v-else>
+                    <strong>How to read this graph:</strong> The blue line shows
+                    your answers and the orange line shows the average results
+                    from other students in a recent large scale study.
+                  </template>
                 </li>
               </ul>
               <p>
-                This comparison can help you reflect on your learning habits and
-                beliefs. There are no "good" or "bad" results here — it simply
-                shows how your views compare with those of other students.
-                However, higher scores are often correlated with better academic
-                success.
+                <template v-if="lang === 'de'">
+                  Dieser Vergleich kann dir helfen, über deine Lerngewohnheiten
+                  und -überzeugungen nachzudenken. Es gibt hier keine „guten"
+                  oder „schlechten" Ergebnisse – es zeigt einfach, wie deine
+                  Ansichten im Vergleich zu anderen Studierenden einzuordnen
+                  sind. Höhere Werte korrelieren jedoch häufig mit besserem
+                  Studienerfolg.
+                </template>
+                <template v-else>
+                  This comparison can help you reflect on your learning habits
+                  and beliefs. There are no "good" or "bad" results here — it
+                  simply shows how your views compare with those of other
+                  students. However, higher scores are often correlated with
+                  better academic success.
+                </template>
               </p>
-
-              <!-- Line chart placeholder -->
-              <div
-                class="sr-chart-placeholder d-flex align-items-center justify-content-center mb-3"
-              >
-                <span class="text-muted">[ Line Chart ]</span>
-              </div>
 
               <p>
-                If you have specific questions, or would like ideas on how to
-                strengthen your motivation or improve certain learning skills
-                presented here (like metacognition), please ask in the chat
-                below. We are happy to share practical tips and helpful
-                suggestions.
+                <template v-if="lang === 'de'">
+                  Wenn du konkrete Fragen hast oder Ideen suchst, wie du deine
+                  Motivation stärken oder bestimmte Lernfähigkeiten (wie
+                  Metakognition) verbessern kannst, frag gerne im Chat unten.
+                  Wir teilen gerne praktische Tipps und hilfreiche Vorschläge.
+                </template>
+                <template v-else>
+                  If you have specific questions, or would like ideas on how to
+                  strengthen your motivation or improve certain learning skills
+                  presented here (like metacognition), please ask in the chat
+                  below. We are happy to share practical tips and helpful
+                  suggestions.
+                </template>
               </p>
               <p class="mb-0">
-                We hope these results help you learn more about your own
-                learning process and discover strategies that work best for you.
+                <template v-if="lang === 'de'">
+                  Wir hoffen, dass dir diese Ergebnisse helfen, mehr über deinen
+                  eigenen Lernprozess zu erfahren und Strategien zu entdecken,
+                  die am besten zu dir passen.
+                </template>
+                <template v-else>
+                  We hope these results help you learn more about your own
+                  learning process and discover strategies that work best for
+                  you.
+                </template>
               </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Question textarea -->
-      <div class="row justify-content-center mb-4">
-        <div class="col-md-10">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-              <h5 class="mb-0 sr-section-title">Ask a Question</h5>
+              <h5 class="mb-0 sr-section-title">
+                {{ lang === "de" ? "Eine Frage stellen" : "Ask a Question" }}
+              </h5>
               <p class="text-muted small mb-0">
-                Is something unclear? Would you like tips on a specific
-                strategy?
+                {{
+                  lang === "de"
+                    ? "Ist etwas unklar? Möchtest du Tipps zu einer bestimmten Strategie?"
+                    : "Is something unclear? Would you like tips on a specific strategy?"
+                }}
               </p>
-            </div>
-            <div class="card-body">
-              <label for="sr-question" class="sr-only">Your question</label>
-              <textarea
-                id="sr-question"
-                v-model="question"
-                class="form-control mb-2"
-                rows="3"
-                placeholder="Type your question here…"
-              />
-              <button
-                class="btn btn-primary"
-                :disabled="!question.trim()"
-                @click="submitQuestion"
-              >
-                Send
-              </button>
-              <div v-if="questionSent" class="text-success mt-2 small">
-                Your question has been sent. You can follow the conversation in
-                the chat.
-              </div>
             </div>
           </div>
         </div>
@@ -237,18 +293,17 @@ export default Vue.extend({
         s.length > n ? s.slice(0, n - 1) + "\u2026" : s;
       const shortLabels = radarData.map((s) => truncate(s.name, 20));
       const fullLabels = radarData.map((s) => s.name);
-      const descriptions = radarData.map((s) => s.description || "");
+      const descriptions = radarData.map(
+        (s) => s.definition || s.description || "",
+      );
       const freqs = radarData.map((s) => s.frequency || 0);
       const avgs = radarData.map(
         (s) => Math.round((s.avg_frequency || 0) * 10) / 10,
       );
-      const tickLabels = [
-        "",
-        "Seldom",
-        "Sometimes",
-        "Often",
-        "Most of the time",
-      ];
+      const tickLabels =
+        this.lang === "de"
+          ? ["", "Selten", "Manchmal", "Oft", "Meistens"]
+          : ["", "Seldom", "Sometimes", "Often", "Most of the time"];
       const wrapText = (text, maxLen) => {
         const words = text.split(" ");
         const lines = [];
@@ -275,7 +330,7 @@ export default Vue.extend({
           labels: shortLabels,
           datasets: [
             {
-              label: "You",
+              label: this.lang === "de" ? "Du" : "You",
               data: freqs,
               backgroundColor: "rgba(54, 162, 235, 0.15)",
               borderColor: "rgba(54, 162, 235, 1)",
@@ -285,7 +340,7 @@ export default Vue.extend({
               pointRadius: 4,
             },
             {
-              label: "Course average",
+              label: this.lang === "de" ? "Kursdurchschnitt" : "Course average",
               data: avgs,
               backgroundColor: "rgba(255, 153, 0, 0.12)",
               borderColor: "rgba(255, 153, 0, 0.85)",
@@ -320,7 +375,14 @@ export default Vue.extend({
                 return wrapText(desc, 48).map((l) => " " + l);
               },
               label: (item) => {
-                const prefix = item.datasetIndex === 0 ? " You" : " Course avg";
+                const prefix =
+                  item.datasetIndex === 0
+                    ? this.lang === "de"
+                      ? " Du"
+                      : " You"
+                    : this.lang === "de"
+                    ? " Kursdurchschnitt"
+                    : " Course avg";
                 return prefix + ": " + freqLabel(parseFloat(item.value));
               },
             },
@@ -336,14 +398,6 @@ export default Vue.extend({
       return "sr-bar-low";
     },
 
-    submitQuestion() {
-      if (!this.question.trim()) return;
-      this.$emit("question", this.question.trim());
-      this.question = "";
-      this.questionSent = true;
-      setTimeout(() => (this.questionSent = false), 5000);
-    },
-
     async loadResults() {
       this.loading = true;
       this.error = null;
@@ -351,7 +405,8 @@ export default Vue.extend({
         const res = await axios.get(`${this.host}/student/results`, {
           params: {
             userid: this.$store.getters.getUser,
-            client: "standalone",
+            client: "web",
+            lang: this.lang,
           },
         });
         this.data = res.data;
@@ -366,6 +421,12 @@ export default Vue.extend({
       // Canvas is only in the DOM once loading is false, so render after.
       await this.$nextTick();
       this.renderRadarChart();
+    },
+  },
+
+  watch: {
+    lang() {
+      this.loadResults();
     },
   },
 

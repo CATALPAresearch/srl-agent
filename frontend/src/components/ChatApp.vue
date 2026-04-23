@@ -3,42 +3,55 @@
     <div class="header-bar d-flex align-items-center px-2 py-1">
       <nav class="tabs flex-grow-1">
         <router-link to="/" exact class="tab" active-class="active">
-          {{ lang === 'de' ? 'Start' : 'Home' }}
+          {{ lang === "de" ? "Start" : "Home" }}
         </router-link>
         <router-link to="/agent-chat" class="tab" active-class="active">
-          {{ lang === 'de' ? 'Interview zu Lernstrategien' : 'Learning Strategies Interview' }}
+          {{
+            lang === "de"
+              ? "Interview zu Lernstrategien"
+              : "Learning Strategies Interview"
+          }}
         </router-link>
         <router-link to="/survey" class="tab" active-class="active">
-          {{ lang === 'de' ? 'Umfrage' : 'Survey' }}
+          {{ lang === "de" ? "Umfrage" : "Survey" }}
         </router-link>
         <router-link to="/protocols" class="tab" active-class="active">
           Protocols
         </router-link>
-        <router-link to="/dashboard/researcher" class="tab" active-class="active">
+        <router-link
+          to="/dashboard/researcher"
+          class="tab"
+          active-class="active"
+        >
           Researcher Dashboard
         </router-link>
-         <router-link to="/dashboard/teacher" class="tab" active-class="active">
+        <router-link to="/dashboard/teacher" class="tab" active-class="active">
           Teacher Dashboard
         </router-link>
       </nav>
 
       <!-- Role switcher (testing only) -->
       <div class="d-flex align-items-center mr-3" title="Switch role (testing)">
-        <small class="text-muted mr-1" style="font-size:0.7rem;">ROLE:</small>
         <div class="btn-group btn-group-sm" role="group" aria-label="Role">
           <button
             type="button"
             @click="setRole('student')"
-            :class="['btn', role === 'student' ? 'btn-warning' : 'btn-outline-secondary']"
+            :class="[
+              'btn',
+              role === 'student' ? 'btn-primary' : 'btn-outline-secondary',
+            ]"
           >
-            <small>{{ lang === 'de' ? 'Stud.' : 'Student' }}</small>
+            <small>{{ lang === "de" ? "Stud." : "Student" }}</small>
           </button>
           <button
             type="button"
             @click="setRole('teacher')"
-            :class="['btn', role === 'teacher' ? 'btn-warning' : 'btn-outline-secondary']"
+            :class="[
+              'btn',
+              role === 'teacher' ? 'btn-primary' : 'btn-outline-secondary',
+            ]"
           >
-            <small>{{ lang === 'de' ? 'Lehr.' : 'Teacher' }}</small>
+            <small>{{ lang === "de" ? "Lehr." : "Teacher" }}</small>
           </button>
         </div>
       </div>
@@ -48,20 +61,32 @@
         <button
           type="button"
           @click="setLanguage('de')"
-          :class="['btn', lang === 'de' ? 'btn-primary' : 'btn-outline-secondary']"
-        >DE</button>
+          :class="[
+            'btn',
+            lang === 'de' ? 'btn-primary' : 'btn-outline-secondary',
+          ]"
+        >
+          DE
+        </button>
         <button
           type="button"
           @click="setLanguage('en')"
-          :class="['btn', lang === 'en' ? 'btn-primary' : 'btn-outline-secondary']"
-        >EN</button>
+          :class="[
+            'btn',
+            lang === 'en' ? 'btn-primary' : 'btn-outline-secondary',
+          ]"
+        >
+          EN
+        </button>
       </div>
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-danger ml-2"
+        @click="resetInterview"
+      >
+        {{ lang === "de" ? "Reset" : "Reset" }}
+      </button>
     </div>
-    <keep-alive>
-      <router-view class="chat-app__view" :lang="lang" />
-    </keep-alive>
-  </div>
-</template>
     <keep-alive>
       <router-view class="chat-app__view" :lang="lang" />
     </keep-alive>
@@ -120,6 +145,39 @@ export default Vue.extend({
         console.warn("Failed to load user role:", e);
       }
     },
+
+    async resetInterview() {
+      const userId =
+        this.$store.getters.getUser || localStorage.getItem("srl_userid");
+      if (!userId) {
+        alert(
+          this.lang === "de" ? "Keine User-ID gefunden." : "No user ID found.",
+        );
+        return;
+      }
+
+      const ok = window.confirm(
+        this.lang === "de"
+          ? "Interview wirklich zurücksetzen?"
+          : "Do you really want to reset the interview?",
+      );
+      if (!ok) return;
+
+      try {
+        const apiBase = this.$store.getters.getApiHost || this.host;
+        await axios.post(`${apiBase}/resetConversation`, {
+          client: "web",
+          userid: userId,
+        });
+
+        // keep-alive caches views; hard reload guarantees a clean UI state.
+        window.location.hash = "#/agent-chat";
+        window.location.reload();
+      } catch (e) {
+        console.error("Reset failed:", e);
+        alert(this.lang === "de" ? "Reset fehlgeschlagen." : "Reset failed.");
+      }
+    },
   },
 
   mounted() {
@@ -143,6 +201,7 @@ export default Vue.extend({
   display: flex;
   flex-direction: column;
   overflow: auto;
+  background: #faf8f3;
 }
 
 .tabs {
