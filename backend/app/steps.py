@@ -261,10 +261,9 @@ def frequency_step(user: User, prev_conversation: list[str], conversation_for_st
 
     logger.debug("Retrieving prompt")
     frequency_validate_prompt = get_frequency_validate_prompt(user, strategy_for_frequency)
-    system_prompt = get_prompt(user, "system")
     logger.debug("Retrieving reasoning response")
     reasoning_response = get_llm_response(
-        frequency_validate_prompt + system_prompt,
+        frequency_validate_prompt,
         user_prompt=None,
         temperature=0.0,
         # Use the full context conversation (user messages only) so the reasoning
@@ -300,6 +299,16 @@ def validate_strategies(user_strategies):
     for strategy in user_strategies:
         if strategy in all_strategies:
             valid_strategies.append(strategy)
+        else:
+            logger.warning(
+                "validate_strategies: strategy '%s' not found in Strategy table (not stored). "
+                "Available IDs (first 10): %s",
+                strategy, all_strategies[:10],
+            )
+    logger.info(
+        "validate_strategies: input=%s  valid=%s  db_count=%d",
+        user_strategies, valid_strategies, len(all_strategies),
+    )
     return valid_strategies
 
 
@@ -333,6 +342,13 @@ def try_get_json_completion(
             logger.info("@ steps, try_get_json_completion:: LLM response: " + llm_message_raw)
             json_string = re.search(regex, llm_message_raw).group()
             json_output = json.loads(json_string)
+            # Unwrap envelope keys: LLM sometimes returns {"complete": {...fields...}}
+            # or {"in_progress": {...fields...}} instead of the fields at the top level.
+            if len(json_output) == 1:
+                only_key = next(iter(json_output))
+                inner = json_output[only_key]
+                if isinstance(inner, dict) and any(f in inner for f in expected_fields):
+                    json_output = inner
             for field in expected_fields:
                 if field not in json_output:
                     json_output[field] = ""
