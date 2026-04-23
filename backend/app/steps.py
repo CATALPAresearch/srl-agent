@@ -21,6 +21,44 @@ ABANDON_AFTER_STEPS = 6
 logger = logging.getLogger('InterviewAgent')
 
 
+def _user_only_conv(conv):
+    """Return only user-role messages from a conversation list.
+
+    Analysis prompts (recognise_strategy, validate_frequency, intro_check) need
+    to know what the USER said, not what the bot replied.  Passing bot messages
+    into these calls creates a confusing role structure and causes the LLM to
+    continue the chat instead of outputting JSON or a clean analysis.
+    """
+    if not conv:
+        return []
+    return [m for m in conv if isinstance(m, dict) and m.get("role") == "user"]
+
+
+def _json_retry_comment(user: User, step_name: str):
+    lang = get_language_by_id(user.language_id)
+    is_de = bool(lang and lang.lang_code == "de")
+
+    if step_name == "intro":
+        return (
+            "Ich konnte deine Antwort noch nicht eindeutig zuordnen. In welchem Fach möchtest du deinen Abschluss machen?"
+            if is_de
+            else "I could not map your answer clearly yet. Which subject are you studying?"
+        )
+
+    if step_name == "frequency":
+        return (
+            "Wie häufig nutzt du diese Strategie? Bitte antworte nur mit einer Zahl von 1 bis 4."
+            if is_de
+            else "How often do you use this strategy? Please reply with a number from 1 to 4."
+        )
+
+    return (
+        "Danke. Kannst du bitte genauer beschreiben, welche Lernstrategie du in dieser Situation nutzt?"
+        if is_de
+        else "Thanks. Could you describe more clearly which learning strategy you use in this situation?"
+    )
+
+
 class StepIntroFields(BaseModel):
   """BaseModel of the expected JSON structure of a LLM response regarding a study subject"""
   study_subject: str
@@ -51,10 +89,10 @@ def intro_step(user: User, prev_conversation: list[str]):
 
     json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, intro_prompt + system_prompt,
                                                       expected_fields_model=StepIntroFields,
-                                                      prev_conversation=prev_conversation,
+                                                      prev_conversation=_user_only_conv(prev_conversation),
                                                       user_prompt=None)
     if not json_valid:
-        return "", "in_progress", json_output
+        return "", "in_progress", _json_retry_comment(user, "intro")
     if json_output["study_subject"] == "" and len(prev_conversation) >= ABANDON_AFTER_STEPS:
         json_output["study_subject"] = ["unknown"]
         json_output["status"] = "abandon"
@@ -131,21 +169,23 @@ def _strategy_step_llm(user: User, context: str, prev_conversation: list[str]):
     strategy_analysis_prompt = get_strategy_analysis_prompt(user)
     logger.debug("Retrieving reasoning response")
     reasoning_response = get_llm_response(
-        strategy_analysis_prompt, 
+        strategy_analysis_prompt,
         user_prompt=None, temperature=0.0,
-        prev_conversation=prev_conversation
+        prev_conversation=_user_only_conv(prev_conversation)
         )
     logger.debug("Retrieving prompt")
     format_strategy_prompt = get_format_strategy_prompt(user, reasoning_response, len(prev_conversation), context,
                                                         ABANDON_AFTER_STEPS)
     system_prompt = get_prompt(user, "system")
     logger.debug("Retrieving JSON")
+    # Format call: reasoning_response already embedded in prompt – no conversation needed.
+    # Passing conversation here causes the LLM to respond conversationally instead of outputting JSON.
     json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_strategy_prompt + system_prompt,
                                                       expected_fields_model=StepStrategieStepperFields,
-                                                      prev_conversation=prev_conversation,
+                                                      prev_conversation=[],
                                                       user_prompt=None)
     if not json_valid:
-        return [], "in_progress", json_output
+        return [], "in_progress", _json_retry_comment(user, "strategy")
 
     if json_output["strategies"] not in ([], ["other"]):
         json_output["status"] = "completed"
@@ -172,21 +212,26 @@ def frequency_step(user: User, prev_conversation: list[str], conversation_for_st
     system_prompt = get_prompt(user, "system")
     logger.debug("Retrieving reasoning response")
     reasoning_response = get_llm_response(
-        frequency_validate_prompt + system_prompt, 
-        user_prompt=None, 
+        frequency_validate_prompt + system_prompt,
+        user_prompt=None,
         temperature=0.0,
-        prev_conversation=conversation_for_strategy_in_context
+        # Use the full context conversation (user messages only) so the reasoning
+        # call can actually see the number the user typed (e.g. "3").
+        # conversation_for_strategy_in_context is NOT used here because it is
+        # passed with a positional-arg bug that makes it always empty.
+        prev_conversation=_user_only_conv(prev_conversation)
         )
     logger.debug("Retrieving prompt")
     format_frequency_prompt = get_format_frequency_prompt(user, strategy_for_frequency, reasoning_response)
     logger.debug("Retrieving JSON")
+    # Format call: reasoning_response already embedded in prompt – no conversation needed.
     json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_frequency_prompt + system_prompt,
                                                       expected_fields_model=StepFrequencyStepperFields,
-                                                      prev_conversation=prev_conversation,
+                                                      prev_conversation=[],
                                                       user_prompt=None
                                                       )
     if not json_valid:
-        return [], 0, "in_progress", json_output
+        return [], 0, "in_progress", _json_retry_comment(user, "frequency")
     if json_output["status"] == "in_progress" and len(prev_conversation) > (ABANDON_AFTER_STEPS * 2):
         json_output["status"] = "abandon"
         json_output["frequency"] = 0

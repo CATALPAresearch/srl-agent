@@ -101,12 +101,14 @@ export default Vue.extend({
   name: "ChatApp",
 
   data() {
-    return {
-      host: "http://localhost:5000",
-    };
+    return {};
   },
 
   computed: {
+    host() {
+      return this.$store.getters.getApiHost;
+    },
+
     lang() {
       return this.$store.getters.getLanguage;
     },
@@ -164,8 +166,7 @@ export default Vue.extend({
       if (!ok) return;
 
       try {
-        const apiBase = this.$store.getters.getApiHost || this.host;
-        await axios.post(`${apiBase}/resetConversation`, {
+        await axios.post(`${this.host}/resetConversation`, {
           client: "web",
           userid: userId,
         });
