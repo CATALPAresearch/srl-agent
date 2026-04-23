@@ -1,6 +1,6 @@
 <template>
   <div id="container" class="content agent-chat" role="main">
-    <div class="chat-header mb-3 w100">
+    <div class="chat-header w100">
       <h3 class="d-flex justify-content-betweenx xalign-items-center mb-3">
         <span id="chat-title" hidden>Agent-Chat</span>
         <button
@@ -47,6 +47,8 @@
       :messages="messages"
       :is_loading="is_loading"
       @requestChatResponse="requestAgentChat"
+      @openSurvey="openSurvey"
+      @openResults="openResults"
       aria-labelledby="chat-title"
     />
   </div>
@@ -72,7 +74,6 @@ export default Vue.extend({
       messageId: 0,
       error_msg: "",
       is_loading: false,
-      host: "http://localhost:5000",
       chatStarted: false,
       userInput: "",
       tabHiddenAt: null,
@@ -82,7 +83,17 @@ export default Vue.extend({
       mouseSampleInterval: null,
       lastMouseX: undefined,
       lastMouseY: undefined,
+      summaryPollInterval: null,
+      summaryPollAttempts: 0,
+      surveyReturnBaseline: null,
+      postSurveyInfoActive: false,
     };
+  },
+
+  computed: {
+    host() {
+      return this.$store.getters.getApiHost;
+    },
   },
 
   mounted() {
@@ -91,32 +102,218 @@ export default Vue.extend({
     this.restoreOrStart();
   },
 
+  activated() {
+    // AgentChat is cached via keep-alive. When returning from survey,
+    // mounted() is not called again, so we must explicitly re-run restore flow.
+    if (this.isReturningFromSurvey()) {
+      this.restoreOrStart();
+    } else if (localStorage.getItem("srl_fresh_start") === "1") {
+      localStorage.removeItem("srl_fresh_start");
+      this.messages = [];
+      this.chatStarted = false;
+      this.restoreOrStart();
+    }
+  },
+
   methods: {
     getNextMessageId: function () {
       this.messageId++;
       return this.messageId;
     },
 
+    getPostSurveyInfoMessage: function () {
+      const lang = this.$store.getters.getLanguage || "de";
+      return lang === "de"
+        ? "Vielen Dank fuers Ausfuellen des Fragebogens. Ich erstelle gerade deine Zusammenfassung und zeige sie hier automatisch an, sobald sie fertig ist."
+        : "Thank you for filling out the survey. I am generating your summary now and will show it here automatically as soon as it is ready.";
+    },
+
+    getPendingSummaryMessage: function () {
+      const lang = this.$store.getters.getLanguage || "de";
+      return lang === "de"
+        ? "Das Interview ist abgeschlossen. Bitte fuelle jetzt den Fragebogen aus. Deine Zusammenfassung wird im Hintergrund erstellt."
+        : "The interview is complete. Please fill out the survey now. Your summary is being generated in the background.";
+    },
+
+    isPendingSummaryMessage: function (text) {
+      if (!text || typeof text !== "string") return false;
+      const normalized = text.toLowerCase();
+      return (
+        normalized.includes("summary is being generated in the background") ||
+        normalized.includes("zusammenfassung wird im hintergrund erstellt")
+      );
+    },
+
+    hasPendingSummaryInHistory: function (history) {
+      return Array.isArray(history)
+        ? history.some(
+            (m) =>
+              m.author === "bot" && this.isPendingSummaryMessage(m.message),
+          )
+        : false;
+    },
+
+    shouldActivatePostSurveyFlow: function (history) {
+      const fromQuery = this.$route.query.fromSurvey === "1";
+      const fromStorage = localStorage.getItem("srl_from_survey") === "1";
+      return (
+        fromQuery || fromStorage || this.hasPendingSummaryInHistory(history)
+      );
+    },
+
+    isReturningFromSurvey: function () {
+      return (
+        this.$route.query.fromSurvey === "1" ||
+        localStorage.getItem("srl_from_survey") === "1"
+      );
+    },
+
+    clearPostSurveyReturnFlag: function () {
+      localStorage.removeItem("srl_from_survey");
+      if (this.$route.query.fromSurvey === "1") {
+        this.$router
+          .replace({ path: "/agent-chat", query: {} })
+          .catch(() => {});
+      }
+    },
+
+    markSummaryResultsCTA: function (history) {
+      if (!Array.isArray(history) || history.length === 0) return history;
+      const marked = history.map((m) => ({ ...m, isResultsCTA: false }));
+      let lastBotIdx = -1;
+      for (let i = marked.length - 1; i >= 0; i--) {
+        if (
+          marked[i].author === "bot" &&
+          typeof marked[i].message === "string"
+        ) {
+          lastBotIdx = i;
+          break;
+        }
+      }
+      if (lastBotIdx === -1) return marked;
+
+      const lastBotMsg = (marked[lastBotIdx].message || "").trim();
+      if (!lastBotMsg || this.isPendingSummaryMessage(lastBotMsg)) {
+        return marked;
+      }
+
+      const pendingExists = marked.some(
+        (m) => m.author === "bot" && this.isPendingSummaryMessage(m.message),
+      );
+      if (pendingExists || this.postSurveyInfoActive) {
+        marked[lastBotIdx].isResultsCTA = true;
+        marked[lastBotIdx].isSurveyCTA = false; // survey is done; replace survey button with results button
+      }
+      return marked;
+    },
+
+    applyConversationHistory: function (history) {
+      this.messages = this.markSummaryResultsCTA(history);
+      this.messageId = history.reduce((max, m) => Math.max(max, m.id || 0), 0);
+      this.chatStarted = true;
+
+      if (
+        this.postSurveyInfoActive &&
+        history.length <= this.surveyReturnBaseline
+      ) {
+        this.messages.push({
+          author: "bot",
+          message: this.getPostSurveyInfoMessage(),
+          id: this.getNextMessageId(),
+          isPostSurveyInfo: true,
+        });
+      }
+    },
+
+    refreshConversation: async function () {
+      const res = await axios.get(this.host + "/conversation", {
+        params: { userid: this.$store.getters.getUser, client: "web" },
+      });
+      const history = res.data && res.data.messages;
+      if (history && history.length > 0) {
+        this.applyConversationHistory(history);
+        return history;
+      }
+      return [];
+    },
+
+    stopSummaryPolling: function () {
+      if (this.summaryPollInterval) {
+        clearInterval(this.summaryPollInterval);
+        this.summaryPollInterval = null;
+      }
+      this.summaryPollAttempts = 0;
+      this.postSurveyInfoActive = false;
+      this.surveyReturnBaseline = null;
+    },
+
+    startSummaryPolling: function () {
+      if (this.summaryPollInterval) {
+        clearInterval(this.summaryPollInterval);
+        this.summaryPollInterval = null;
+      }
+      this.postSurveyInfoActive = true;
+      this.summaryPollAttempts = 0;
+      this.summaryPollInterval = setInterval(async () => {
+        this.summaryPollAttempts += 1;
+        try {
+          const history = await this.refreshConversation();
+          const hasUpdate =
+            this.surveyReturnBaseline !== null &&
+            history.length > this.surveyReturnBaseline;
+          if (hasUpdate || this.summaryPollAttempts >= 12) {
+            this.stopSummaryPolling();
+          }
+        } catch (e) {
+          console.warn("Summary polling failed:", e);
+          if (this.summaryPollAttempts >= 12) {
+            this.stopSummaryPolling();
+          }
+        }
+      }, 3000);
+    },
+
     restoreOrStart: async function () {
       this.is_loading = true;
+      const returningFromSurvey = this.isReturningFromSurvey();
       try {
-        const res = await axios.get(this.host + "/conversation", {
-          params: { userid: this.$store.getters.getUser, client: "web" },
-        });
-        const history = res.data && res.data.messages;
+        const history = await this.refreshConversation();
         if (history && history.length > 0) {
-          this.messages = history;
-          this.messageId = history.reduce(
-            (max, m) => Math.max(max, m.id || 0),
-            0,
-          );
-          this.chatStarted = true;
+          if (this.shouldActivatePostSurveyFlow(history)) {
+            const hasPending = this.hasPendingSummaryInHistory(history);
+            if (hasPending) {
+              // Summary not ready yet — show pending UI and poll for it.
+              this.surveyReturnBaseline = history.length;
+              this.postSurveyInfoActive = true;
+              this.applyConversationHistory(history);
+              this.startSummaryPolling();
+            } else {
+              // Summary already present in history (generated synchronously).
+              // Show it directly with a results CTA — no polling needed.
+              this.postSurveyInfoActive = true; // enables CTA marking
+              this.surveyReturnBaseline = history.length - 1; // prevents info-message injection
+              this.applyConversationHistory(history);
+              this.postSurveyInfoActive = false;
+            }
+            this.clearPostSurveyReturnFlag();
+          }
           this.is_loading = false;
           return;
         }
       } catch (e) {
         console.warn("Could not restore conversation:", e);
       }
+
+      if (returningFromSurvey) {
+        // No history yet — start a fresh chat (edge case).
+        this.chatStarted = true;
+        this.messages = [];
+        this.clearPostSurveyReturnFlag();
+        this.is_loading = false;
+        this.startChat();
+        return;
+      }
+
       this.startChat();
     },
 
@@ -124,9 +321,10 @@ export default Vue.extend({
       console.log("Started Chat");
       this.is_loading = true;
       let _this = this;
+      const selectedLanguage = this.$store.getters.getLanguage || "de";
       await axios
         .post(this.host + "/startConversation", {
-          language: "en",
+          language: selectedLanguage,
           client: "web",
           userid: this.$store.getters.getUser,
         })
@@ -195,13 +393,12 @@ export default Vue.extend({
                 ? response.data
                 : "",
             id: bot_placeholder.id,
+            isSurveyCTA: Boolean(response.data && response.data.complete),
+            // Results CTA is never shown immediately after interview completion —
+            // only after the user has completed the survey and returned here.
+            isResultsCTA: false,
           });
           this.wait_video_generation = false;
-          if (response.data && response.data.complete) {
-            setTimeout(() => {
-              this.$router.push("/survey");
-            }, 3000);
-          }
         })
         .catch((error) => {
           this.is_loading = false;
@@ -237,6 +434,14 @@ export default Vue.extend({
 
         console.log("Tab visibility changed:", event, "at", timestamp);
       });
+    },
+
+    openSurvey() {
+      this.$router.push("/survey");
+    },
+
+    openResults() {
+      this.$router.push("/results");
     },
 
     setupMouseTracking: function () {
@@ -287,6 +492,7 @@ export default Vue.extend({
   },
 
   beforeDestroy() {
+    this.stopSummaryPolling();
     this.stopMouseTracking();
   },
 });

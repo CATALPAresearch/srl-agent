@@ -4,6 +4,7 @@ import json
 import sqlalchemy as sa
 from flask import Blueprint, request, jsonify
 from flask_cors import cross_origin
+import datetime
 
 from app import app, db
 from ..core import start_conversation_core, reply_core, reset_conversation
@@ -156,6 +157,20 @@ def get_conversation():
         return jsonify({"messages": []}), 400
 
     try:
+        reset_ts = db.session.scalar(sa.text("""
+            SELECT timestamp
+            FROM activity_log
+            WHERE user_id = :uid
+              AND user_client = :client
+              AND action = 'reset_conversation'
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """), {"uid": userid, "client": client})
+
+        boundary = None
+        if reset_ts is not None:
+            boundary = datetime.datetime.fromtimestamp(int(reset_ts))
+
         user_rows = db.session.execute(sa.text("""
             SELECT turn, message, message_time, 'user' AS author
             FROM interview_answer
@@ -172,6 +187,8 @@ def get_conversation():
             {"turn": r[0], "message": r[1], "time": r[2], "author": r[3]}
             for r in (list(user_rows) + list(bot_rows))
         ]
+        if boundary is not None:
+            all_rows = [r for r in all_rows if r["time"] is not None and r["time"] >= boundary]
         # Sort by timestamp; within same turn put user message before bot reply
         all_rows.sort(key=lambda r: (r["time"], 0 if r["author"] == "user" else 1))
 
