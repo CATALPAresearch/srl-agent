@@ -67,11 +67,88 @@
 
               <div class="row mt-3">
                 <!-- Radar chart -->
-                <div class="col-md-7 mb-3">
-                  <canvas ref="radarCanvas" style="max-width: 100%"></canvas>
+                <div class="col-md-12 mb-1">
+                  <div class="sr-radar-wrap">
+                    <canvas ref="radarCanvas" style="max-width: 100%"></canvas>
+                    <!-- Invisible hit areas over each axis label -->
+                    <span
+                      v-for="o in radarLabelOverlays"
+                      :key="o.idx"
+                      :id="'sr-rl-' + componentId + '-' + o.idx"
+                      class="sr-label-hit"
+                      :style="{ left: o.x + 'px', top: o.y + 'px' }"
+                    ></span>
+                    <b-popover
+                      v-for="o in radarLabelOverlays"
+                      :key="'rp-' + o.idx"
+                      :target="'sr-rl-' + componentId + '-' + o.idx"
+                      triggers="hover focus"
+                      placement="auto"
+                    >
+                      <template #title>{{
+                        data.radar_data[o.idx].name
+                      }}</template>
+                      <p
+                        v-if="
+                          data.radar_data[o.idx].definition ||
+                          data.radar_data[o.idx].description
+                        "
+                        class="mb-2 small text-muted"
+                        style="margin: 0 0 8px"
+                      >
+                        {{
+                          data.radar_data[o.idx].definition ||
+                          data.radar_data[o.idx].description
+                        }}
+                      </p>
+                      <div style="font-size: 0.875rem">
+                        <div>
+                          <span
+                            style="
+                              display: inline-block;
+                              width: 10px;
+                              height: 10px;
+                              border-radius: 2px;
+                              background: rgba(54, 162, 235, 1);
+                              margin-right: 5px;
+                              vertical-align: middle;
+                            "
+                          ></span>
+                          {{ lang === "de" ? "Du" : "You" }}:
+                          {{ freqLabel(data.radar_data[o.idx].frequency || 0) }}
+                        </div>
+                        <div>
+                          <span
+                            style="
+                              display: inline-block;
+                              width: 10px;
+                              height: 10px;
+                              border-radius: 2px;
+                              background: rgba(255, 153, 0, 0.85);
+                              margin-right: 5px;
+                              vertical-align: middle;
+                            "
+                          ></span>
+                          {{
+                            lang === "de" ? "Kursdurchschnitt" : "Course avg"
+                          }}:
+                          {{
+                            freqLabel(
+                              Math.round(
+                                (data.radar_data[o.idx].avg_frequency || 0) *
+                                  10,
+                              ) / 10,
+                            )
+                          }}
+                        </div>
+                      </div>
+                    </b-popover>
+                  </div>
                 </div>
-                <!-- Strategies not mentioned -->
-                <div class="col-md-5 mb-3">
+              </div>
+              <!-- Strategies not mentioned -->
+              <div class="row mt-1 mb-3">
+                <div class="col-md-12 mb-2">
                   <h6 class="font-weight-600 mb-2">
                     {{
                       lang === "de"
@@ -79,16 +156,23 @@
                         : "Strategies not yet mentioned"
                     }}
                   </h6>
-                  <p class="text-muted small mb-2">
-                    {{
-                      lang === "de"
-                        ? "Diese haben sich als hilfreich erwiesen – probiere sie aus:"
-                        : "These have been shown to be helpful — consider trying them:"
-                    }}
-                  </p>
+                  <template v-if="lang === 'de'">
+                    Die folgenden Strategien wurden in deinen Antworten nicht
+                    erwähnt wurden. Dennoch haben sich Strategien in der
+                    Bildungsforschung für viele Studierende als hilfreich
+                    erwiesen. Vielleicht möchtest du erkunden, ob einige davon
+                    auch für dich funktionieren könnten. Probiere sie aus:
+                  </template>
+                  <template v-else>
+                    The following strategies were not mentioned in your answers.
+                    These strategies have been shown in educational research to
+                    be helpful for many students. You might want to explore
+                    whether some of them could work for you too. Consider trying
+                    them
+                  </template>
                   <div
                     v-if="!unmentiondStrategies.length"
-                    class="text-muted small"
+                    class="text-muted small mt-2"
                   >
                     {{
                       lang === "de"
@@ -96,44 +180,38 @@
                         : "Great — you mentioned all strategies!"
                     }}
                   </div>
-                  <div v-else class="sr-tag-cloud">
+                  <div v-else class="sr-tag-cloud mt-2">
                     <span
-                      v-for="s in unmentiondStrategies"
+                      v-for="(s, si) in unmentiondStrategies"
                       :key="s.id"
+                      :id="'sr-tag-' + componentId + '-' + si"
                       class="sr-strategy-tag"
-                      :data-tip="s.definition || s.description"
                       >{{ s.name }}</span
                     >
+                    <b-popover
+                      v-for="(s, si) in unmentiondStrategies"
+                      :key="'tp-' + si"
+                      :target="'sr-tag-' + componentId + '-' + si"
+                      triggers="hover focus"
+                      placement="top"
+                    >
+                      <template #title>{{ s.name }}</template>
+                      {{ s.definition || s.description }}
+                    </b-popover>
                   </div>
                 </div>
               </div>
 
-              <p class="mt-2">
-                <template v-if="lang === 'de'">
-                  Auf der rechten Seite des Diagramms siehst du außerdem einige
-                  Strategien, die in deinen Antworten nicht erwähnt wurden.
-                  Diese Strategien haben sich in der Bildungsforschung für viele
-                  Studierende als hilfreich erwiesen. Vielleicht möchtest du
-                  erkunden, ob einige davon auch für dich funktionieren könnten.
-                </template>
-                <template v-else>
-                  On the right side of the chart, you will also see some
-                  strategies that were not mentioned in your answers. These
-                  strategies have been shown in educational research to be
-                  helpful for many students. You might want to explore whether
-                  some of them could work for you too.
-                </template>
-              </p>
               <p>
                 <template v-if="lang === 'de'">
                   Wenn du mehr über eine dieser Strategien erfahren, Tipps zu
                   deren Anwendung erhalten oder etwas im Diagramm unklar ist,
-                  schick uns gerne unten eine E-Mail.
+                  dann kannst du hier weitere Fragen stellen.
                 </template>
                 <template v-else>
                   If you'd like to learn more about any of these strategies, get
                   tips on how to use them, or if something in the graph isn't
-                  clear, feel free to send us a mail below.
+                  clear, feel free to ask the agent.
                 </template>
               </p>
             </div>
@@ -244,9 +322,11 @@
 import Vue from "vue";
 import axios from "axios";
 import Chart from "chart.js";
+import { BPopover } from "bootstrap-vue";
 
 export default Vue.extend({
   name: "StudentResults",
+  components: { BPopover },
 
   data() {
     return {
@@ -260,12 +340,19 @@ export default Vue.extend({
       question: "",
       questionSent: false,
       radarChart: null,
+      radarLabelOverlays: [],
+      componentId: Math.random().toString(36).slice(2, 10),
     };
   },
 
   computed: {
     host() {
       return this.$store.getters.getApiHost;
+    },
+    tickLabels() {
+      return this.lang === "de"
+        ? ["", "Selten", "Manchmal", "Oft", "Meistens"]
+        : ["", "Seldom", "Sometimes", "Often", "Most of the time"];
     },
     lang() {
       return this.$store.getters.getLanguage || "de";
@@ -292,37 +379,10 @@ export default Vue.extend({
       const truncate = (s, n) =>
         s.length > n ? s.slice(0, n - 1) + "\u2026" : s;
       const shortLabels = radarData.map((s) => truncate(s.name, 20));
-      const fullLabels = radarData.map((s) => s.name);
-      const descriptions = radarData.map(
-        (s) => s.definition || s.description || "",
-      );
       const freqs = radarData.map((s) => s.frequency || 0);
       const avgs = radarData.map(
         (s) => Math.round((s.avg_frequency || 0) * 10) / 10,
       );
-      const tickLabels =
-        this.lang === "de"
-          ? ["", "Selten", "Manchmal", "Oft", "Meistens"]
-          : ["", "Seldom", "Sometimes", "Often", "Most of the time"];
-      const wrapText = (text, maxLen) => {
-        const words = text.split(" ");
-        const lines = [];
-        let line = "";
-        for (const w of words) {
-          if ((line + " " + w).trim().length > maxLen) {
-            if (line) lines.push(line);
-            line = w;
-          } else {
-            line = (line + " " + w).trim();
-          }
-        }
-        if (line) lines.push(line);
-        return lines;
-      };
-      const freqLabel = (v) => {
-        const i = Math.round(v);
-        return tickLabels[i] ? tickLabels[i] + ` (${v})` : String(v);
-      };
 
       this.radarChart = new Chart(canvas.getContext("2d"), {
         type: "radar",
@@ -365,31 +425,29 @@ export default Vue.extend({
             },
             pointLabels: { fontSize: 10 },
           },
-          tooltips: {
-            mode: "index",
-            callbacks: {
-              title: (items) => fullLabels[items[0].index],
-              beforeBody: (items) => {
-                const desc = descriptions[items[0].index];
-                if (!desc) return [];
-                return wrapText(desc, 48).map((l) => " " + l);
-              },
-              label: (item) => {
-                const prefix =
-                  item.datasetIndex === 0
-                    ? this.lang === "de"
-                      ? " Du"
-                      : " You"
-                    : this.lang === "de"
-                    ? " Kursdurchschnitt"
-                    : " Course avg";
-                return prefix + ": " + freqLabel(parseFloat(item.value));
-              },
-            },
-          },
+          tooltips: { enabled: false },
           legend: { display: true, position: "bottom" },
         },
       });
+      this._buildLabelOverlays();
+    },
+
+    freqLabel(v) {
+      const i = Math.round(v);
+      return this.tickLabels[i] ? this.tickLabels[i] + ` (${v})` : String(v);
+    },
+
+    _buildLabelOverlays() {
+      const radarData = this.data.radar_data;
+      if (!radarData || !this.radarChart) return;
+      const scale = this.radarChart.scale;
+      const n = radarData.length;
+      const overlays = [];
+      for (let i = 0; i < n; i++) {
+        const pos = scale.getPointPosition(i, scale.drawingArea + 18);
+        overlays.push({ x: Math.round(pos.x), y: Math.round(pos.y), idx: i });
+      }
+      this.radarLabelOverlays = overlays;
     },
 
     barClass(val) {
@@ -545,7 +603,6 @@ export default Vue.extend({
 }
 
 .sr-strategy-tag {
-  position: relative;
   display: inline-block;
   padding: 3px 10px;
   border-radius: 12px;
@@ -558,27 +615,17 @@ export default Vue.extend({
   cursor: default;
 }
 
-.sr-strategy-tag::before {
-  content: attr(data-tip);
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(33, 37, 41, 0.93);
-  color: #fff;
-  border-radius: 6px;
-  padding: 7px 11px;
-  font-size: 0.72rem;
-  line-height: 1.5;
-  width: 240px;
-  white-space: normal;
-  z-index: 200;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
+/* ── Radar label hit areas ─────────────────────────── */
+.sr-radar-wrap {
+  position: relative;
 }
 
-.sr-strategy-tag:hover::before {
-  opacity: 1;
+.sr-label-hit {
+  position: absolute;
+  display: block;
+  width: 90px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  cursor: default;
 }
 </style>
