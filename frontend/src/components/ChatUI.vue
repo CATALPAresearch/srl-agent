@@ -167,9 +167,16 @@
             @keydown.enter.shift.exact="() => {}"
             @input="resizeTextarea"
             :placeholder="
-              lang === 'de' ? 'Deine Antwort…' : 'Type your response…'
+              is_loading
+                ? lang === 'de'
+                  ? 'Agent antwortet…'
+                  : 'Agent is replying…'
+                : lang === 'de'
+                ? 'Deine Antwort…'
+                : 'Type your response…'
             "
             rows="1"
+            :disabled="is_loading"
             :aria-label="lang === 'de' ? 'Deine Antwort' : 'Your response'"
           />
           <div class="chat-input-actions">
@@ -295,6 +302,7 @@ export default Vue.extend({
     },
     handleChatMessage() {
       if (!this.chat_message || this.chat_message.length === 0) return;
+      if (this.is_loading) return;
       this.$emit("requestChatResponse", this.chat_message);
       this.chat_message = ""; // reset input field
       this.scrollTranscriptToBottom();

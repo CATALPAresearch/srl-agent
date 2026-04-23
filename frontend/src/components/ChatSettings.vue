@@ -69,82 +69,6 @@
       </label>
     </div>
     <hr />
-    <!-- Settings for the document chat (RAG) -->
-    <div v-if="chatmodus == 'document-chat'">
-      <h4 id="doc-table-caption">Dokumente für Dokumenten-Chat</h4>
-      <span v-if="documents.length > 0" class="bold"
-        >Ausgewählte Dokumente</span
-      >
-      <table
-        v-if="documents.length > 0"
-        class="document-table"
-        aria-labelledby="doc-table-caption"
-      >
-        <thead>
-          <tr>
-            <th>Auswahl</th>
-            <th class="long">Require Completion</th>
-            <th>Dokument</th>
-            <th>Typ</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(doc, index) in documents" :key="doc.id">
-            <td>
-              <input type="checkbox" v-model="doc.selected" />
-            </td>
-            <td class="long">
-              <VueMultiselect
-                v-model="value[index]"
-                :options="options"
-                :multiple="true"
-                group-values="items"
-                group-label="category"
-                :group-select="true"
-                placeholder="Select ..."
-                searchable="false"
-                showLabels="false"
-                allow-empty="true"
-                selectLabel=""
-                selectGroupLabel=""
-                deselectLabel=""
-                deselectGroupLabel=""
-                optionHeight="20"
-                track-by="name"
-                label="name"
-              ></VueMultiselect>
-            </td>
-            <td v-if="doc.url == ''" class="break">{{ doc.filename }}</td>
-            <td v-if="doc.url != ''" class="break">
-              <a :href="doc.url">{{ doc.filename }}</a>
-            </td>
-            <td>{{ doc.activity_type }}</td>
-            <td>
-              <button
-                type="button"
-                class="btn btn-link delete-icon"
-                @click="removeDocument(doc.id)"
-                :aria-label="'Dokument' + doc.file.name + 'löschen'"
-              >
-                <font-awesome-icon icon="trash" aria-hidden="true" />
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="mt-3">
-        <RAGupload @document_uploaded="addDocument"></RAGupload>
-        <span style="background-color: red" aria-live="assertive">{{
-          error_msg
-        }}</span>
-      </div>
-      <div hidden class="mt-3">
-        TODO: Ressource aus dem Kurs als Dokument hinzufügen; [todo: page,
-        longpage, wiki, forum, assign]
-      </div>
-    </div>
     <hr />
     <!-- Standard settings for all chat modi -->
     <div class="form-group">
@@ -172,7 +96,6 @@
 </template>
 
 <script>
-import RAGupload from "./RAGupload.vue";
 import Communication from "../classes/communication";
 import { mapGetters } from "vuex";
 import VueMultiselect from "vue-multiselect";
@@ -180,7 +103,6 @@ import VueMultiselect from "vue-multiselect";
 export default {
   name: "RAGChatSettings",
   components: {
-    RAGupload: RAGupload,
     VueMultiselect,
   },
   props: {
@@ -295,7 +217,7 @@ export default {
               args: { cmid },
             },
           ]),
-        }
+        },
       );
 
       const result = await response.json();
