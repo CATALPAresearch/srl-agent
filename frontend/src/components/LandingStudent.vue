@@ -167,7 +167,7 @@
                     : "To continue, we ask for your informed consent to collect and analyze your responses. Participation is completely voluntary, and you can stop at any time."
                 }}
               </p>
-              <button class="btn btn-outline-primary" @click="openConsentModal">
+              <button class="btn btn-primary" @click="openConsentModal">
                 {{
                   lang === "de"
                     ? "Einwilligungserklärung lesen &amp; zustimmen"
@@ -190,7 +190,7 @@
                 >
                   &times;
                 </button>
-                <ChatInformedConsent />
+                <ChatInformedConsent :lang="lang" />
               </div>
             </div>
 
@@ -251,7 +251,7 @@
                   </button>
                 </router-link>
                 <button
-                  class="btn btn-outline-secondary btn-lg"
+                  class="btn btn-secondary btn-lg"
                   @click="redoInterview"
                 >
                   {{
