@@ -23,7 +23,6 @@
       <div id="intro">
         {{ $store.getters.getPluginSettings.intro }}
       </div>
-      <ChatSettings hidden v-if="$store.getters.showSettings" :documents="[]" />
     </div>
 
     <button
@@ -58,14 +57,12 @@
 import axios from "axios";
 import Vue from "vue";
 //import { mapGetters } from 'vuex'
-import ChatSettings from "./ChatSettings.vue";
 import ChatUI from "./ChatUI.vue";
 import Communication from "../classes/communication";
 
 export default Vue.extend({
   name: "AgentChat",
   components: {
-    ChatSettings: ChatSettings,
     ChatUI: ChatUI,
   },
   data() {
