@@ -79,3 +79,13 @@ class LogAction(str, Enum):
 
     # ============ Mouse Tracking ============
     MOUSE_TRACE = "mouse_trace"
+
+    # ============ UI Interactions ============
+    STRATEGY_HOVERED = "strategy_hovered"
+    UNMENTIONED_STRATEGY_HOVERED = "unmentioned_strategy_hovered"
+    DASHBOARD_KPI_HOVERED = "dashboard_kpi_hovered"
+    DASHBOARD_CHART_TOGGLED = "dashboard_chart_toggled"
+    DASHBOARD_TABLE_ROW_HOVERED = "dashboard_table_row_hovered"
+    DASHBOARD_FILTER_APPLIED = "dashboard_filter_applied"
+    DASHBOARD_FILTER_CLEARED = "dashboard_filter_cleared"
+    SURVEY_ITEM_ANSWERED = "survey_item_answered"

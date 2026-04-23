@@ -1,7 +1,12 @@
 {
   "en": {
     "contexts": [
-      "learning and remembering what was said during in-person or online events"
+      "learning and remembering what was said during in-person or online events",
+      "reviewing course material at home",
+      "writing a scientific paper, such as a term paper, seminar paper, an internship report or a laboratory report",
+      "completing practice tasks to test understanding of the course material",
+      "preparing for and taking oral or written exams",
+      "when poorly motivated to study"
     ],
     "categories": [
       {

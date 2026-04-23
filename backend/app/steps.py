@@ -154,6 +154,40 @@ def _strategy_step_rag(user: User, context: str, prev_conversation: list[str]):
     return strategies, status, comment
 
 
+def _strategy_conversational_comment(user: User, context: str, prev_conversation: list) -> str:
+    """Generate a conversational follow-up that responds to the user's actual last message
+    and steers toward describing their learning strategies in the current context.
+    Used when no strategy was detected yet (in_progress) so that the agent doesn't repeat
+    a static prompt but genuinely engages with what the user said.
+    """
+    lang = get_language_by_id(user.language_id)
+    is_de = bool(lang and lang.lang_code == "de")
+    system = get_prompt(user, "system")
+    if is_de:
+        guide = (
+            f"Gehe kurz auf die letzte Aussage des/der Gesprächspartner*in ein. "
+            f"Stelle dann genau eine kurze, offene Frage dazu, was er/sie konkret im Kontext '{context}' tut, wenn er/sie lernt. "
+            "WICHTIG: Nenne niemals Lernstrategien, Lernmethoden oder Strategiekategorien beim Namen, "
+            "beschreibe sie nicht und deute sie nicht an — auch nicht als Beispiel. "
+            "Stelle keine suggestiven oder führenden Fragen. "
+            "Schreibe NUR deine eigene nächste Aussage oder Frage. Simuliere keinen Dialog."
+        )
+    else:
+        guide = (
+            f"Briefly acknowledge the student's last message. "
+            f"Then ask exactly one short, open-ended question about what the student concretely does when studying in the context '{context}'. "
+            "IMPORTANT: Never name, describe, or hint at any learning strategy, method, or category — not even as an example. "
+            "Do not ask leading or suggestive questions. "
+            "Write ONLY your next message. Do not simulate a dialogue."
+        )
+    return get_llm_response(
+        system + "\n\n" + guide,
+        user_prompt=None,
+        temperature=0.3,
+        prev_conversation=prev_conversation,
+    )
+
+
 def _strategy_step_llm(user: User, context: str, prev_conversation: list[str]):
     """Original LLM chain-of-thought strategy detection."""
     logger.debug("Retrieving contexts")
@@ -179,13 +213,23 @@ def _strategy_step_llm(user: User, context: str, prev_conversation: list[str]):
     system_prompt = get_prompt(user, "system")
     logger.debug("Retrieving JSON")
     # Format call: reasoning_response already embedded in prompt – no conversation needed.
-    # Passing conversation here causes the LLM to respond conversationally instead of outputting JSON.
-    json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_strategy_prompt + system_prompt,
+    # Do NOT append the conversational system_prompt here: its "never name strategies" rule
+    # conflicts with this call's task of outputting strategy IDs in JSON.
+    json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_strategy_prompt,
                                                       expected_fields_model=StepStrategieStepperFields,
                                                       prev_conversation=[],
                                                       user_prompt=None)
     if not json_valid:
-        return [], "in_progress", _json_retry_comment(user, "strategy")
+        # JSON could not be parsed at all – generate a contextual reply instead of a
+        # static fallback so the agent can respond to what the user actually said.
+        comment = _strategy_conversational_comment(user, context, prev_conversation)
+        return [], "in_progress", comment
+
+    # Normalize: LLM sometimes returns strategies as a string instead of a list.
+    strategies_raw = json_output.get("strategies", [])
+    if isinstance(strategies_raw, str):
+        strategies_raw = [s.strip() for s in strategies_raw.split(",") if s.strip()] if strategies_raw else []
+    json_output["strategies"] = strategies_raw
 
     if json_output["strategies"] not in ([], ["other"]):
         json_output["status"] = "completed"
@@ -194,7 +238,15 @@ def _strategy_step_llm(user: User, context: str, prev_conversation: list[str]):
         json_output["strategies"] = ["other"]
         json_output["status"] = "abandon"
 
-    return json_output["strategies"], json_output["status"], json_output["comment"]
+    # For in_progress turns the format call used prev_conversation=[] so its comment
+    # is context-blind. Generate a proper conversational response instead so the agent
+    # can react to the user's last message (e.g. clarifying questions).
+    if json_output["status"] == "in_progress":
+        comment = _strategy_conversational_comment(user, context, prev_conversation)
+    else:
+        comment = json_output["comment"]
+
+    return json_output["strategies"], json_output["status"], comment
 
 
 
@@ -225,7 +277,9 @@ def frequency_step(user: User, prev_conversation: list[str], conversation_for_st
     format_frequency_prompt = get_format_frequency_prompt(user, strategy_for_frequency, reasoning_response)
     logger.debug("Retrieving JSON")
     # Format call: reasoning_response already embedded in prompt – no conversation needed.
-    json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_frequency_prompt + system_prompt,
+    # Do NOT append the conversational system_prompt here: its behavioral rules conflict with
+    # the task of outputting a numeric frequency rating in JSON.
+    json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_frequency_prompt,
                                                       expected_fields_model=StepFrequencyStepperFields,
                                                       prev_conversation=[],
                                                       user_prompt=None

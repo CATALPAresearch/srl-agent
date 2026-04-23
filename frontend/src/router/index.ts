@@ -24,6 +24,16 @@ const router = new VueRouter({
   routes,
 });
 
+const PAGE_NAMES = {
+  "/": "landing",
+  "/agent-chat": "interview",
+  "/survey": "survey",
+  "/protocols": "protocol_editor",
+  "/results": "student_results",
+  "/dashboard/researcher": "dashboard_researcher",
+  "/dashboard/teacher": "dashboard_teacher",
+};
+
 // Log every page navigation to the backend activity_log
 router.afterEach((to) => {
   const apiBase =
@@ -34,11 +44,14 @@ router.afterEach((to) => {
     new URLSearchParams(window.location.search).get("userid") ||
     localStorage.getItem("srl_userid");
 
+  const pageName = PAGE_NAMES[to.path] || to.path;
+
   axios
     .post(apiBase + "/log/page_view", {
       userid,
       client: "web",
       path: to.fullPath,
+      page_name: pageName,
       timestamp: Math.floor(Date.now() / 1000),
     })
     .catch(() => {
