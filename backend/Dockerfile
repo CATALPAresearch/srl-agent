@@ -1,15 +1,19 @@
-FROM python:3.12-slim
+FROM python:3.12.5-slim
 
 WORKDIR /api
 
 # Install system deps needed by psycopg2 (libpq) and curl (healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc curl \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Poetry
+RUN pip install --no-cache-dir poetry
+
 # Install Python dependencies first (cached layer)
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml poetry.lock ./
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --only main --no-root
 
 # Copy application code
 COPY . .
