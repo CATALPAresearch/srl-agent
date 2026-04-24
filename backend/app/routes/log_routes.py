@@ -73,7 +73,7 @@ def log_mouse_traces():
         session_id = content.get("session_id")
         traces = content.get("traces", [])
 
-        if not userid or not client or not traces:
+        if not userid or not client:
             return jsonify({"error": "Missing required fields"}), 400
 
         with db.session.begin_nested():

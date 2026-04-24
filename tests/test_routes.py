@@ -295,7 +295,7 @@ class TestLogMouseTraces:
             "/log/mouse_traces",
             json={
                 "userid": uid, "client": "pytest", "session_id": "s1",
-                "traces": [{"x": 10, "y": 20, "t": 100}, {"x": 15, "y": 25, "t": 200}],
+                "traces": [{"x": 10, "y": 20, "timestamp": 100}, {"x": 15, "y": 25, "timestamp": 200}],
             },
             content_type="application/json",
         )
@@ -358,7 +358,8 @@ class TestDashboard:
         assert resp.status_code == 200
 
     def test_stats_empty_date_range_returns_zeros(self, client):
-        resp = client.get("/dashboard/stats?from=2000-01-01&to=2000-01-02")
+        # date_from / date_to are Unix timestamps; year-2000 range has no data
+        resp = client.get("/dashboard/stats?date_from=946684800&date_to=946771200")
         body = resp.get_json()
         assert body["total_students"] == 0
         assert body["total_completed"] == 0
@@ -550,6 +551,9 @@ class TestSurveySubmit:
 
     def test_submit_stores_responses(self, client):
         uid = _uid()
+        # Start conversation first so the user record exists (results endpoint returns
+        # early with survey=None when no user row is found)
+        _start(client, uid)
         client.post(
             "/survey/srl-o/submit",
             json={"userid": uid, "client": "pytest", "language": "en", "responses": {"oase_1": 5}},
