@@ -53,7 +53,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
 import axios from "axios";
 import Vue from "vue";
 //import { mapGetters } from 'vuex'
@@ -84,6 +84,8 @@ export default Vue.extend({
       summaryPollAttempts: 0,
       surveyReturnBaseline: null,
       postSurveyInfoActive: false,
+      _visibilityHandler: null,
+      _mouseMoveHandler: null,
     };
   },
 
@@ -251,7 +253,8 @@ export default Vue.extend({
       }
       this.postSurveyInfoActive = true;
       this.summaryPollAttempts = 0;
-      this.summaryPollInterval = setInterval(async () => {
+
+      const poll = async () => {
         this.summaryPollAttempts += 1;
         try {
           const history = await this.refreshConversation();
@@ -260,14 +263,19 @@ export default Vue.extend({
             history.length > this.surveyReturnBaseline;
           if (hasUpdate || this.summaryPollAttempts >= 12) {
             this.stopSummaryPolling();
+            return;
           }
         } catch (e) {
           console.warn("Summary polling failed:", e);
           if (this.summaryPollAttempts >= 12) {
             this.stopSummaryPolling();
+            return;
           }
         }
-      }, 3000);
+        this.summaryPollInterval = setTimeout(poll, 3000);
+      };
+
+      this.summaryPollInterval = setTimeout(poll, 3000);
     },
 
     restoreOrStart: async function () {
@@ -409,18 +417,17 @@ export default Vue.extend({
     },
 
     setupTabVisibilityTracking: function () {
-      const _this = this;
-      document.addEventListener("visibilitychange", function () {
+      this._visibilityHandler = () => {
         const event = document.hidden ? "tab_hidden" : "tab_visible";
         const timestamp = Math.floor(Date.now() / 1000);
 
         if (document.hidden) {
-          _this.tabHiddenAt = timestamp;
+          this.tabHiddenAt = timestamp;
         }
 
         axios
-          .post(_this.host + "/log/tab_event", {
-            userid: _this.$store.getters.getUser,
+          .post(this.host + "/log/tab_event", {
+            userid: this.$store.getters.getUser,
             client: "web",
             event: event,
             timestamp: timestamp,
@@ -430,7 +437,8 @@ export default Vue.extend({
           });
 
         console.log("Tab visibility changed:", event, "at", timestamp);
-      });
+      };
+      document.addEventListener("visibilitychange", this._visibilityHandler);
     },
 
     openSurvey() {
@@ -476,10 +484,11 @@ export default Vue.extend({
       }, 10000);
 
       // Track mouse position
-      document.addEventListener("mousemove", function (e) {
-        _this.lastMouseX = e.clientX;
-        _this.lastMouseY = e.clientY;
-      });
+      this._mouseMoveHandler = (e) => {
+        this.lastMouseX = e.clientX;
+        this.lastMouseY = e.clientY;
+      };
+      document.addEventListener("mousemove", this._mouseMoveHandler);
     },
 
     stopMouseTracking: function () {
@@ -491,6 +500,12 @@ export default Vue.extend({
   beforeDestroy() {
     this.stopSummaryPolling();
     this.stopMouseTracking();
+    if (this._visibilityHandler) {
+      document.removeEventListener("visibilitychange", this._visibilityHandler);
+    }
+    if (this._mouseMoveHandler) {
+      document.removeEventListener("mousemove", this._mouseMoveHandler);
+    }
   },
 });
 </script>

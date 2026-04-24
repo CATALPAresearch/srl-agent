@@ -34,6 +34,16 @@ const PAGE_NAMES = {
   "/dashboard/teacher": "dashboard_teacher",
 };
 
+// Redirect unauthenticated users away from admin-only routes
+const ADMIN_ROUTES = new Set(['/protocols', '/dashboard/researcher']);
+router.beforeEach((to, _from, next) => {
+  if (ADMIN_ROUTES.has(to.path) && sessionStorage.getItem('srl_admin_session') !== '1') {
+    next('/');
+  } else {
+    next();
+  }
+});
+
 // Log every page navigation to the backend activity_log
 router.afterEach((to) => {
   const apiBase =

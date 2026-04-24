@@ -353,7 +353,7 @@ export default Vue.extend({
       // Note: preserving original action-name logic from previous version.
       Communication.webservice("triggerEvent", {
         cmid: _this.$store.getters.getCMID,
-        action: "rate_response_" + rating == "up" ? "positive" : "negative",
+        action: "rate_response_" + (rating == "up" ? "positive" : "negative"),
         value: JSON.stringify({ index: message_index, rating, params }),
       });
     },
