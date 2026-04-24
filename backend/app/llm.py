@@ -1,12 +1,9 @@
-import json
 import os
 import requests
 import time
 import logging
 
 from ollama import Client
-
-from .database.crud import get_language_by_id
 
 BASE_URL = os.getenv("BASE_URL")
 API_KEY = os.getenv("API_KEY")
@@ -20,10 +17,8 @@ try:
 except ValueError:
     OLLAMA_NUM_CTX = 2048
 EMBEDDING_URL = os.getenv("EMBEDDING_URL", "https://huggingface.co/")
-# https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
 EMBEDDING_TOKEN = os.getenv("EMBEDDING_TOKEN", "")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
-# https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2
 logger = logging.getLogger('InterviewAgent')
 _OPENAI_MODEL_CACHE = None
 
@@ -80,7 +75,6 @@ def _resolve_openai_model(base, headers):
                 _OPENAI_MODEL_CACHE = mid
                 return mid
 
-        # As a last resort, use the first model id.
         _OPENAI_MODEL_CACHE = ids[0]
         return ids[0]
     except Exception as e:
@@ -100,8 +94,6 @@ def query_embeddings(text_to_embed):
 
 
 def get_model_names(base_url):
-    """
-    """
     client = Client(host=base_url)
     names = []
     for model in client.list()['models']:
@@ -176,7 +168,6 @@ def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1,
     is_openai_compat = "/v1" in base
 
     if is_openai_compat:
-        # OpenAI-compatible API (KI-Connect, Open WebUI with /v1, etc.)
         logger.info("Send request via OpenAI-compatible API")
         try:
             model_to_use = _resolve_openai_model(base, headers)
@@ -198,7 +189,6 @@ def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1,
             logger.error("HTTP call to OpenAI-compatible API failed: %s", e)
             return None
     else:
-        # Native Ollama API
         logger.info("Send request via Ollama API")
         try:
             payload = {
@@ -222,96 +212,9 @@ def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1,
             mock = type('MockResponse', (), {'message': type('msg', (), {'content': content})()})()
             return mock
         except Exception as e:
-            logger.error(f"HTTP call to Ollama failed: {e}")
+            logger.error("HTTP call to Ollama failed: %s", e)
             return None
 
 
-def get_prompt(user, prompt_name):
-    with open("config/prompts.json", "r", encoding="utf-8") as file:
-        prompts = json.load(file)
-    user_lang = get_language_by_id(user.language_id)
-    prompt = prompts[user_lang.lang_code][prompt_name]
-    return prompt
-
-
-def get_intro_prompt(user, limit):
-    return get_prompt(user, "intro_check").replace("${limit}", str(limit))
-
-
-def get_context_prompt(context, user):
-    subject = user.study_subject
-    prompt = get_prompt(user, "context")
-    prompt = prompt.replace(
-        "${context}", context).replace(
-        "${subject}", subject)
-    return prompt
-
-
-def get_frequency_validate_prompt(user, strategy):
-    prompt = get_prompt(user, "validate_frequency")
-    prompt = prompt.replace("${strategy_for_frequency}", str(strategy))
-    return prompt
-
-
-def get_frequency_prompt(user, context, strategy):
-    prompt = get_prompt(user, "frequency")
-    prompt = prompt.replace("${strategy}", str(strategy)).replace("${context}", context)
-    return prompt
-
-
-def get_format_frequency_prompt(user, strategy, reasoning_response):
-    prompt = get_prompt(user, "format_frequency")
-    prompt = prompt.replace(
-        "${strategy_for_frequency}", str(strategy)).replace(
-        "${reasoning_response}", reasoning_response)
-    return prompt
-
-
-def get_strategy_analysis_prompt(user):
-    from .config import get_interview_config_path
-    with open(get_interview_config_path(), "r", encoding="utf-8") as file:
-        interview_context = json.load(file)
-    user_lang = get_language_by_id(user.language_id)
-    strat_info = []
-    for category in interview_context[user_lang.lang_code]["categories"]:
-        strat_info.append(category["strategies"])
-    prompt = get_prompt(user, "recognise_strategy").replace("${strat_info}", str(strat_info))
-    return prompt
-
-
-def get_format_strategy_prompt(user, reasoning_response, conv_length, context, limit):
-    from .config import get_interview_config_path
-    with open(get_interview_config_path(), "r", encoding="utf-8") as file:
-        interview_context = json.load(file)
-    user_lang = get_language_by_id(user.language_id)
-    strat_info = []
-    for category in interview_context[user_lang.lang_code]["categories"]:
-        strat_info.append(category["strategies"])
-    prompt = get_prompt(user, "format_strategy").replace(
-        "${reasoning_response}", reasoning_response).replace(
-        "${strat_info}", str(strat_info)).replace(
-        "${len(prev_conversation)}", str(conv_length)).replace(
-        "${context}", context).replace(
-        "${limit}", str(limit))
-    return prompt
-
-
-def get_complete_prompt(user, most_contexts_strat, const_strategy, avg_freq, total_strat, const_strategies):
-    prompt = get_prompt(user, "interview_complete")
-    from .config import get_interview_config_path
-    with open(get_interview_config_path(), "r", encoding="utf-8") as file:
-        interview_context = json.load(file)
-    user_lang = get_language_by_id(user.language_id)
-    strat_info = interview_context[user_lang.lang_code]["categories"]
-    prompt = prompt.replace(
-        "${most_contexts}", most_contexts_strat).replace(
-        "${const_strategy}", const_strategy).replace(
-        "${avg_freq}", str(avg_freq)).replace(
-        "${total_strat}", str(total_strat)).replace(
-        "${const_strategies}", str(const_strategies)).replace(
-        "${strategies}", str(strat_info)
-    )
-    return prompt
-
 def send_user_feedback(text):
-    logger.info(f"[USER FEEDBACK] {text}")
+    logger.info("[USER FEEDBACK] %s", text)

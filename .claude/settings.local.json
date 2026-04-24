@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3.12 -c ' *)",
+      "Bash(xargs ls *)",
+      "Bash(poetry env *)",
+      "Bash(poetry run *)",
+      "Bash(node_modules/.bin/tsc --noEmit --typeRoots \"[]\" shims-vue.d.ts shims-vuex.d.ts)"
+    ]
+  }
+}
