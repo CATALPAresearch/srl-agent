@@ -37,9 +37,16 @@ def get_frequency_validate_prompt(user, strategy) -> str:
     return prompt.replace("${strategy_for_frequency}", str(strategy))
 
 
-def get_frequency_prompt(user, context: str, strategy: str) -> str:
+def get_frequency_prompt(user, context: str, strategy: str, student_message: str = "") -> str:
     prompt = get_prompt(user, "frequency")
-    return prompt.replace("${strategy}", str(strategy)).replace("${context}", context)
+    # Truncate student_message to avoid excessively long prompts
+    truncated = student_message[:500] + "…" if len(student_message) > 500 else student_message
+    return (
+        prompt
+        .replace("${strategy}", str(strategy))
+        .replace("${context}", context)
+        .replace("${student_message}", truncated)
+    )
 
 
 def get_format_frequency_prompt(user, strategy, reasoning_response: str) -> str:
