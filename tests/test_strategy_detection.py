@@ -21,11 +21,50 @@ Each test is parametrized over every labelled row in the eval CSV.
 
 import json
 import logging
+import os
 import pathlib
 
 import pytest
+import requests as _requests
 
 from tests.conftest import EVAL_CASES, short_id
+
+
+# ---------------------------------------------------------------------------
+# Skip all tests in this module when the embedding API is unreachable or
+# the token is missing/expired — avoids 1000+ "FAILED" lines in CI.
+# ---------------------------------------------------------------------------
+
+def _check_embedding_api() -> str | None:
+    """Return None if the embedding API is usable, or a human-readable skip reason."""
+    token = os.getenv("EMBEDDING_TOKEN", "")
+    if not token:
+        return "EMBEDDING_TOKEN not set"
+    url = os.getenv("EMBEDDING_URL", "").rstrip("/")
+    model = os.getenv("EMBEDDING_MODEL", "")
+    full_url = f"{url}/{model}" if model else url
+    if not full_url:
+        return "EMBEDDING_URL not set"
+    try:
+        r = _requests.post(
+            full_url,
+            headers={"Authorization": f"Bearer {token}"},
+            json={"inputs": "ping"},
+            timeout=5,
+        )
+        if r.status_code in (401, 403):
+            return f"Embedding API returned HTTP {r.status_code} — check EMBEDDING_TOKEN"
+        return None
+    except Exception as exc:
+        return f"Embedding API unreachable: {type(exc).__name__}"
+
+
+_SKIP_REASON = _check_embedding_api()
+
+pytestmark = pytest.mark.skipif(
+    _SKIP_REASON is not None,
+    reason=(_SKIP_REASON or "") + " — strategy-detection tests require a live embedding API and seeded pgvector DB",
+)
 
 logger = logging.getLogger("test_strategy")
 
