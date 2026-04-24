@@ -26,6 +26,9 @@ Vue.use(Vuex);
 
 export const store = new Vuex.Store({
   state: {
+    // admin mode — restored from sessionStorage so it survives page reloads
+    isAdmin: sessionStorage.getItem('srl_admin_session') === '1',
+
     // system context
     systemName: null,
     courseID: null,

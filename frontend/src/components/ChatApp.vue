@@ -15,10 +15,11 @@
         <router-link to="/survey" class="tab" active-class="active">
           {{ lang === "de" ? "Umfrage" : "Survey" }}
         </router-link>
-        <router-link to="/protocols" class="tab" active-class="active">
+        <router-link v-if="isAdmin" to="/protocols" class="tab" active-class="active">
           Protocols
         </router-link>
         <router-link
+          v-if="isAdmin"
           to="/dashboard/researcher"
           class="tab"
           active-class="active"
@@ -30,8 +31,8 @@
         </router-link>
       </nav>
 
-      <!-- Role switcher (testing only) -->
-      <div class="d-flex align-items-center mr-3" title="Switch role (testing)">
+      <!-- Role switcher (admin only) -->
+      <div v-if="isAdmin" class="d-flex align-items-center mr-3" title="Switch role">
         <div class="btn-group btn-group-sm" role="group" aria-label="Role">
           <button
             type="button"
@@ -79,13 +80,59 @@
           EN
         </button>
       </div>
+
       <button
+        v-if="isAdmin"
         type="button"
         class="btn btn-sm btn-outline-danger ml-2"
         @click="resetInterview"
       >
         {{ lang === "de" ? "Reset" : "Reset" }}
       </button>
+
+      <!-- Admin area -->
+      <div class="admin-area ml-2" style="position: relative;">
+        <button
+          v-if="!isAdmin"
+          class="btn btn-sm btn-outline-secondary admin-lock-btn"
+          @click="toggleAdminLogin"
+          :title="lang === 'de' ? 'Admin-Login' : 'Admin login'"
+        >🔒</button>
+        <span v-else class="d-flex align-items-center">
+          <span class="badge badge-info mr-2">Admin</span>
+          <button class="btn btn-sm btn-outline-secondary" @click="logoutAdmin">
+            {{ lang === "de" ? "Abmelden" : "Logout" }}
+          </button>
+        </span>
+
+        <!-- Login dropdown -->
+        <div v-if="showAdminLogin" class="admin-login-popup">
+          <div class="admin-login-inner">
+            <p class="admin-login-title">
+              {{ lang === "de" ? "Admin-Zugang" : "Admin access" }}
+            </p>
+            <input
+              ref="adminPwInput"
+              v-model="adminPasswordInput"
+              type="password"
+              class="form-control form-control-sm"
+              :placeholder="lang === 'de' ? 'Passwort' : 'Password'"
+              @keyup.enter="loginAdmin"
+            />
+            <p v-if="adminLoginError" class="admin-login-error">
+              {{ lang === "de" ? "Falsches Passwort." : "Wrong password." }}
+            </p>
+            <div class="d-flex justify-content-between mt-2">
+              <button class="btn btn-sm btn-secondary" @click="showAdminLogin = false">
+                {{ lang === "de" ? "Abbrechen" : "Cancel" }}
+              </button>
+              <button class="btn btn-sm btn-primary" @click="loginAdmin">
+                {{ lang === "de" ? "Anmelden" : "Login" }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <keep-alive>
       <router-view class="chat-app__view" :lang="lang" />
@@ -101,7 +148,11 @@ export default Vue.extend({
   name: "ChatApp",
 
   data() {
-    return {};
+    return {
+      showAdminLogin: false,
+      adminPasswordInput: "",
+      adminLoginError: false,
+    };
   },
 
   computed: {
@@ -112,8 +163,13 @@ export default Vue.extend({
     lang() {
       return this.$store.getters.getLanguage;
     },
+
     role() {
       return this.$store.getters.getRole;
+    },
+
+    isAdmin() {
+      return this.$store.getters.getIsAdmin;
     },
   },
 
@@ -124,6 +180,41 @@ export default Vue.extend({
 
     setRole(role) {
       this.$store.commit("setRole", role);
+    },
+
+    toggleAdminLogin() {
+      this.showAdminLogin = !this.showAdminLogin;
+      this.adminLoginError = false;
+      if (this.showAdminLogin) {
+        this.$nextTick(() => {
+          const el = this.$refs.adminPwInput;
+          if (el) el.focus();
+        });
+      }
+    },
+
+    loginAdmin() {
+      const expected =
+        (window.SRL_ADMIN_PASSWORD) || "admin";
+      if (this.adminPasswordInput === expected) {
+        this.$store.commit("setAdmin", true);
+        sessionStorage.setItem("srl_admin_session", "1");
+        this.showAdminLogin = false;
+        this.adminPasswordInput = "";
+        this.adminLoginError = false;
+      } else {
+        this.adminLoginError = true;
+        this.adminPasswordInput = "";
+      }
+    },
+
+    logoutAdmin() {
+      this.$store.commit("setAdmin", false);
+      sessionStorage.removeItem("srl_admin_session");
+      const adminRoutes = ["/protocols", "/dashboard/researcher"];
+      if (adminRoutes.includes(this.$route.path)) {
+        this.$router.push("/");
+      }
     },
 
     async loadUserLanguage() {
@@ -223,5 +314,45 @@ export default Vue.extend({
 .tab.active {
   border-bottom: 2px solid #0d6efd;
   font-weight: 600;
+}
+
+.admin-lock-btn {
+  opacity: 0.4;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  transition: opacity 0.2s;
+}
+.admin-lock-btn:hover {
+  opacity: 1;
+}
+
+.admin-login-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  min-width: 220px;
+}
+
+.admin-login-inner {
+  padding: 14px;
+}
+
+.admin-login-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #495057;
+}
+
+.admin-login-error {
+  color: #dc3545;
+  font-size: 0.8rem;
+  margin-top: 4px;
+  margin-bottom: 0;
 }
 </style>
