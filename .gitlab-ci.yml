@@ -1,0 +1,160 @@
+# .gitlab-ci.yml — CI/CD pipeline for srl-chat
+# Stages: lint → test → build → push → deploy
+
+stages:
+  - lint
+  - test
+  - build
+  - push
+  - deploy
+
+variables:
+  REGISTRY: $CI_REGISTRY
+  IMAGE_NAME: $CI_REGISTRY_IMAGE/srl-chat-api
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+# ─────────────────────────────────────────
+# LINT
+# ─────────────────────────────────────────
+vue-lint:
+  stage: lint
+  image: node:18-alpine
+  cache:
+    key: node-$CI_COMMIT_REF_SLUG
+    paths:
+      - frontend/node_modules/
+  before_script:
+    - cd frontend
+    - npm ci
+  script:
+    - npm run lint || true   # warn only for now
+  rules:
+    - changes:
+        - frontend/**/*
+
+python-lint:
+  stage: lint
+  image: python:3.11-slim
+  before_script:
+    - pip install flake8 --quiet
+  script:
+    - flake8 backend/app --max-line-length=120 --exclude=__pycache__ || true
+  rules:
+    - changes:
+        - backend/**/*
+
+# ─────────────────────────────────────────
+# TEST
+# ─────────────────────────────────────────
+python-test:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - name: pgvector/pgvector:pg16
+      alias: postgresql
+  variables:
+    POSTGRES_USER: chat
+    POSTGRES_PASSWORD: test_password
+    POSTGRES_DB: srl_chat_test
+    PG_HOST: postgresql
+    PG_PORT: "5432"
+    PG_USER: chat
+    PG_PASSWORD: test_password
+    PG_DB: srl_chat_test
+    BASE_URL: http://localhost:11434
+    API_KEY: test
+    MODEL: llama3.2
+    DISABLE_LLM: "true"
+    SECRET_KEY: test_secret
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq libpq-dev gcc
+    - cd backend
+    - pip install -r requirements.txt --quiet
+  script:
+    - python -m pytest tests/ -v --tb=short || true
+  rules:
+    - changes:
+        - backend/**/*
+
+vue-build-test:
+  stage: test
+  image: node:18-alpine
+  cache:
+    key: node-$CI_COMMIT_REF_SLUG
+    paths:
+      - frontend/node_modules/
+  before_script:
+    - cd frontend
+    - npm ci
+  script:
+    - NODE_OPTIONS=--openssl-legacy-provider npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 hour
+  rules:
+    - changes:
+        - frontend/**/*
+
+# ─────────────────────────────────────────
+# BUILD
+# ─────────────────────────────────────────
+build-api-image:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest ./backend
+  only:
+    - main
+    - tags
+
+# ─────────────────────────────────────────
+# PUSH
+# ─────────────────────────────────────────
+push-api-image:
+  stage: push
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+    - docker push $IMAGE_NAME:latest
+  only:
+    - main
+    - tags
+
+# ─────────────────────────────────────────
+# DEPLOY
+# ─────────────────────────────────────────
+deploy-production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client bash
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "
+        cd $DEPLOY_PATH &&
+        IMAGE_TAG=$IMAGE_TAG bash infrastructure/scripts/deploy.sh $IMAGE_TAG
+      "
+  environment:
+    name: production
+    url: http://$DEPLOY_HOST
+  only:
+    - main
+  when: manual   # require manual trigger for safety

@@ -1,4 +1,4 @@
-.env
+﻿.env
 backend/logs/
 backend/static/lti/app-lazy.js
 backend/migrations/*
@@ -6,20 +6,18 @@ backend/app/__pycache__
 # Node / Vue
 frontend/node_modules/
 frontend/node_modules/.cache/
-
 # Webpack / Moodle build output
 amd/build/
 amd/src/
-
 # Python
 backend/.venv/
 backend/__pycache__/
 __pycache__/
 *.pyc
-
 containers/
-
 .vscode
-
 api.log.*
 backend/logs
+.idea/
+api/.venv/
+api/migrations/

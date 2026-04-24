@@ -1,6 +1,10 @@
 services:
   api:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ${REGISTRY:-local}/srl-chat-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
       - BASE_URL=${BASE_URL}
@@ -9,8 +13,8 @@ services:
       - EMBEDDING_URL=${EMBEDDING_URL}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL}
       - EMBEDDING_TOKEN=${EMBEDDING_TOKEN}
-      - PG_HOST=${PG_HOST}
-      - PG_PORT=${PG_PORT}
+      - PG_HOST=postgresql
+      - PG_PORT=5432
       - PG_USER=${PG_USER}
       - PG_PASSWORD=${PG_PASSWORD}
       - PG_DB=${PG_DB}
@@ -21,40 +25,108 @@ services:
       - SECRET_KEY=${SECRET_KEY}
     expose:
       - 5000
-    ports:
-      - 5000:5000
     volumes:
       - ./backend/logs:/api/logs
+      - ./backend/config:/api/config:ro
     command: >
-      sh -c "python -m db_setup &&
-             gunicorn app:app -b 0.0.0.0:5000 --timeout 300"
+      sh -c "python -m app.database.setup_no_embed &&
+             gunicorn app:app -b 0.0.0.0:5000 --timeout 300 --workers 2"
     networks:
       - bot-net
     depends_on:
-      - postgresql
-  #bot:
-  #  build: ./discord
-  #  environment:
-  #    - PYTHONUNBUFFERED=1
-  #    - API_URL=http://api:5000
-  #    - DISCORD_SERVER_ID=${DISCORD_SERVER_ID}
-  #    - BOT_TOKEN=${BOT_TOKEN}
-  #  networks:
-  #    - bot-net
+      postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - nginx-logs:/var/log/nginx
+    networks:
+      - bot-net
+    depends_on:
+      - api
+
   postgresql:
     image: pgvector/pgvector:pg16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${PG_USER}
       POSTGRES_PASSWORD: ${PG_PASSWORD}
       POSTGRES_DB: ${PG_DB}
-    ports:
-      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infrastructure/scripts/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d srl_chat -U chat"]
-      interval: 1s
+      test: ["CMD-SHELL", "pg_isready -d ${PG_DB} -U ${PG_USER}"]
+      interval: 5s
       timeout: 20s
       retries: 10
     networks:
       - bot-net
+
+  loki:
+    image: grafana/loki:2.9.0
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+      - ./infrastructure/grafana/loki-config.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - bot-net
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    restart: unless-stopped
+    volumes:
+      - ./backend/logs:/var/log/srl-chat:ro
+      - ./infrastructure/grafana/promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - bot-net
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - bot-net
+    depends_on:
+      - loki
+
+volumes:
+  pgdata:
+    name: srl-chat-pgdata
+  loki-data:
+    name: srl-chat-loki
+  grafana-data:
+    name: srl-chat-grafana
+  nginx-logs:
+    name: srl-chat-nginx-logs
+
 networks:
   bot-net:
+    name: srl-chat-bot-net
