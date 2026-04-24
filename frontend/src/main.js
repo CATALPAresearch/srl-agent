@@ -13,6 +13,8 @@ import {
   faSpinner,
   faArrowUp,
   faCommentDots,
+  faLock,
+  faUnlock,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
@@ -25,6 +27,8 @@ library.add(
   faSpinner,
   faArrowUp,
   faCommentDots,
+  faLock,
+  faUnlock,
 );
 Vue.component("font-awesome-icon", FontAwesomeIcon);
 

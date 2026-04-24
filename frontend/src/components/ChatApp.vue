@@ -15,7 +15,12 @@
         <router-link to="/survey" class="tab" active-class="active">
           {{ lang === "de" ? "Umfrage" : "Survey" }}
         </router-link>
-        <router-link v-if="isAdmin" to="/protocols" class="tab" active-class="active">
+        <router-link
+          v-if="isAdmin"
+          to="/protocols"
+          class="tab"
+          active-class="active"
+        >
           Protocols
         </router-link>
         <router-link
@@ -32,7 +37,11 @@
       </nav>
 
       <!-- Role switcher (admin only) -->
-      <div v-if="isAdmin" class="d-flex align-items-center mr-3" title="Switch role">
+      <div
+        v-if="isAdmin"
+        class="d-flex align-items-center mr-3"
+        title="Switch role"
+      >
         <div class="btn-group btn-group-sm" role="group" aria-label="Role">
           <button
             type="button"
@@ -91,17 +100,18 @@
       </button>
 
       <!-- Admin area -->
-      <div class="admin-area ml-2" style="position: relative;">
+      <div class="admin-area ml-2" style="position: relative">
         <button
           v-if="!isAdmin"
-          class="btn btn-sm btn-outline-secondary admin-lock-btn"
+          class="btn btn-sm btn-secondary admin-lock-btn ml-2"
           @click="toggleAdminLogin"
           :title="lang === 'de' ? 'Admin-Login' : 'Admin login'"
-        >🔒</button>
+        >
+          <font-awesome-icon icon="unlock" aria-hidden="true" />
+        </button>
         <span v-else class="d-flex align-items-center">
-          <span class="badge badge-info mr-2">Admin</span>
           <button class="btn btn-sm btn-outline-secondary" @click="logoutAdmin">
-            {{ lang === "de" ? "Abmelden" : "Logout" }}
+            {{ lang === "de" ? "Admin abmelden" : "Logout admin" }}
           </button>
         </span>
 
@@ -123,7 +133,10 @@
               {{ lang === "de" ? "Falsches Passwort." : "Wrong password." }}
             </p>
             <div class="d-flex justify-content-between mt-2">
-              <button class="btn btn-sm btn-secondary" @click="showAdminLogin = false">
+              <button
+                class="btn btn-sm btn-secondary"
+                @click="showAdminLogin = false"
+              >
                 {{ lang === "de" ? "Abbrechen" : "Cancel" }}
               </button>
               <button class="btn btn-sm btn-primary" @click="loginAdmin">
@@ -143,6 +156,7 @@
 <script>
 import Vue from "vue";
 import axios from "axios";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
 export default Vue.extend({
   name: "ChatApp",
@@ -194,8 +208,7 @@ export default Vue.extend({
     },
 
     loginAdmin() {
-      const expected =
-        (window.SRL_ADMIN_PASSWORD) || "admin";
+      const expected = window.SRL_ADMIN_PASSWORD || "admin";
       if (this.adminPasswordInput === expected) {
         this.$store.commit("setAdmin", true);
         sessionStorage.setItem("srl_admin_session", "1");
@@ -318,8 +331,6 @@ export default Vue.extend({
 
 .admin-lock-btn {
   opacity: 0.4;
-  font-size: 0.75rem;
-  padding: 2px 6px;
   transition: opacity 0.2s;
 }
 .admin-lock-btn:hover {
