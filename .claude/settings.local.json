@@ -6,7 +6,8 @@
       "Bash(poetry env *)",
       "Bash(poetry run *)",
       "Bash(node_modules/.bin/tsc --noEmit --typeRoots \"[]\" shims-vue.d.ts shims-vuex.d.ts)",
-      "Bash(python -m pytest ../tests/test_strategy_detection.py -v --no-header)"
+      "Bash(python -m pytest ../tests/test_strategy_detection.py -v --no-header)",
+      "Bash(poetry lock *)"
     ]
   }
 }
