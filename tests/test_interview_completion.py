@@ -24,6 +24,7 @@ Usage
 """
 
 import json
+import os
 import pathlib
 import sys
 import time
@@ -129,6 +130,10 @@ def _post(client, path: str, payload: dict) -> tuple[int, dict | str]:
 
 class TestInterviewCompletion:
 
+    @pytest.mark.skipif(
+        os.getenv("DISABLE_LLM", "false").lower() == "true",
+        reason="Interview completion requires a live LLM — set DISABLE_LLM=false and point BASE_URL at a running Ollama instance",
+    )
     def test_full_interview(self, client):
         stats = {
             "turns": 0,

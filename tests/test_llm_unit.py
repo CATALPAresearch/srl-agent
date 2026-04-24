@@ -73,10 +73,14 @@ class TestGetResponse:
         return {"message": {"content": content}}
 
     def test_returns_mock_with_message_content(self):
-        with patch.dict(os.environ, {"DISABLE_LLM": "false", "BASE_URL": "http://localhost:11434"}):
-            from app.llm import get_response
+        # Patch the module-level BASE_URL directly — patch.dict(os.environ) does not
+        # affect variables that were already captured at import time.
+        # A non-/v1 URL ensures the Ollama code path is taken (not OpenAI-compatible).
+        from app.llm import get_response
+        with patch("app.llm.BASE_URL", "http://localhost:11434"):
             with patch("app.llm.requests.post") as mock_post:
                 mock_post.return_value.json.return_value = self._make_ollama_json("Answer text")
+                mock_post.return_value.raise_for_status.return_value = None
                 result = get_response([{"role": "user", "content": "hi"}], 0.0)
         assert result is not None
         assert hasattr(result, "message")

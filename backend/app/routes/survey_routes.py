@@ -23,11 +23,16 @@ survey_bp = Blueprint('survey', __name__)
 
 def _load_user_archives(user_id: str, user_client: str) -> list:
     """Return archived conversations for a user as a list of (archive_id, payload) tuples."""
+    # Use text LIKE matching instead of ::jsonb cast to avoid failures on legacy rows
+    # that were stored as Python dict strings (single-quote format) rather than valid JSON.
     rows = db.session.scalars(
         sa.select(Archive)
-        .where(sa.text("archived_conversation::jsonb->>'user_id' = :uid"))
-        .where(sa.text("archived_conversation::jsonb->>'user_client' = :client"))
-        .params(uid=user_id, client=user_client)
+        .where(
+            sa.or_(
+                Archive.archived_conversation.like(f'%"user_id": "{user_id}"%'),
+                Archive.archived_conversation.like(f"%'user_id': '{user_id}'%"),
+            )
+        )
         .order_by(Archive.id.desc())
     ).all()
     result = []
@@ -39,7 +44,7 @@ def _load_user_archives(user_id: str, user_client: str) -> list:
                 payload = ast.literal_eval(row.archived_conversation)
             except Exception:
                 payload = None
-        if isinstance(payload, dict):
+        if isinstance(payload, dict) and payload.get("user_client") == user_client:
             result.append((row.id, payload))
     return result
 
