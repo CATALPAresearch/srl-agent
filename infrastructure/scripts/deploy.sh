@@ -1,6 +1,7 @@
 #!/bin/bash
-# deploy.sh — Pull latest code and restart services
-# Usage: ./deploy.sh [IMAGE_TAG]
+# deploy.sh — Pull latest image and restart services
+# Usage: IMAGE_TAG=<sha> bash infrastructure/scripts/deploy.sh [IMAGE_TAG]
+# Called by GitLab CI after git pull is done by the CI job itself.
 
 set -euo pipefail
 
@@ -13,21 +14,19 @@ echo "[deploy] App directory: $APP_DIR"
 
 cd "$APP_DIR"
 
-# Pull latest code
-echo "[deploy] Pulling latest code from git..."
-git pull origin main
-
-# Export image tag for compose
 export IMAGE_TAG="$IMAGE_TAG"
 
-# Run database migrations as one-off step before starting app
+# Pull new image first so migrations run with the new code
+echo "[deploy] Pulling new API image..."
+docker compose -f "$COMPOSE_FILE" pull api
+
+# Run database migrations with the new image before starting the app
 echo "[deploy] Running database migrations..."
 docker compose -f "$COMPOSE_FILE" run --rm api \
   python -m app.database.setup_no_embed || true
 
-# Pull new images and restart services
-echo "[deploy] Pulling images and restarting services..."
-docker compose -f "$COMPOSE_FILE" pull api
+# Start all services (recreates api with new image)
+echo "[deploy] Starting services..."
 docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
 
 # Wait for health check
