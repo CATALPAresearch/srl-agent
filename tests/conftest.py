@@ -28,9 +28,6 @@ BACKEND_DIR = pathlib.Path(__file__).resolve().parent.parent / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-# Force RAG on for tests (so seeding runs)
-os.environ.setdefault("USE_RAG_STRATEGY", "true")
-
 from app import app, db as _db                       # noqa: E402
 from app.rag import seed_strategy_embeddings          # noqa: E402
 
@@ -42,11 +39,12 @@ from app.rag import seed_strategy_embeddings          # noqa: E402
 @pytest.fixture(scope="session")
 def flask_app():
     """Create the Flask application and push an app context for the entire
-    test session.  Seeds RAG embeddings once."""
+    test session.  Seeds RAG embeddings only when USE_RAG_STRATEGY=true."""
     app.config["TESTING"] = True
     with app.app_context():
         _db.create_all()
-        seed_strategy_embeddings()
+        if os.getenv("USE_RAG_STRATEGY", "false").lower() == "true":
+            seed_strategy_embeddings()
         yield app
 
 

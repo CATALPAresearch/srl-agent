@@ -21,11 +21,15 @@ def delete_message():
     userid = None
     client = None
     try:
-        content = request.json
-        client = content["client"]
-        userid = content["userid"]
+        content = request.json or {}
+        client = content.get("client")
+        userid = content.get("userid")
+        if not userid or not client:
+            return jsonify({"error": "userid and client required"}), 400
         app.logger.info("Resetting conversation for user: %s - %s", userid, client)
         user = get_user(userid, client)
+        if not user:
+            return jsonify({"error": "User not found"}), 400
         success = reset_conversation(user)
         if success:
             return (
@@ -58,10 +62,16 @@ def start_conversation_flask():
     """
     language = None
     try:
-        content = request.json
-        language = content["language"]
-        client = content["client"]
-        userid = content["userid"]
+        content = request.json or {}
+        userid = content.get("userid")
+        client = content.get("client")
+        language = content.get("language")
+        if not userid:
+            return jsonify({"error": "userid required"}), 400
+        if not client:
+            return jsonify({"error": "client required"}), 400
+        if not language:
+            return jsonify({"error": "language required"}), 400
         app.logger.info(
             "Starting new conversation (%s) for user: %s - %s", language, userid, client
         )
@@ -113,10 +123,16 @@ def reply():
     client_id = None
     userid = None
     try:
-        content = request.json
-        client_id = content["client"]
-        userid = content["userid"]
-        user_message = content["message"]
+        content = request.json or {}
+        client_id = content.get("client")
+        userid = content.get("userid")
+        user_message = content.get("message")
+        if not userid:
+            return jsonify({"error": "userid required"}), 400
+        if not client_id:
+            return jsonify({"error": "client required"}), 400
+        if not user_message:
+            return jsonify({"error": "message required"}), 400
 
         llm_response, status = reply_core(client_id, userid, user_message)
         return llm_response, status

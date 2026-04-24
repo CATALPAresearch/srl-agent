@@ -52,7 +52,7 @@ def create_protocol():
         content = request.json
         name = content.get("name")
         protocol = content.get("protocol")
-        if not name or not protocol:
+        if not name or protocol is None:
             return jsonify({"error": "Missing name or protocol data"}), 400
         safe_name = os.path.basename(name).replace(" ", "_")
         path = os.path.join(_INTERVIEW_DIR, f"{safe_name}.json")
