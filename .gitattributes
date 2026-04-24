@@ -1,0 +1,6 @@
+﻿# Shell scripts must use LF
+*.sh text eol=lf
+# Config files
+*.yml text eol=lf
+*.conf text eol=lf
+*.env text eol=lf
