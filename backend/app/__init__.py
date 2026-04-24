@@ -28,12 +28,19 @@ dictConfig(
                 "backupCount": 5,
                 "formatter": "default",
             },
+            "consoleFile": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logs", "console.log"),
+                "maxBytes": 1000000,
+                "backupCount": 5,
+                "formatter": "default",
+            },
         },
-        "root": {"level": "INFO", "handlers": ["console", "fileRotate"]},
+        "root": {"level": "INFO", "handlers": ["console", "fileRotate", "consoleFile"]},
         "loggers": {
             "InterviewAgent": {
                 "level": "DEBUG",
-                "handlers": ["console", "fileRotate"],
+                "handlers": ["console", "fileRotate", "consoleFile"],
                 "propagate": False,
             }
         },
