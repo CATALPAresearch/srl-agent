@@ -5,14 +5,14 @@ from pydantic import BaseModel
 from json.decoder import JSONDecodeError
 
 from .database.crud import get_language_by_id, get_all_strategies
-from .llm import (
-    get_llm_response,
+from .llm import get_llm_response
+from .prompts import (
     get_strategy_analysis_prompt,
     get_format_strategy_prompt,
     get_frequency_validate_prompt,
     get_format_frequency_prompt,
     get_intro_prompt,
-    get_prompt
+    get_prompt,
 )
 from .models import User
 from .rag import USE_RAG_STRATEGY, detect_strategies_rag
@@ -191,14 +191,6 @@ def _strategy_conversational_comment(user: User, context: str, prev_conversation
 def _strategy_step_llm(user: User, context: str, prev_conversation: list[str]):
     """Original LLM chain-of-thought strategy detection."""
     logger.debug("Retrieving contexts")
-    from .config import get_interview_config_path
-    with open(get_interview_config_path(), "r", encoding="utf-8") as file:
-        interview_context = json.load(file)
-    user_lang = get_language_by_id(user.language_id)
-    strat_info = []
-    for category in interview_context[user_lang.lang_code]["categories"]:
-        strat_info.append(category["strategies"])
-
     logger.debug("Retrieving prompt")
     strategy_analysis_prompt = get_strategy_analysis_prompt(user)
     logger.debug("Retrieving reasoning response")
