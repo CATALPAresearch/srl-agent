@@ -664,7 +664,12 @@ def ask_about_frequency(user, current_context, conversation=None):
                 continue
 
             logger.info("Asking about frequency for strategy: %s", strategy.name)
-            frequency_prompt = get_frequency_prompt(user, context.context, strategy.name)
+            student_message = (
+                answer.interview_answer.message
+                if answer.interview_answer and answer.interview_answer.message
+                else ""
+            )
+            frequency_prompt = get_frequency_prompt(user, context.context, strategy.name, student_message)
             update_current_conversation_step(user, "frequency")
             update_most_recent_strategy_for_frequency(user, strategy)
             user_turns = _user_only_conv(conversation) if conversation else []
