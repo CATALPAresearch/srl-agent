@@ -486,3 +486,267 @@ class TestProtocols:
         for name in self._created:
             client.delete(f"/protocols/{name}")
         self._created.clear()
+
+
+# ---------------------------------------------------------------------------
+# /survey/<survey_id>
+# ---------------------------------------------------------------------------
+
+class TestSurvey:
+    def test_get_existing_survey_en(self, client):
+        resp = client.get("/survey/srl-o?lang=en")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert isinstance(body, (dict, list))
+
+    def test_get_existing_survey_de(self, client):
+        resp = client.get("/survey/srl-o?lang=de")
+        assert resp.status_code == 200
+
+    def test_get_nonexistent_survey_returns_404(self, client):
+        resp = client.get("/survey/no_such_survey_xyz?lang=en")
+        assert resp.status_code == 404
+
+    def test_no_lang_falls_back_to_default(self, client):
+        # Without lang param and without a valid user, should fall back to 'de'
+        resp = client.get("/survey/srl-o")
+        assert resp.status_code == 200
+
+    def test_lang_from_user(self, client):
+        uid = _uid()
+        _start(client, uid, lang="en")
+        resp = client.get(f"/survey/srl-o?userid={uid}&client=pytest")
+        assert resp.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# /survey/<survey_id>/submit
+# ---------------------------------------------------------------------------
+
+class TestSurveySubmit:
+    def test_submit_returns_201(self, client):
+        resp = client.post(
+            "/survey/srl-o/submit",
+            json={
+                "userid": _uid(),
+                "client": "pytest",
+                "language": "en",
+                "responses": {"q1": 4, "q2": 3},
+            },
+            content_type="application/json",
+        )
+        assert resp.status_code == 201
+        body = resp.get_json()
+        assert body["status"] == "ok"
+        assert "id" in body
+
+    def test_submit_missing_userid_returns_500(self, client):
+        resp = client.post(
+            "/survey/srl-o/submit",
+            json={"client": "pytest", "language": "en", "responses": {}},
+            content_type="application/json",
+        )
+        assert resp.status_code in (400, 500)
+
+    def test_submit_stores_responses(self, client):
+        uid = _uid()
+        client.post(
+            "/survey/srl-o/submit",
+            json={"userid": uid, "client": "pytest", "language": "en", "responses": {"oase_1": 5}},
+            content_type="application/json",
+        )
+        # Verify via results endpoint
+        resp = client.get(f"/student/results?userid={uid}&client=pytest")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["survey"] is not None
+        assert body["survey"]["responses"]["oase_1"] == 5
+
+
+# ---------------------------------------------------------------------------
+# /student/results
+# ---------------------------------------------------------------------------
+
+class TestStudentResults:
+    def test_missing_userid_returns_400(self, client):
+        resp = client.get("/student/results?client=pytest")
+        assert resp.status_code == 400
+
+    def test_unknown_user_returns_200_with_empty_strategies(self, client):
+        resp = client.get("/student/results?userid=no_such_user_xyz&client=pytest")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["strategies"] == []
+        assert body["survey"] is None
+
+    def test_known_user_returns_expected_keys(self, client):
+        uid = _uid()
+        _start(client, uid, lang="en")
+        resp = client.get(f"/student/results?userid={uid}&client=pytest")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        for key in ("strategies", "survey", "interview_completed",
+                    "answers_count", "total_contexts", "radar_data"):
+            assert key in body, f"Missing key: {key}"
+
+    def test_radar_data_is_list(self, client):
+        uid = _uid()
+        _start(client, uid, lang="en")
+        resp = client.get(f"/student/results?userid={uid}&client=pytest")
+        body = resp.get_json()
+        assert isinstance(body["radar_data"], list)
+
+    def test_radar_data_item_shape(self, client):
+        uid = _uid()
+        _start(client, uid, lang="en")
+        body = client.get(f"/student/results?userid={uid}&client=pytest").get_json()
+        for item in body["radar_data"]:
+            assert "id" in item
+            assert "name" in item
+            assert "frequency" in item
+            assert "avg_frequency" in item
+
+    def test_lang_override_accepted(self, client):
+        uid = _uid()
+        _start(client, uid, lang="en")
+        resp = client.get(f"/student/results?userid={uid}&client=pytest&lang=de")
+        assert resp.status_code == 200
+
+    def test_completed_runs_initially_zero(self, client):
+        uid = _uid()
+        _start(client, uid, lang="en")
+        body = client.get(f"/student/results?userid={uid}&client=pytest").get_json()
+        assert body["completed_runs"] == 0
+
+
+# ---------------------------------------------------------------------------
+# /student/interview_runs
+# ---------------------------------------------------------------------------
+
+class TestStudentInterviewRuns:
+    def test_missing_userid_returns_400(self, client):
+        resp = client.get("/student/interview_runs?client=pytest")
+        assert resp.status_code == 400
+
+    def test_unknown_user_returns_200(self, client):
+        resp = client.get("/student/interview_runs?userid=no_such_user_xyz&client=pytest")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["active_run"] is None
+        assert body["archived_runs"] == []
+
+    def test_known_user_has_active_run(self, client):
+        uid = _uid()
+        _start(client, uid, lang="en")
+        resp = client.get(f"/student/interview_runs?userid={uid}&client=pytest")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["active_run"] is not None
+
+    def test_active_run_shape(self, client):
+        uid = _uid()
+        _start(client, uid, lang="en")
+        body = client.get(f"/student/interview_runs?userid={uid}&client=pytest").get_json()
+        run = body["active_run"]
+        for key in ("complete", "completed_contexts", "total_contexts"):
+            assert key in run, f"Missing key in active_run: {key}"
+
+    def test_response_includes_userid_and_client(self, client):
+        uid = _uid()
+        body = client.get(f"/student/interview_runs?userid={uid}&client=pytest").get_json()
+        assert body["userid"] == uid
+        assert body["client"] == "pytest"
+
+
+# ---------------------------------------------------------------------------
+# /log/page_view
+# ---------------------------------------------------------------------------
+
+class TestLogPageView:
+    def test_valid_page_view_returns_200(self, client):
+        resp = client.post(
+            "/log/page_view",
+            json={"userid": _uid(), "client": "pytest", "path": "/agent-chat", "timestamp": 1700000001},
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["path"] == "/agent-chat"
+
+    def test_missing_path_returns_400(self, client):
+        resp = client.post(
+            "/log/page_view",
+            json={"userid": _uid(), "client": "pytest", "timestamp": 1700000001},
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+
+    def test_unknown_user_still_logs(self, client):
+        resp = client.post(
+            "/log/page_view",
+            json={"userid": "no_such_user_xyz", "client": "pytest", "path": "/results", "timestamp": 1},
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+
+    def test_page_name_accepted(self, client):
+        resp = client.post(
+            "/log/page_view",
+            json={
+                "userid": _uid(), "client": "pytest",
+                "path": "/results", "page_name": "ResultsPage", "timestamp": 1,
+            },
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# /log/interaction
+# ---------------------------------------------------------------------------
+
+class TestLogInteraction:
+    def test_valid_action_returns_200(self, client):
+        resp = client.post(
+            "/log/interaction",
+            json={
+                "userid": _uid(), "client": "pytest",
+                "action": "strategy_hovered",
+                "value": {"strategy": "001-001"},
+                "timestamp": 1700000002,
+            },
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["action"] == "strategy_hovered"
+
+    def test_missing_action_returns_400(self, client):
+        resp = client.post(
+            "/log/interaction",
+            json={"userid": _uid(), "client": "pytest", "value": {}},
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+
+    def test_unknown_action_returns_400(self, client):
+        resp = client.post(
+            "/log/interaction",
+            json={"userid": _uid(), "client": "pytest", "action": "bogus_action_xyz"},
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+
+    def test_all_ui_actions_accepted(self, client):
+        actions = [
+            "strategy_hovered",
+            "unmentioned_strategy_hovered",
+            "dashboard_kpi_hovered",
+            "dashboard_chart_toggled",
+            "survey_item_answered",
+        ]
+        for action in actions:
+            resp = client.post(
+                "/log/interaction",
+                json={"userid": _uid(), "client": "pytest", "action": action, "value": {}},
+                content_type="application/json",
+            )
+            assert resp.status_code == 200, f"Failed for action: {action}"

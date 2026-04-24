@@ -25,7 +25,8 @@
         }
     },
     "files": [
-        "./shims-vue.d.ts"
+        "./shims-vue.d.ts",
+        "./shims-vuex.d.ts"
     ],
     "include": [],//["./src/**/*", "./src/**/*.ts", "./src/**/*.tsx"],
     "exclude": ["node_modules", "./node_modules"]

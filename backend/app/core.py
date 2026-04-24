@@ -8,12 +8,13 @@ import logging
 
 from . import db, app
 from .actions import LogAction
-from .llm import (
-    get_llm_response,
+from .llm import get_llm_response
+from .prompts import (
     get_prompt,
     get_frequency_prompt,
     get_context_prompt,
-    get_complete_prompt)
+    get_complete_prompt,
+)
 from .database.crud import (
     get_language,
     get_language_by_id,

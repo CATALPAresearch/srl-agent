@@ -21,6 +21,29 @@ from ._paths import CONFIG_DIR
 survey_bp = Blueprint('survey', __name__)
 
 
+def _load_user_archives(user_id: str, user_client: str) -> list:
+    """Return archived conversations for a user as a list of (archive_id, payload) tuples."""
+    rows = db.session.scalars(
+        sa.select(Archive)
+        .where(sa.text("archived_conversation::jsonb->>'user_id' = :uid"))
+        .where(sa.text("archived_conversation::jsonb->>'user_client' = :client"))
+        .params(uid=user_id, client=user_client)
+        .order_by(Archive.id.desc())
+    ).all()
+    result = []
+    for row in rows:
+        try:
+            payload = json.loads(row.archived_conversation)
+        except Exception:
+            try:
+                payload = ast.literal_eval(row.archived_conversation)
+            except Exception:
+                payload = None
+        if isinstance(payload, dict):
+            result.append((row.id, payload))
+    return result
+
+
 @survey_bp.route("/survey/<survey_id>", methods=["GET"])
 @cross_origin()
 def get_survey(survey_id):
@@ -132,28 +155,7 @@ def get_student_results():
     if not userid:
         return jsonify({"error": "userid required"}), 400
 
-    def _load_user_archives(user_id: str, user_client: str):
-        rows = db.session.scalars(
-            sa.select(Archive)
-            .where(sa.text("archived_conversation::jsonb->>'user_id' = :uid"))
-            .where(sa.text("archived_conversation::jsonb->>'user_client' = :client"))
-            .params(uid=user_id, client=user_client)
-            .order_by(Archive.id.desc())
-        ).all()
-        parsed = []
-        for row in rows:
-            try:
-                payload = json.loads(row.archived_conversation)
-            except Exception:
-                try:
-                    payload = ast.literal_eval(row.archived_conversation)
-                except Exception:
-                    payload = None
-            if isinstance(payload, dict):
-                parsed.append(payload)
-        return parsed
-
-    user_archives = _load_user_archives(userid, client)
+    user_archives = [payload for _, payload in _load_user_archives(userid, client)]
 
     user = get_user(userid, client)
     if not user:
@@ -371,27 +373,6 @@ def get_student_interview_runs():
     client = request.args.get("client", "standalone")
     if not userid:
         return jsonify({"error": "userid required"}), 400
-
-    def _load_user_archives(user_id: str, user_client: str):
-        rows = db.session.scalars(
-            sa.select(Archive)
-            .where(sa.text("archived_conversation::jsonb->>'user_id' = :uid"))
-            .where(sa.text("archived_conversation::jsonb->>'user_client' = :client"))
-            .params(uid=user_id, client=user_client)
-            .order_by(Archive.id.desc())
-        ).all()
-        parsed = []
-        for row in rows:
-            try:
-                payload = json.loads(row.archived_conversation)
-            except Exception:
-                try:
-                    payload = ast.literal_eval(row.archived_conversation)
-                except Exception:
-                    payload = None
-            if isinstance(payload, dict):
-                parsed.append((row.id, payload))
-        return parsed
 
     archive_rows = _load_user_archives(userid, client)
     archived_runs = []

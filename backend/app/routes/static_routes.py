@@ -1,4 +1,7 @@
 """Static file serving routes."""
+import json
+import os
+
 from flask import Blueprint, send_from_directory
 
 from ._paths import FRONTEND_DIR, LTI_STATIC_DIR, STATIC_DIR
@@ -8,7 +11,12 @@ static_bp = Blueprint('static_files', __name__)
 
 @static_bp.route('/')
 def index():
-    return send_from_directory(FRONTEND_DIR, 'index.html')
+    admin_password = os.getenv("ADMIN_PASSWORD", "admin")
+    with open(os.path.join(FRONTEND_DIR, 'index.html'), 'r', encoding='utf-8') as f:
+        html = f.read()
+    injection = f'<script>window.SRL_ADMIN_PASSWORD = {json.dumps(admin_password)};</script>\n'
+    html = html.replace('</head>', injection + '</head>', 1)
+    return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 
 @static_bp.route('/frontend/<path:filename>')

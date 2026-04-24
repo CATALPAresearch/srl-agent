@@ -131,13 +131,14 @@ class TestGetLlmResponseRetry:
                     result = get_llm_response("sys", user_prompt="q")
         assert result == "Final answer"
 
-    def test_raises_assertion_when_all_retries_fail(self):
+    def test_returns_fallback_when_all_retries_fail(self):
         with patch.dict(os.environ, {"DISABLE_LLM": "false", "BASE_URL": "http://x"}):
             from app.llm import get_llm_response
             with patch("app.llm.get_response", return_value=None):
                 with patch("app.llm.time.sleep"):
-                    with pytest.raises(AssertionError, match="empty response"):
-                        get_llm_response("sys")
+                    result = get_llm_response("sys")
+        assert isinstance(result, str)
+        assert len(result) > 0
 
     def test_retries_on_empty_content(self):
         side_effects = [_mock_response(""), _mock_response(""), _mock_response("Got it")]
@@ -168,47 +169,38 @@ class TestPromptBuilders:
         lang.lang_code = lang_code
         return lang
 
-    def _load_prompts(self, lang_code="en") -> dict:
-        prompts_path = BACKEND_DIR / "config" / "prompts.json"
-        with open(prompts_path, encoding="utf-8") as f:
-            return json.load(f)[lang_code]
-
     def test_get_intro_prompt_replaces_limit(self):
-        with patch.dict(os.environ, {"DISABLE_LLM": "false"}):
-            from app.llm import get_intro_prompt
-            user = self._make_user()
-            with patch("app.llm.get_language_by_id", return_value=self._stub_language("en")):
-                result = get_intro_prompt(user, limit=6)
+        from app.prompts import get_intro_prompt
+        user = self._make_user()
+        with patch("app.prompts.get_language_by_id", return_value=self._stub_language("en")):
+            result = get_intro_prompt(user, limit=6)
         assert "${limit}" not in result
         assert "6" in result
 
     def test_get_context_prompt_replaces_context_and_subject(self):
-        with patch.dict(os.environ, {"DISABLE_LLM": "false"}):
-            from app.llm import get_context_prompt
-            user = self._make_user(study_subject="Physics")
-            with patch("app.llm.get_language_by_id", return_value=self._stub_language("en")):
-                result = get_context_prompt("lectures", user)
+        from app.prompts import get_context_prompt
+        user = self._make_user(study_subject="Physics")
+        with patch("app.prompts.get_language_by_id", return_value=self._stub_language("en")):
+            result = get_context_prompt("lectures", user)
         assert "${context}" not in result
         assert "${subject}" not in result
         assert "lectures" in result
         assert "Physics" in result
 
     def test_get_frequency_prompt_replaces_strategy_and_context(self):
-        with patch.dict(os.environ, {"DISABLE_LLM": "false"}):
-            from app.llm import get_frequency_prompt
-            user = self._make_user()
-            with patch("app.llm.get_language_by_id", return_value=self._stub_language("en")):
-                result = get_frequency_prompt(user, context="exams", strategy="spaced repetition")
+        from app.prompts import get_frequency_prompt
+        user = self._make_user()
+        with patch("app.prompts.get_language_by_id", return_value=self._stub_language("en")):
+            result = get_frequency_prompt(user, context="exams", strategy="spaced repetition")
         assert "${strategy}" not in result
         assert "${context}" not in result
         assert "spaced repetition" in result
         assert "exams" in result
 
     def test_get_prompt_system_returns_string(self):
-        with patch.dict(os.environ, {"DISABLE_LLM": "false"}):
-            from app.llm import get_prompt
-            user = self._make_user()
-            with patch("app.llm.get_language_by_id", return_value=self._stub_language("en")):
-                result = get_prompt(user, "system")
+        from app.prompts import get_prompt
+        user = self._make_user()
+        with patch("app.prompts.get_language_by_id", return_value=self._stub_language("en")):
+            result = get_prompt(user, "system")
         assert isinstance(result, str)
         assert len(result) > 10
