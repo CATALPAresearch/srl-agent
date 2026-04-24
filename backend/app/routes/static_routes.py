@@ -34,3 +34,9 @@ def serve_lti_static(filename):
 @static_bp.route('/static/favicon.ico')
 def serve_favicon():
     return send_from_directory(STATIC_DIR, 'favicon.ico')
+
+
+@static_bp.route('/health', methods=['GET'])
+def health():
+    from flask import jsonify
+    return jsonify({'status': 'ok', 'service': 'srl-chat'}), 200
