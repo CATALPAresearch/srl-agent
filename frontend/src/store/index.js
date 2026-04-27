@@ -46,7 +46,7 @@ export const store = new Vuex.Store({
     user: {
       userId: null,
     },
-    language: "de", // Default to German
+    language: localStorage.getItem("srl_lang") || "de",
     role: "student", // 'student' | 'teacher' — loaded from backend / LTI
     informedConsentAgreement: false,
 
@@ -156,6 +156,7 @@ export const store = new Vuex.Store({
 
     setLanguage(state, lang) {
       state.language = lang || "de";
+      localStorage.setItem("srl_lang", state.language);
     },
 
     setRole(state, role) {
