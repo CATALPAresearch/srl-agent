@@ -102,7 +102,7 @@ async def send_delay_message(language, channel):
 
 async def get_reply(message):
     headers = {'Content-Type': 'application/json; charset=utf-8', }
-    lang_response = requests.get(f"{API_URL}/user_language?client={CLIENT_NAME}&userid={message.author.id}",
+    lang_response = requests.get(f"{API_URL}/user_language/?client={CLIENT_NAME}&userid={message.author.id}",
                                  headers=headers)
     user_language = lang_response.text
     task = asyncio.create_task(send_delay_message(user_language, message.channel))
@@ -167,7 +167,9 @@ class MyClient(Client):
             await channel.send(chunk)
 
 
-intents = Intents(messages=True)
+intents = Intents.default()
+intents.message_content = True  # privileged intent — enable in Discord Dev Portal too
+intents.messages = True
 client = MyClient(intents=intents)
 
 
