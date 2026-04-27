@@ -190,6 +190,14 @@ export default Vue.extend({
   methods: {
     setLanguage(lang) {
       this.$store.commit("setLanguage", lang);
+      const userId = this.$store.getters.getUser;
+      if (userId) {
+        axios.put(`${this.host}/user_language/`, {
+          userid: userId,
+          client: "web",
+          lang,
+        }).catch(() => {});
+      }
     },
 
     setRole(role) {
@@ -235,9 +243,16 @@ export default Vue.extend({
       if (!userId) return;
       try {
         const res = await axios.get(`${this.host}/user_language/`, {
-          params: { userid: userId, client: "standalone" },
+          params: { userid: userId, client: "web" },
         });
-        if (res.data) this.$store.commit("setLanguage", res.data);
+        const backendLang = res.data;
+        const localLang = localStorage.getItem("srl_lang");
+        // localStorage wins — it reflects the user's explicit UI choice
+        if (localLang) {
+          this.$store.commit("setLanguage", localLang);
+        } else if (backendLang) {
+          this.$store.commit("setLanguage", backendLang);
+        }
       } catch (e) {
         console.warn("Failed to load user language:", e);
       }
