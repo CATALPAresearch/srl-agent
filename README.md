@@ -8,34 +8,37 @@ The interview protocol is based on Zimmerman & Martinez-Pons' Self-Regulated Lea
 
 ## Features
 
-- Structured multi-step interview flow (intro, strategy detection, frequency rating, summary)
-- Bilingual support (German/English)
-- Configurable interview protocols and prompts via JSON
-- Persistent storage of conversation turns, detected strategies, and frequency ratings
-- Integrated SRL-O survey flow
-- Activity logging for user interactions and navigation
-- RAG-based strategy detection using pgvector and Ollama embeddings (optional, `USE_RAG_STRATEGY=true`)
-- Researcher and teacher dashboards with student results view
-- Informed consent flow before interview start
-- Protocol editor for configuring interview steps
-- Discord bot integration for notifications (optional)
-- `DISABLE_LLM` mode for UI development without LLM calls
-- Deployment modes:
+- **Structured multi-step interview flow** (intro, strategy detection, frequency rating, summary)
+  - Bilingual support (German/English)
+  - Protocol editor for configuring interview steps
+- **Data Collection**
+  - Persistent storage of conversation turns, detected strategies, and frequency ratings
+  - Activity logging for user interactions and navigation, includinh mopuse traces, character inputs, clicks
+  - (optional) Integrated SRL-O survey flow
+- **Learning Strategy Detection**
+  - RAG-based strategy detection using pgvector and Ollama embeddings (optional, `USE_RAG_STRATEGY=true`)
+- **Dashboards**
+  - Researcher and teacher dashboards with student results view
+- **Compliance**
+  - Informed consent flow before interview start
+- **Deployment modes**
   - Stand-alone web app
   - LTI tool (e.g., Moodle)
   - Docker Compose stack
+  - Discord bot integration for notifications (optional)
 
 ## Minimum System Requirements (LLM Server Excluded)
 
 These values cover only SRL Chat services (frontend build/static delivery, Flask backend, PostgreSQL), assuming the LLM inference server is provided separately.
 
-| Scenario | Concurrent students | CPU | RAM | Disk | GPU |
-| --- | --- | --- | --- | --- | --- |
-| Pilot | up to 15 | 2 vCPU | 4 GB | 20 GB SSD | Not required |
-| Course rollout | 15-50 | 4 vCPU | 8 GB | 40 GB SSD | Not required |
-| Multi-course / campus pilot | 50-120 | 8 vCPU | 16 GB | 80 GB SSD | Not required |
+| Scenario                    | Concurrent students | CPU    | RAM   | Disk      | GPU          |
+| --------------------------- | ------------------- | ------ | ----- | --------- | ------------ |
+| Pilot                       | up to 15            | 2 vCPU | 4 GB  | 20 GB SSD | Not required |
+| Course rollout              | 15-50               | 4 vCPU | 8 GB  | 40 GB SSD | Not required |
+| Multi-course / campus pilot | 50-120              | 8 vCPU | 16 GB | 80 GB SSD | Not required |
 
 Notes:
+
 - Database growth is mostly from logs and conversation history. Plan +20-50 GB/year for active usage with detailed logging.
 - For reliability with dozens of parallel users, run PostgreSQL on dedicated storage and enable backups.
 
@@ -109,7 +112,6 @@ tba
 Peer-reviewed papers:
 
 - tba
-
 
 ## Contributors
 
