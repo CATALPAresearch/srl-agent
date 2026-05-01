@@ -298,6 +298,11 @@ Targeted runs:
 # Interview completion regression
 poetry run pytest ../tests/test_interview_completion.py -v -s
 
+# Set in browser console to see results in the /results page:
+localStorage.setItem("srl_userid", "test_interview_bot")
+location.reload()
+
+
 # RAG
 poetry run pytest ../tests/ -v -k rag
 

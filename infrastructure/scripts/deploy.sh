@@ -14,6 +14,12 @@ echo "[deploy] App directory: $APP_DIR"
 
 cd "$APP_DIR"
 
+if [ ! -f ".env" ]; then
+  echo "[deploy] ERROR: .env file not found in $APP_DIR"
+  echo "[deploy] Create it once on the server: cp env.example .env && nano .env"
+  exit 1
+fi
+
 export IMAGE_TAG="$IMAGE_TAG"
 
 # Pull new image first so migrations run with the new code
