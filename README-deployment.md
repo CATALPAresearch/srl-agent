@@ -215,10 +215,23 @@ The registry variables (`CI_REGISTRY`, `CI_REGISTRY_USER`, `CI_REGISTRY_PASSWORD
 
 ### 1. Install Docker
 
+**Red Hat / Rocky Linux / AlmaLinux (RHEL-based):**
+```bash
+sudo dnf install -y dnf-plugins-core
+sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER   # allow non-root docker use; re-login after
+newgrp docker
+```
+
+**Ubuntu / Debian:**
 ```bash
 curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER   # allow non-root docker use; re-login after
+sudo usermod -aG docker $USER
 ```
+
+> **RHEL note:** Red Hat ships Podman by default, but this stack uses Docker CE for full Compose v2 compatibility. Do not use `podman-compose` — it lacks feature parity.
 
 ### 2. Create deploy user and directory
 
@@ -273,14 +286,26 @@ Add the server's known hosts entry as `SSH_KNOWN_HOSTS`:
 ssh-keyscan <DEPLOY_HOST>
 ```
 
-### 6. Build the frontend and start services
+### 6. Open firewall port (RHEL)
 
 ```bash
-cd /opt/srl-chat/frontend
-npm ci
-NODE_OPTIONS=--openssl-legacy-provider npm run build
-cd ..
-docker compose up -d --build
+sudo firewall-cmd --permanent --add-port=${APP_PORT:-8081}/tcp
+sudo firewall-cmd --reload
+```
+
+### 7. Login to the container registry
+
+The deploy script pulls the Docker image built by CI. The server needs registry access once:
+
+```bash
+docker login registry.gitlab.com
+```
+
+### 8. Start services
+
+```bash
+cd /opt/srl-chat
+docker compose up -d
 docker compose logs -f api   # watch startup
 ```
 
