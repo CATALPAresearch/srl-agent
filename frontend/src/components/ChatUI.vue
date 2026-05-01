@@ -278,18 +278,17 @@ export default Vue.extend({
   beforeDestroy() {
     this.clearScrollTimers();
   },
-  updated() {
-    this.scrollTranscriptToBottom();
-  },
   watch: {
     messages: {
       deep: true,
-      handler() {
-        this.scrollTranscriptToBottom();
+      handler(newMessages) {
+        if (!newMessages || newMessages.length === 0) return;
+        const last = newMessages[newMessages.length - 1];
+        // Scroll when user sends a message, or when the bot reply finishes loading
+        if (last.author === "user" || (last.author === "bot" && last.message !== "")) {
+          this.scrollTranscriptToBottom();
+        }
       },
-    },
-    is_loading() {
-      this.scrollTranscriptToBottom();
     },
   },
   methods: {
