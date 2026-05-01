@@ -41,8 +41,11 @@ from app.database.crud import get_user                 # noqa: E402
 # ---------------------------------------------------------------------------
 # Test user
 # ---------------------------------------------------------------------------
-# Override with TEST_USERID=<your-browser-srl_userid> to see results in the UI directly.
-TEST_USER = os.getenv("TEST_USERID", "test_interview_bot")
+# Each run gets a unique user ID so every completed interview adds a new member
+# to the cohort, making the radar chart's average line more meaningful over time.
+# Override with TEST_USERID=<id> to pin to a specific user (e.g. your browser ID).
+_RUN_ID = f"test_bot_{int(time.time())}"
+TEST_USER = os.getenv("TEST_USERID", _RUN_ID)
 TEST_CLIENT = "web"       # must match the hardcoded client in StudentResults.vue
 TEST_LANG = "en"
 
@@ -190,11 +193,6 @@ def client():
     flask_app_instance.config["TESTING"] = True
     with flask_app_instance.app_context():
         _db.create_all()
-        # Clean up leftover test user from previous runs
-        user = get_user(TEST_USER, TEST_CLIENT)
-        if user:
-            from app.core import reset_conversation
-            reset_conversation(user)
         yield flask_app_instance.test_client()
 
 
@@ -237,7 +235,8 @@ class TestInterviewCompletion:
         # ── 0. Shuffle answer pool for variety ───────────────────────────
         seed = int(time.time())
         _build_answer_pool(seed=seed)
-        print(f"\n[SEED] Answer pool seed: {seed}  (re-run with same seed to reproduce)")
+        print(f"\n[USER] {TEST_USER}  →  http://localhost:5000/#/results?userid={TEST_USER}")
+        print(f"[SEED] Answer pool seed: {seed}  (re-run with same seed to reproduce)")
 
         # ── 1. Start conversation ────────────────────────────────────────
         status, data = _post(client, "/startConversation", {
