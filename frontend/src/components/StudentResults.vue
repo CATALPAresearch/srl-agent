@@ -486,9 +486,11 @@ export default Vue.extend({
       this.loading = true;
       this.error = null;
       try {
+        const urlUserId = new URLSearchParams(window.location.hash.split("?")[1] || "").get("userid");
+        const userid = urlUserId || this.$store.getters.getUser;
         const res = await axios.get(`${this.host}/student/results`, {
           params: {
-            userid: this.$store.getters.getUser,
+            userid,
             client: "web",
             lang: this.lang,
           },
