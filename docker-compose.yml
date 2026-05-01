@@ -29,9 +29,10 @@ services:
     expose:
       - 5000
     volumes:
-      - ./backend/logs:/api/logs
-      - ./backend/config:/api/config:ro
-      - ./frontend:/frontend:ro   # Flask serves index.html from here
+      - ./backend/logs:/api/logs:z
+      - ./backend/config:/api/config:ro,z
+      - ./backend/static:/api/static:ro,z
+      - ./frontend:/frontend:ro,z
     command: >
       sh -c "python -m app.database.setup_no_embed &&
              gunicorn app:app -b 0.0.0.0:5000 --timeout 300 --workers 2"
@@ -53,8 +54,8 @@ services:
     ports:
       - "${APP_PORT:-80}:80"
     volumes:
-      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro,z
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro,z
       - nginx-logs:/var/log/nginx
     networks:
       - bot-net
@@ -94,8 +95,8 @@ services:
     image: grafana/promtail:2.9.0
     restart: unless-stopped
     volumes:
-      - ./backend/logs:/var/log/srl-chat:ro
-      - ./infrastructure/grafana/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./backend/logs:/var/log/srl-chat:ro,z
+      - ./infrastructure/grafana/promtail-config.yml:/etc/promtail/config.yml:ro,z
     command: -config.file=/etc/promtail/config.yml
     networks:
       - bot-net
