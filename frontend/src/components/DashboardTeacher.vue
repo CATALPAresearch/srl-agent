@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="td-root">
     <!-- Header -->
     <div class="td-header">
@@ -251,15 +251,15 @@ var TRANSLATIONS = {
     from: "VON",
     to: "BIS",
     apply: "Anwenden",
-    clear: "Zurücksetzen",
-    loading: "Lade Daten…",
+    clear: "ZurÃ¼cksetzen",
+    loading: "Lade Datenâ€¦",
     noData: "Noch keine Daten",
     showChart: "Diagramm",
     showTable: "Tabelle",
     // KPI labels
     totalStudents: "Studierende gesamt",
     completedInterviews: "Abgeschlossene Interviews",
-    avgDuration: "Ø Dauer",
+    avgDuration: "Ã˜ Dauer",
     surveyResponses: "Umfrage-Antworten",
     repeatedInterviews: "Wiederholte Interviews",
     // Info card
@@ -271,7 +271,7 @@ var TRANSLATIONS = {
     dropoffSub: "wo Studierende aussteigen",
     funnelTitle: "Abschluss-Trichter",
     funnelSub: "Studierende pro Schritt",
-    weeklyTitle: "Wöchentliche Aktivität",
+    weeklyTitle: "WÃ¶chentliche AktivitÃ¤t",
     weeklySub: "Antworten & aktive Nutzer pro Woche",
     // Table headers
     step: "Schritt",
@@ -297,7 +297,7 @@ var TRANSLATIONS = {
     to: "TO",
     apply: "Apply",
     clear: "Clear",
-    loading: "Loading analytics…",
+    loading: "Loading analyticsâ€¦",
     noData: "No data yet",
     showChart: "Show Chart",
     showTable: "Show Table",
@@ -1049,4 +1049,55 @@ export default {
     border: 1px solid #e5e7eb;
   }
 }
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 480px) {
+  .td-kpis-row {
+    flex-wrap: wrap !important;
+  }
+  .td-kpi {
+    min-width: calc(50% - 8px) !important;
+    flex: 1 1 calc(50% - 8px) !important;
+  }
+}
+@media (max-width: 768px) {
+  .td-root {
+    padding: 12px 8px;
+  }
+  .td-kpi {
+    min-width: 100% !important;
+  }
+  .td-chart-card {
+    padding: 12px 8px;
+  }
+  .td-table {
+    font-size: 0.72rem;
+  }
+  .td-table th,
+  .td-table td {
+    padding: 4px 4px;
+  }
+}
+@media (max-width: 480px) {
+  .td-header-right {
+    display: none;
+  }
+}
+/* ── Mobile KPI grid fix ───────────────────────────────────── */
+@media (max-width: 480px) {
+  .td-kpi-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .td-kpi {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+  .td-root {
+    padding: 8px 6px !important;
+  }
+}
 </style>
+
+
+

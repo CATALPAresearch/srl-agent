@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="chat-app">
     <div class="header-bar d-flex align-items-center px-2 py-1">
       <nav class="tabs flex-grow-1">
@@ -247,7 +247,7 @@ export default Vue.extend({
         });
         const backendLang = res.data;
         const localLang = localStorage.getItem("srl_lang");
-        // localStorage wins — it reflects the user's explicit UI choice
+        // localStorage wins â€” it reflects the user's explicit UI choice
         if (localLang) {
           this.$store.commit("setLanguage", localLang);
         } else if (backendLang) {
@@ -279,7 +279,7 @@ export default Vue.extend({
 
       const ok = window.confirm(
         this.lang === "de"
-          ? "Interview wirklich zurücksetzen?"
+          ? "Interview wirklich zurÃ¼cksetzen?"
           : "Do you really want to reset the interview?",
       );
       if (!ok) return;
@@ -381,4 +381,44 @@ export default Vue.extend({
   margin-top: 4px;
   margin-bottom: 0;
 }
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 900px) {
+  .tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 0.82rem;
+    padding: 6px 8px;
+    margin-right: 6px;
+  }
+}
+@media (max-width: 600px) {
+  .tabs {
+    gap: 0;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    margin-right: 8px;
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
 </style>
+
+
