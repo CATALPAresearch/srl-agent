@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="rd-root">
     <!-- Header -->
     <div class="rd-header">
@@ -75,7 +75,7 @@
 
     <div v-if="isLoading" class="rd-loading">
       <div class="rd-spinner"></div>
-      <p>Loading analytics…</p>
+      <p>Loading analyticsâ€¦</p>
     </div>
     <div v-else-if="error" class="rd-error">{{ error }}</div>
 
@@ -95,7 +95,7 @@
         </div>
       </div>
 
-      <!-- Course Share — only when no course filter -->
+      <!-- Course Share â€” only when no course filter -->
       <div v-if="!selectedCourse" class="rd-charts-row">
         <div class="rd-chart-card" style="flex: 1">
           <div class="rd-chart-header">
@@ -114,7 +114,7 @@
               >Will populate once students launch via LTI from Moodle or
               ILIAS.<br />
               Source: <code>context_id</code> and <code>context_title</code> LTI
-              launch parameters → stored in <code>users</code> table.</span
+              launch parameters ↓ stored in <code>users</code> table.</span
             >
           </div>
         </div>
@@ -461,7 +461,7 @@
         <div class="rd-chart-card rd-chart-narrow rd-info-card">
           <div class="rd-chart-title">Last Activity</div>
           <div class="rd-big-stat rd-big-stat-sm">
-            {{ stats.last_activity || "—" }}
+            {{ stats.last_activity || "â€”" }}
           </div>
           <div class="rd-chart-sub">
             most recent interview started<br /><code
@@ -475,7 +475,7 @@
             {{
               stats.avg_response_gap_seconds != null
                 ? stats.avg_response_gap_seconds + "s"
-                : "—"
+                : "â€”"
             }}
           </div>
           <div class="rd-chart-sub">
@@ -594,7 +594,7 @@ export default {
         {
           label: "Avg Duration",
           value: `${this.stats.avg_duration_minutes} min`,
-          sub: `σ ${this.stats.std_duration_minutes} min · var ${this.stats.var_duration_minutes}`,
+          sub: `σ ${this.stats.std_duration_minutes} min  var ${this.stats.var_duration_minutes}`,
           color: "#2563b0",
         },
         {
@@ -988,7 +988,7 @@ export default {
         });
       }
 
-      // Strategy — show names not codes
+      // Strategy â€” show names not codes
       const sCtx = this.$refs.strategyChart;
       if (
         sCtx &&
@@ -1536,4 +1536,41 @@ export default {
     border: 1px solid #e5e7eb;
   }
 }
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .rd-root {
+    padding: 12px 8px;
+  }
+  .rd-kpi {
+    min-width: 100% !important;
+  }
+  .rd-chart-card {
+    padding: 12px 8px;
+  }
+}
+@media (max-width: 480px) {
+  .rd-header-right {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+/* ── Mobile KPI grid fix ───────────────────────────────────── */
+@media (max-width: 480px) {
+  .rd-kpi-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .rd-kpi {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+  .rd-root {
+    padding: 8px 6px !important;
+  }
+}
 </style>
+
+
+
