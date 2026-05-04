@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sr-root container-fluid py-4">
     <!-- Header -->
     <div class="row justify-content-center mb-4">
@@ -16,7 +16,7 @@
             <p class="text-muted mb-0">
               <template v-if="lang === 'de'">
                 Vielen Dank, dass du dir die Zeit genommen hast, uns zu
-                erzählen, wie du lernst! Wir haben deine Antworten sorgfältig
+                erzÃ¤hlen, wie du lernst! Wir haben deine Antworten sorgfÃ¤ltig
                 ausgewertet. Deine Ergebnisse werden nun in den beiden Grafiken
                 unten dargestellt, damit du sie erkunden kannst.
               </template>
@@ -46,11 +46,11 @@
               <p>
                 <template v-if="lang === 'de'">
                   Das Spinnendiagramm zeigt die Lernstrategien, die du beim
-                  Beschreiben deines Lernens erwähnt hast. Höhere Werte
-                  bedeuten, dass du diese Strategie häufiger und regelmäßiger
-                  eingesetzt hast. Es ist völlig normal, dass das Diagramm nicht
-                  vollständig ausgefüllt ist. Jeder lernt anders und niemand
-                  nutzt alle Strategien gleich häufig. Das Diagramm kann dir
+                  Beschreiben deines Lernens erwÃ¤hnt hast. HÃ¶here Werte
+                  bedeuten, dass du diese Strategie hÃ¤ufiger und regelmÃ¤ÃŸiger
+                  eingesetzt hast. Es ist vÃ¶llig normal, dass das Diagramm nicht
+                  vollstÃ¤ndig ausgefÃ¼llt ist. Jeder lernt anders und niemand
+                  nutzt alle Strategien gleich hÃ¤ufig. Das Diagramm kann dir
                   aber helfen, Strategien zu entdecken, die du seltener
                   verwendest.
                 </template>
@@ -158,16 +158,16 @@
                   <h6 class="font-weight-600 mb-2">
                     {{
                       lang === "de"
-                        ? "Noch nicht erwähnte Strategien"
+                        ? "Noch nicht erwÃ¤hnte Strategien"
                         : "Strategies not yet mentioned"
                     }}
                   </h6>
                   <template v-if="lang === 'de'">
                     Die folgenden Strategien wurden in deinen Antworten nicht
-                    erwähnt wurden. Dennoch haben sich Strategien in der
-                    Bildungsforschung für viele Studierende als hilfreich
-                    erwiesen. Vielleicht möchtest du erkunden, ob einige davon
-                    auch für dich funktionieren könnten. Probiere sie aus:
+                    erwÃ¤hnt wurden. Dennoch haben sich Strategien in der
+                    Bildungsforschung fÃ¼r viele Studierende als hilfreich
+                    erwiesen. Vielleicht mÃ¶chtest du erkunden, ob einige davon
+                    auch fÃ¼r dich funktionieren kÃ¶nnten. Probiere sie aus:
                   </template>
                   <template v-else>
                     The following strategies were not mentioned in your answers.
@@ -182,8 +182,8 @@
                   >
                     {{
                       lang === "de"
-                        ? "Super – du hast alle Strategien erwähnt!"
-                        : "Great — you mentioned all strategies!"
+                        ? "Super â€“ du hast alle Strategien erwÃ¤hnt!"
+                        : "Great â€” you mentioned all strategies!"
                     }}
                   </div>
                   <div v-else class="sr-tag-cloud mt-2">
@@ -216,7 +216,7 @@
 
               <p>
                 <template v-if="lang === 'de'">
-                  Wenn du mehr über eine dieser Strategien erfahren, Tipps zu
+                  Wenn du mehr Ã¼ber eine dieser Strategien erfahren, Tipps zu
                   deren Anwendung erhalten oder etwas im Diagramm unklar ist,
                   dann kannst du hier weitere Fragen stellen.
                 </template>
@@ -239,7 +239,7 @@
               <h5 class="mb-0 sr-section-title">
                 {{
                   lang === "de"
-                    ? "Deine Motivation und Lernüberzeugungen"
+                    ? "Deine Motivation und LernÃ¼berzeugungen"
                     : "Your Motivation and Learning Beliefs"
                 }}
               </h5>
@@ -248,7 +248,7 @@
               <p>
                 {{
                   lang === "de"
-                    ? "Die zweite Grafik zeigt deine Überzeugungen zu Motivation und Lernfähigkeiten."
+                    ? "Die zweite Grafik zeigt deine Ãœberzeugungen zu Motivation und LernfÃ¤higkeiten."
                     : "The second graph shows your beliefs about your motivation and learning skills."
                 }}
               </p>
@@ -258,7 +258,7 @@
                     <strong>So liest du diese Grafik:</strong> Die blaue Linie
                     zeigt deine Antworten und die orangefarbene Linie zeigt die
                     Durchschnittsergebnisse anderer Studierender aus einer
-                    aktuellen Großstudie.
+                    aktuellen GroÃŸstudie.
                   </template>
                   <template v-else>
                     <strong>How to read this graph:</strong> The blue line shows
@@ -269,16 +269,16 @@
               </ul>
               <p>
                 <template v-if="lang === 'de'">
-                  Dieser Vergleich kann dir helfen, über deine Lerngewohnheiten
-                  und -überzeugungen nachzudenken. Es gibt hier keine „guten"
-                  oder „schlechten" Ergebnisse – es zeigt einfach, wie deine
+                  Dieser Vergleich kann dir helfen, Ã¼ber deine Lerngewohnheiten
+                  und -Ã¼berzeugungen nachzudenken. Es gibt hier keine â€žguten"
+                  oder â€žschlechten" Ergebnisse â€“ es zeigt einfach, wie deine
                   Ansichten im Vergleich zu anderen Studierenden einzuordnen
-                  sind. Höhere Werte korrelieren jedoch häufig mit besserem
+                  sind. HÃ¶here Werte korrelieren jedoch hÃ¤ufig mit besserem
                   Studienerfolg.
                 </template>
                 <template v-else>
                   This comparison can help you reflect on your learning habits
-                  and beliefs. There are no "good" or "bad" results here — it
+                  and beliefs. There are no "good" or "bad" results here â€” it
                   simply shows how your views compare with those of other
                   students. However, higher scores are often correlated with
                   better academic success.
@@ -288,9 +288,9 @@
               <p>
                 <template v-if="lang === 'de'">
                   Wenn du konkrete Fragen hast oder Ideen suchst, wie du deine
-                  Motivation stärken oder bestimmte Lernfähigkeiten (wie
+                  Motivation stÃ¤rken oder bestimmte LernfÃ¤higkeiten (wie
                   Metakognition) verbessern kannst, frag gerne im Chat unten.
-                  Wir teilen gerne praktische Tipps und hilfreiche Vorschläge.
+                  Wir teilen gerne praktische Tipps und hilfreiche VorschlÃ¤ge.
                 </template>
                 <template v-else>
                   If you have specific questions, or would like ideas on how to
@@ -302,7 +302,7 @@
               </p>
               <p class="mb-0">
                 <template v-if="lang === 'de'">
-                  Wir hoffen, dass dir diese Ergebnisse helfen, mehr über deinen
+                  Wir hoffen, dass dir diese Ergebnisse helfen, mehr Ã¼ber deinen
                   eigenen Lernprozess zu erfahren und Strategien zu entdecken,
                   die am besten zu dir passen.
                 </template>
@@ -318,7 +318,7 @@
               <p class="text-muted small mb-0">
                 {{
                   lang === "de"
-                    ? "Ist etwas unklar? Möchtest du Tipps zu einer bestimmten Strategie?"
+                    ? "Ist etwas unklar? MÃ¶chtest du Tipps zu einer bestimmten Strategie?"
                     : "Is something unclear? Would you like tips on a specific strategy?"
                 }}
               </p>
@@ -643,7 +643,7 @@ export default Vue.extend({
   cursor: default;
 }
 
-/* ── Radar label hit areas ─────────────────────────── */
+/* â”€â”€ Radar label hit areas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sr-radar-wrap {
   position: relative;
 }
@@ -656,4 +656,19 @@ export default Vue.extend({
   transform: translate(-50%, -50%);
   cursor: default;
 }
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sr-root {
+    padding: 12px 8px;
+    min-height: auto;
+  }
+  .sr-radar-wrap canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  .sr-label-hit {
+    display: none;
+  }
+}
 </style>
+

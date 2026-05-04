@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="protocol-editor">
     <h2>Interview Protocol Editor</h2>
 
@@ -92,7 +92,7 @@
               class="btn btn-sm btn-danger ml-1"
               @click="removeContext(langData, idx)"
             >
-              ×
+              Ã—
             </button>
           </div>
           <button
@@ -462,4 +462,12 @@ export default {
 .mt-3 {
   margin-top: 16px;
 }
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 600px) {
+  .modal-box {
+    width: 94vw;
+    padding: 16px;
+  }
+}
 </style>
+

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="landing-teacher container-fluid py-4">
     <!-- KPI row: interviews done + completion rate -->
     <div class="row justify-content-center mb-4">
@@ -41,7 +41,7 @@
               Wir freuen uns, Sie einzuladen, ein neues System gemeinsam mit
               Ihren Studierenden auszuprobieren. Zusammen mit Studierenden,
               Forschenden und Lehrenden haben wir ein Werkzeug entwickelt, das
-              Studierende dabei unterstützt, nachzudenken, wie sie lernen, und
+              Studierende dabei unterstÃ¼tzt, nachzudenken, wie sie lernen, und
               bessere Lernwege zu finden.
             </p>
             <p v-else>
@@ -54,7 +54,7 @@
               Studierende verbringen etwa <strong>10-20 Minuten</strong> damit,
               mit dem System zu chatten und Fragen zu ihren Lerngewohnheiten zu
               beantworten. Das System gibt dann umgehend jedem Studierenden
-              <strong>personalisiertes Feedback</strong> – basierend auf
+              <strong>personalisiertes Feedback</strong> â€“ basierend auf
               Lerntheorien und empirisch validierten Instrumenten.
             </p>
             <p v-else>
@@ -67,7 +67,7 @@
 
             <hr />
 
-            <!-- 2×2 feature matrix -->
+            <!-- 2Ã—2 feature matrix -->
             <div class="row mt-3 mb-4">
               <!-- Security & Integration -->
               <div class="col-md-6 mb-3">
@@ -80,20 +80,20 @@
                     }}
                   </h6>
                   <ul class="feature-list flex-grow-1" v-if="lang === 'de'">
-                    <li>Läuft sicher an der FernUniversität Hagen.</li>
+                    <li>LÃ¤uft sicher an der FernUniversitÃ¤t Hagen.</li>
                     <li>Als Plugin in die Kurswebseite integriert.</li>
                     <li>Daten der Studierenden werden sicher verarbeitet.</li>
                   </ul>
                   <ul class="feature-list flex-grow-1" v-else>
-                    <li>Runs securely at FernUniversität Hagen.</li>
+                    <li>Runs securely at FernUniversitÃ¤t Hagen.</li>
                     <li>Integrated as a plugin on course webpage.</li>
                     <li>Students' data handled safely.</li>
                   </ul>
                   <span class="feature-badge badge-security mt-2">
                     {{
                       lang === "de"
-                        ? "SICHER, ERPROBT & EINFACH ZU NUTZEN ✓"
-                        : "SAFE, SECURE, AND EASY TO USE ✓"
+                        ? "SICHER, ERPROBT & EINFACH ZU NUTZEN âœ“"
+                        : "SAFE, SECURE, AND EASY TO USE âœ“"
                     }}
                   </span>
                 </div>
@@ -119,7 +119,7 @@
                   <span class="feature-badge badge-student-action mt-2">
                     {{
                       lang === "de"
-                        ? "WAS STUDIERENDE TUN MÜSSEN"
+                        ? "WAS STUDIERENDE TUN MÃœSSEN"
                         : "WHAT STUDENTS NEED TO DO"
                     }}
                   </span>
@@ -130,7 +130,7 @@
                 <div class="feature-card h-100 p-3 d-flex flex-column">
                   <h6 class="feature-title">
                     {{
-                      lang === "de" ? "Vorteile für Sie" : "Teacher Benefits"
+                      lang === "de" ? "Vorteile fÃ¼r Sie" : "Teacher Benefits"
                     }}
                   </h6>
                   <ul class="feature-list flex-grow-1" v-if="lang === 'de'">
@@ -149,7 +149,7 @@
                   <span class="feature-badge badge-teacher mt-2">
                     {{
                       lang === "de"
-                        ? "VORTEILE FÜR SIE ALS LEHRENDE/R"
+                        ? "VORTEILE FÃœR SIE ALS LEHRENDE/R"
                         : "BENEFITS FOR YOU, THE TEACHER"
                     }}
                   </span>
@@ -161,7 +161,7 @@
                   <h6 class="feature-title">
                     {{
                       lang === "de"
-                        ? "Vorteile für Ihre Studierenden"
+                        ? "Vorteile fÃ¼r Ihre Studierenden"
                         : "Student Benefits"
                     }}
                   </h6>
@@ -182,7 +182,7 @@
                   <span class="feature-badge badge-student-benefit mt-2">
                     {{
                       lang === "de"
-                        ? "VORTEILE FÜR IHRE STUDIERENDEN"
+                        ? "VORTEILE FÃœR IHRE STUDIERENDEN"
                         : "BENEFITS FOR YOUR STUDENTS"
                     }}
                   </span>
@@ -194,11 +194,11 @@
 
             <!-- Closing paragraph -->
             <p v-if="lang === 'de'">
-              Mit unserer einfach zu bedienenden Oberfläche unterstützen wir Sie
+              Mit unserer einfach zu bedienenden OberflÃ¤che unterstÃ¼tzen wir Sie
               bei der Integration des Systems in Ihren Kurs. Sie als Lehrende/r
               erhalten auch Einblick, wie Ihre Studierenden lernen, welche
               Strategien sie nutzen, und hilfreiche Hinweise, wie Sie sie
-              effektiv unterstützen können.
+              effektiv unterstÃ¼tzen kÃ¶nnen.
             </p>
             <p v-else>
               With our easy-to-use interface, we'll support you in integrating
@@ -209,7 +209,7 @@
             <p v-if="lang === 'de'">
               Unsere Vision ist es, jedem Studierenden zu helfen,
               selbstbewusster zu lernen und ihnen Werkzeuge zu geben, um als
-              unabhängige Lernende zu erkunden, zu experimentieren und zu
+              unabhÃ¤ngige Lernende zu erkunden, zu experimentieren und zu
               wachsen.
             </p>
             <p v-else>
@@ -223,14 +223,14 @@
               <p class="mb-3">
                 {{
                   lang === "de"
-                    ? "Um fortzufahren bitten wir Sie um Ihre Einwilligung zur Erhebung und Auswertung der Daten. Die Teilnahme ist freiwillig und Sie können jederzeit aufhören."
+                    ? "Um fortzufahren bitten wir Sie um Ihre Einwilligung zur Erhebung und Auswertung der Daten. Die Teilnahme ist freiwillig und Sie kÃ¶nnen jederzeit aufhÃ¶ren."
                     : "To continue, we ask for your informed consent to collect and analyze data. Participation is completely voluntary, and you can stop at any time."
                 }}
               </p>
               <button class="btn btn-primary" @click="openConsentModal">
                 {{
                   lang === "de"
-                    ? "Einwilligungserklärung lesen &amp; zustimmen"
+                    ? "EinwilligungserklÃ¤rung lesen &amp; zustimmen"
                     : "Read &amp; give consent"
                 }}
               </button>
@@ -239,7 +239,7 @@
             <!-- Consent given: confirmation + action buttons -->
             <template v-else>
               <div class="alert alert-success border-0 mb-3">
-                <span class="mr-2">✅</span>
+                <span class="mr-2">âœ…</span>
                 {{
                   lang === "de"
                     ? "Einwilligung erteilt. Vielen Dank."
@@ -247,7 +247,7 @@
                 }}
               </div>
 
-              <!-- Action buttons — only visible after consent -->
+              <!-- Action buttons â€” only visible after consent -->
               <div class="d-flex flex-wrap gap-2">
                 <router-link to="/agent-chat">
                   <button class="btn btn-primary mr-2 mb-2">
@@ -322,12 +322,12 @@ export default Vue.extend({
     },
     kpis() {
       const s = this.dashboardStats;
-      const done = s ? s.total_completed : "–";
+      const done = s ? s.total_completed : "â€“";
       const total = s ? s.total_students : 0;
       const rate =
         s && total > 0
           ? Math.round((s.total_completed / total) * 100) + "%"
-          : "–";
+          : "â€“";
       return [
         {
           value: done,
@@ -370,7 +370,7 @@ export default Vue.extend({
         const res = await axios.get(`${base}/dashboard/stats`);
         this.dashboardStats = res.data;
       } catch {
-        // backend unreachable — kpis stay "–"
+        // backend unreachable â€” kpis stay "â€“"
       }
     },
     openConsentModal() {
@@ -493,4 +493,12 @@ export default Vue.extend({
 .consent-modal-close:hover {
   color: #343a40;
 }
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 600px) {
+  .consent-modal-box {
+    padding: 18px 16px;
+    width: 96%;
+  }
+}
 </style>
+
