@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="chat-app">
-    <div class="header-bar d-flex align-items-center px-2 py-1">
+    <div class="header-bar d-flex align-items-center px-3 py-2">
       <nav class="tabs flex-grow-1">
         <router-link to="/" exact class="tab" active-class="active">
           {{ lang === "de" ? "Start" : "Home" }}
@@ -39,7 +39,7 @@
       <!-- Role switcher (admin only) -->
       <div
         v-if="isAdmin"
-        class="d-flex align-items-center mr-3"
+        class="d-flex align-items-center mr-2"
         title="Switch role"
       >
         <div class="btn-group btn-group-sm" role="group" aria-label="Role">
@@ -67,7 +67,7 @@
       </div>
 
       <!-- Language switcher -->
-      <div class="btn-group btn-group-sm" role="group" aria-label="Language">
+      <div class="btn-group btn-group-sm mr-2" role="group" aria-label="Language">
         <button
           type="button"
           @click="setLanguage('de')"
@@ -90,20 +90,29 @@
         </button>
       </div>
 
+      <!-- Dark mode toggle -->
+      <button
+        class="srl-dark-toggle mr-2"
+        @click="toggleDark"
+        :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+        aria-label="Toggle dark mode"
+      >{{ isDark ? '☀️' : '🌙' }}</button>
+
+      <!-- Reset button (admin only) -->
       <button
         v-if="isAdmin"
         type="button"
-        class="btn btn-sm btn-outline-danger ml-2"
+        class="btn btn-sm btn-outline-danger mr-2"
         @click="resetInterview"
       >
         {{ lang === "de" ? "Reset" : "Reset" }}
       </button>
 
       <!-- Admin area -->
-      <div class="admin-area ml-2" style="position: relative">
+      <div class="admin-area" style="position: relative">
         <button
           v-if="!isAdmin"
-          class="btn btn-sm btn-secondary admin-lock-btn ml-2"
+          class="btn btn-sm btn-secondary admin-lock-btn"
           @click="toggleAdminLogin"
           :title="lang === 'de' ? 'Admin-Login' : 'Admin login'"
         >
@@ -166,6 +175,7 @@ export default Vue.extend({
       showAdminLogin: false,
       adminPasswordInput: "",
       adminLoginError: false,
+      isDark: false,
     };
   },
 
@@ -202,6 +212,12 @@ export default Vue.extend({
 
     setRole(role) {
       this.$store.commit("setRole", role);
+    },
+
+    toggleDark() {
+      this.isDark = !this.isDark;
+      document.documentElement.setAttribute("data-theme", this.isDark ? "dark" : "light");
+      localStorage.setItem("srl_dark_mode", this.isDark ? "1" : "0");
     },
 
     toggleAdminLogin() {
@@ -247,7 +263,6 @@ export default Vue.extend({
         });
         const backendLang = res.data;
         const localLang = localStorage.getItem("srl_lang");
-        // localStorage wins â€” it reflects the user's explicit UI choice
         if (localLang) {
           this.$store.commit("setLanguage", localLang);
         } else if (backendLang) {
@@ -279,7 +294,7 @@ export default Vue.extend({
 
       const ok = window.confirm(
         this.lang === "de"
-          ? "Interview wirklich zurÃ¼cksetzen?"
+          ? "Interview wirklich zurücksetzen?"
           : "Do you really want to reset the interview?",
       );
       if (!ok) return;
@@ -289,8 +304,6 @@ export default Vue.extend({
           client: "web",
           userid: userId,
         });
-
-        // keep-alive caches views; hard reload guarantees a clean UI state.
         window.location.hash = "#/agent-chat";
         window.location.reload();
       } catch (e) {
@@ -301,6 +314,15 @@ export default Vue.extend({
   },
 
   mounted() {
+    // Restore dark mode preference
+    const savedDark = localStorage.getItem("srl_dark_mode");
+    if (
+      savedDark === "1" ||
+      (!savedDark && window.matchMedia("(prefers-color-scheme: dark)").matches)
+    ) {
+      this.isDark = true;
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
     this.loadUserLanguage();
     this.loadUserRole();
   },
@@ -313,6 +335,15 @@ export default Vue.extend({
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  font-family: var(--srl-font);
+}
+
+.header-bar {
+  background: var(--srl-nav-bg);
+  border-bottom: 1px solid var(--srl-nav-border);
+  box-shadow: var(--srl-shadow-sm);
+  flex-shrink: 0;
+  z-index: 100;
 }
 
 .chat-app__view {
@@ -321,26 +352,36 @@ export default Vue.extend({
   display: flex;
   flex-direction: column;
   overflow: auto;
-  background: #faf8f3;
+  background: var(--srl-bg);
 }
 
 .tabs {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
 }
 
 .tab {
-  margin-right: 12px;
+  margin-right: 4px;
   padding: 6px 10px;
   text-decoration: none;
-  color: #333;
+  color: var(--srl-nav-tab);
   border-bottom: 2px solid transparent;
   white-space: nowrap;
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-radius: var(--srl-radius-sm) var(--srl-radius-sm) 0 0;
+  transition: color var(--srl-transition), background var(--srl-transition);
+}
+
+.tab:hover {
+  color: var(--srl-nav-tab-active);
+  background: var(--srl-bg-hover);
+  text-decoration: none;
 }
 
 .tab.active {
-  border-bottom: 2px solid #0d6efd;
+  border-bottom: 2px solid var(--srl-nav-tab-active);
+  color: var(--srl-nav-tab-active);
   font-weight: 600;
 }
 
@@ -348,6 +389,7 @@ export default Vue.extend({
   opacity: 0.4;
   transition: opacity 0.2s;
 }
+
 .admin-lock-btn:hover {
   opacity: 1;
 }
@@ -357,10 +399,10 @@ export default Vue.extend({
   top: calc(100% + 6px);
   right: 0;
   z-index: 1000;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  background: var(--srl-bg-card);
+  border: 1px solid var(--srl-border);
+  border-radius: var(--srl-radius);
+  box-shadow: var(--srl-shadow-lg);
   min-width: 220px;
 }
 
@@ -372,15 +414,16 @@ export default Vue.extend({
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #495057;
+  color: var(--srl-text-muted);
 }
 
 .admin-login-error {
-  color: #dc3545;
+  color: var(--srl-danger);
   font-size: 0.8rem;
   margin-top: 4px;
   margin-bottom: 0;
 }
+
 /* ── Mobile responsive ─────────────────────────────────────── */
 @media (max-width: 900px) {
   .tabs {
@@ -389,36 +432,17 @@ export default Vue.extend({
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
+
   .tabs::-webkit-scrollbar {
     display: none;
   }
+
   .tab {
     white-space: nowrap;
     flex-shrink: 0;
     font-size: 0.82rem;
     padding: 6px 8px;
-    margin-right: 6px;
-  }
-}
-@media (max-width: 600px) {
-  .tabs {
-    gap: 0;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .tab {
-    margin-right: 8px;
-    padding: 6px 8px;
-    font-size: 0.82rem;
-    white-space: nowrap;
-    flex-shrink: 0;
+    margin-right: 4px;
   }
 }
 </style>
-
-
