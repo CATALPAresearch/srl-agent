@@ -69,6 +69,7 @@ python-test:
     OLLAMA_NUM_CTX: "2048"
   before_script:
     - apt-get update -qq && apt-get install -y -qq libpq-dev gcc
+    - pip install pytest --quiet
     - cd backend
     - pip install -r requirements.txt --quiet
   script:
