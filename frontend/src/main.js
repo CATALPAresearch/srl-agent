@@ -1,6 +1,4 @@
-﻿import "bootstrap/dist/css/bootstrap.min.css";
-import "./assets/theme.css";
-import "./assets/theme.css";
+import "bootstrap/dist/css/bootstrap.min.css";
 import Vue from "vue";
 import { store } from "./store";
 import router from "./router";
@@ -57,5 +55,3 @@ new Vue({
   router,
   render: (h) => h(ChatApp),
 });
-
-
