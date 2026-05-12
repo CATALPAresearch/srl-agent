@@ -280,11 +280,11 @@
             <tbody>
               <tr>
                 <td>Completed</td>
-                <td>{{ stats.avg_turns_completed }}</td>
+                <td>{{ (+stats.avg_turns_completed || 0).toFixed(2) }}</td>
               </tr>
               <tr>
                 <td>Incomplete</td>
-                <td>{{ stats.avg_turns_incomplete }}</td>
+                <td>{{ (+stats.avg_turns_incomplete || 0).toFixed(2) }}</td>
               </tr>
             </tbody>
           </table>
@@ -329,7 +329,7 @@
               </tr>
               <tr v-for="r in stats.response_time_by_step" :key="r.step">
                 <td>{{ r.step }}</td>
-                <td>{{ r.avg_seconds }}</td>
+                <td>{{ (+r.avg_seconds || 0).toFixed(2) }}</td>
               </tr>
             </tbody>
           </table>
@@ -474,8 +474,8 @@
           <div class="rd-big-stat">
             {{
               stats.avg_response_gap_seconds != null
-                ? stats.avg_response_gap_seconds + "s"
-                : "â€”"
+                ? (+stats.avg_response_gap_seconds).toFixed(2) + "s"
+                : "—"
             }}
           </div>
           <div class="rd-chart-sub">
@@ -487,9 +487,18 @@
 
       <!-- Survey -->
       <div class="rd-survey-card">
-        <div class="rd-table-title">
-          Self-Report Survey Results
-          <span class="rd-badge-sm">{{ stats.survey_count }} responses</span>
+        <div class="rd-chart-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div class="rd-table-title" style="margin-bottom:0;">
+            Self-Report Survey Results
+            <span class="rd-badge-sm">{{ stats.survey_count }} responses</span>
+          </div>
+          <button
+            v-if="stats.survey_avg_scores && stats.survey_avg_scores.length"
+            class="rd-toggle-btn"
+            @click="toggle('survey')"
+          >
+            {{ showTable.survey ? "Show Chart" : "Show Table" }}
+          </button>
         </div>
         <p
           v-if="!stats.survey_count"
@@ -497,6 +506,7 @@
         >
           No survey responses yet.
         </p>
+<<<<<<< Updated upstream
         <table
           v-else-if="stats.survey_avg_scores && stats.survey_avg_scores.length"
           class="rd-table"
@@ -514,6 +524,39 @@
             </tr>
           </tbody>
         </table>
+=======
+        <template v-else-if="stats.survey_avg_scores && stats.survey_avg_scores.length">
+          <!-- Chart view (default) -->
+          <div v-if="!showTable.survey" class="rd-survey-chart-outer">
+            <!-- Fixed axis header -->
+            <div class="rd-survey-axis-header">
+              <div class="rd-survey-axis-label">Avg Score</div>
+              <canvas ref="surveyAxisChart" height="36"></canvas>
+            </div>
+            <!-- Scrollable bars -->
+            <div class="rd-survey-chart-scroll">
+              <div :style="{ height: (stats.survey_avg_scores ? stats.survey_avg_scores.length * 36 + 20 : 400) + 'px', position: 'relative' }">
+                <canvas ref="surveyChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <!-- Table view -->
+          <table v-else class="rd-table rd-table-mt">
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th>Avg Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in stats.survey_avg_scores" :key="r.question">
+                <td :title="r.question">{{ surveyQuestionLabel(r.question) }}</td>
+                <td>{{ Number(r.avg).toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+>>>>>>> Stashed changes
       </div>
     </div>
   </div>
@@ -553,6 +596,7 @@ export default {
         responseTime: false,
         weekly: false,
         strategy: false,
+        survey: false,
       },
       charts: {
         dropoff: null,
@@ -563,6 +607,8 @@ export default {
         weekly: null,
         responseTime: null,
         course: null,
+        survey: null,
+        surveyAxis: null,
       },
     };
   },
@@ -593,13 +639,18 @@ export default {
         },
         {
           label: "Avg Duration",
+<<<<<<< Updated upstream
           value: `${this.stats.avg_duration_minutes} min`,
           sub: `σ ${this.stats.std_duration_minutes} min  var ${this.stats.var_duration_minutes}`,
+=======
+          value: `${(+this.stats.avg_duration_minutes || 0).toFixed(2)} min`,
+          sub: `σ ${(+this.stats.std_duration_minutes || 0).toFixed(2)} min · var ${(+this.stats.var_duration_minutes || 0).toFixed(2)}`,
+>>>>>>> Stashed changes
           color: "#2563b0",
         },
         {
           label: "Avg LLM Response",
-          value: `${this.stats.avg_response_time_seconds}s`,
+          value: `${(+this.stats.avg_response_time_seconds || 0).toFixed(2)}s`,
           color: "#2563b0",
         },
         {
@@ -614,17 +665,17 @@ export default {
         },
         {
           label: "Avg Turns (Done)",
-          value: this.stats.avg_turns_completed,
+          value: (+this.stats.avg_turns_completed || 0).toFixed(2),
           color: "#2563b0",
         },
         {
           label: "Avg Turns (Drop)",
-          value: this.stats.avg_turns_incomplete,
+          value: (+this.stats.avg_turns_incomplete || 0).toFixed(2),
           color: "#2563b0",
         },
         {
           label: "Avg Responses",
-          value: this.stats.avg_messages_per_interview,
+          value: (+this.stats.avg_messages_per_interview || 0).toFixed(2),
           color: "#2563b0",
         },
         {
@@ -1025,6 +1076,111 @@ export default {
           }),
         });
       }
+
+      // Survey avg scores — fixed axis chart + scrollable bars chart
+      const svCtx = this.$refs.surveyChart;
+      const svAxisCtx = this.$refs.surveyAxisChart;
+      if (
+        svCtx &&
+        this.stats.survey_avg_scores &&
+        this.stats.survey_avg_scores.length
+      ) {
+        const LABEL_WIDTH = 320;
+        const truncate = (s, n) =>
+          s.length > n ? s.slice(0, n - 1) + "…" : s;
+        const labels = this.stats.survey_avg_scores.map((r) =>
+          truncate(this.surveyQuestionLabel(r.question), 52)
+        );
+        const values = this.stats.survey_avg_scores.map((r) =>
+          parseFloat(r.avg)
+        );
+
+        const sharedXAxis = {
+          position: "top",
+          ticks: { beginAtZero: true, max: 5, fontSize: 11, fontColor: "#6b7280" },
+          gridLines: { color: "#f3f4f6" },
+        };
+
+        // Axis-only chart (no data, no y labels, just draws the x axis)
+        if (svAxisCtx && !this.showTable.survey) {
+          this.charts.surveyAxis = new Chart(svAxisCtx, {
+            type: "horizontalBar",
+            data: {
+              labels: [""],
+              datasets: [{ data: [null], backgroundColor: "transparent" }],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              legend: { display: false },
+              animation: { duration: 0 },
+              scales: {
+                xAxes: [{ ...sharedXAxis }],
+                yAxes: [
+                  {
+                    ticks: { fontSize: 12 },
+                    gridLines: { display: false },
+                    afterFit(s) { s.width = LABEL_WIDTH; },
+                  },
+                ],
+              },
+              tooltips: { enabled: false },
+            },
+          });
+        }
+
+        // Bars-only chart (no x axis shown, scrolls)
+        if (svCtx && !this.showTable.survey) {
+          this.charts.survey = new Chart(svCtx, {
+            type: "horizontalBar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  data: values,
+                  backgroundColor: BLUE,
+                  borderWidth: 0,
+                  barThickness: 18,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              legend: { display: false },
+              scales: {
+                xAxes: [
+                  {
+                    display: false,
+                    ticks: { beginAtZero: true, max: 5 },
+                  },
+                ],
+                yAxes: [
+                  {
+                    ticks: {
+                      fontSize: 12,
+                      fontColor: "#374151",
+                      padding: 8,
+                    },
+                    gridLines: { display: false },
+                    afterFit(s) { s.width = LABEL_WIDTH; },
+                  },
+                ],
+              },
+              tooltips: {
+                callbacks: {
+                  title: (items) => {
+                    const r = this.stats.survey_avg_scores[items[0].index];
+                    return this.surveyQuestionLabel(r.question);
+                  },
+                  label: (item) =>
+                    ` Avg Score: ${parseFloat(item.xLabel).toFixed(2)}`,
+                },
+              },
+            },
+          });
+        }
+      }
     },
     destroyCharts() {
       Object.values(this.charts).forEach((c) => {
@@ -1039,6 +1195,8 @@ export default {
         weekly: null,
         responseTime: null,
         course: null,
+        survey: null,
+        surveyAxis: null,
       };
     },
     downloadCSV() {
@@ -1521,7 +1679,13 @@ export default {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   margin-bottom: 16px;
 }
-
+.rd-survey-chart-scroll {
+  max-height: 520px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #f3f4f6;
+  border-radius: 6px;
+}
 @media print {
   .rd-header-right {
     display: none;
@@ -1536,6 +1700,7 @@ export default {
     border: 1px solid #e5e7eb;
   }
 }
+<<<<<<< Updated upstream
 /* ── Mobile responsive ─────────────────────────────────────── */
 @media (max-width: 768px) {
   .rd-root {
@@ -1569,6 +1734,42 @@ export default {
   .rd-root {
     padding: 8px 6px !important;
   }
+=======
+
+.rd-survey-chart-outer {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #f3f4f6;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rd-survey-axis-header {
+  flex-shrink: 0;
+  background: #fff;
+  border-bottom: 1px solid #f3f4f6;
+  height: 56px;
+  position: relative;
+}
+
+.rd-survey-axis-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+  text-align: center;
+  padding-top: 4px;
+  margin-left: 320px; /* align with chart area, past the y-label column */
+}
+
+.rd-survey-chart-scroll {
+  max-height: 480px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* remove old border since outer has it now */
+  border: none;
+  border-radius: 0;
+>>>>>>> Stashed changes
 }
 </style>
 

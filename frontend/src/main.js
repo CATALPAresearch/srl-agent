@@ -15,6 +15,7 @@ import {
   faCommentDots,
   faLock,
   faUnlock,
+  faBars,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
@@ -29,6 +30,7 @@ library.add(
   faCommentDots,
   faLock,
   faUnlock,
+  faBars,
 );
 Vue.component("font-awesome-icon", FontAwesomeIcon);
 
