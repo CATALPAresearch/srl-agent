@@ -15,7 +15,7 @@
     <!-- ---------- LOADING ---------- -->
     <div v-else-if="loading" class="text-center p-4">
       <font-awesome-icon icon="spinner" spin />
-      {{ lang === "de" ? "Lade Fragebogenâ€¦" : "Loading surveyâ€¦" }}
+      {{ lang === "de" ? "Lade Fragebogen\u2026" : "Loading survey\u2026" }}
     </div>
 
     <!-- ---------- ERROR ---------- -->
@@ -155,7 +155,6 @@ export default Vue.extend({
     },
 
     lang() {
-      // Use the store language (defaults to German)
       return this.$store.getters.getLanguage || "de";
     },
 
@@ -249,7 +248,6 @@ export default Vue.extend({
         });
         this.survey = res.data;
 
-        // Pre-populate responses keys so Vue reactivity tracks them
         const r = {};
         this.survey.scales.forEach((sc) =>
           sc.items.forEach((it) => {
@@ -382,42 +380,6 @@ export default Vue.extend({
   white-space: nowrap;
 }
 
-@media (max-width: 600px) {
-  .survey-scale {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .survey-table {
-    min-width: 480px;
-  }
-
-  .item-text-col {
-    width: 45%;
-    font-size: 0.82rem;
-  }
-
-  .likert-col {
-    width: 11%;
-    min-width: 44px;
-  }
-
-  .likert-label {
-    font-size: 0.6rem;
-    white-space: normal;
-    line-height: 1.2;
-  }
-
-  .likert-num {
-    font-size: 0.75rem;
-  }
-
-  .likert-radio {
-    width: 16px;
-    height: 16px;
-  }
-}
-
 .likert-num {
   display: block;
   font-weight: 600;
@@ -453,56 +415,6 @@ export default Vue.extend({
   margin-top: 40px;
   text-align: center;
 }
-<<<<<<< Updated upstream
-/* ── Mobile responsive ─────────────────────────────────────── */
-@media (max-width: 600px) {
-  .survey-container {
-    padding: 10px 8px;
-  }
-  /* Stack Likert as vertical cards on mobile */
-  .survey-table thead {
-    display: none;
-  }
-  .survey-table,
-  .survey-table tbody,
-  .survey-table tr,
-  .survey-table td {
-    display: block;
-    width: 100%;
-  }
-  .survey-table tr {
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    padding: 10px;
-    background: #fff;
-  }
-  .item-text-col {
-    width: 100%;
-    font-weight: 500;
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-  }
-  .likert-col {
-    display: inline-flex;
-    width: 18%;
-    flex-direction: column;
-    align-items: center;
-    padding: 4px 2px;
-  }
-  .survey-table td.likert-col::before {
-    content: attr(data-label);
-    font-size: 0.65rem;
-    color: #888;
-    display: block;
-    text-align: center;
-    margin-bottom: 4px;
-  }
-  .likert-radio {
-    width: 22px;
-    height: 22px;
-  }
-=======
 
 /* Selected row: grey highlight, not browser-default blue */
 .survey-table tbody tr:has(input:checked) {
@@ -511,8 +423,46 @@ export default Vue.extend({
 
 .likert-radio:checked {
   accent-color: #6c757d;
->>>>>>> Stashed changes
+}
+
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 600px) {
+  .survey-container {
+    padding: 10px 8px;
+  }
+
+  .survey-scale {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .survey-table {
+    min-width: 480px;
+  }
+
+  .item-text-col {
+    width: 45%;
+    font-size: 0.82rem;
+  }
+
+  .likert-col {
+    width: 11%;
+    min-width: 44px;
+  }
+
+  .likert-label {
+    font-size: 0.6rem;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .likert-num {
+    font-size: 0.75rem;
+  }
+
+  .likert-radio {
+    width: 16px;
+    height: 16px;
+  }
 }
 </style>
-
-
