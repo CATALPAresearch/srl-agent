@@ -1,7 +1,40 @@
 ﻿<template>
   <div class="chat-app">
     <div class="header-bar d-flex align-items-center px-2 py-1">
-      <nav class="tabs flex-grow-1">
+
+      <!-- MOBILE: hamburger (visible xs only) -->
+      <div class="mobile-menu-wrapper d-flex d-sm-none align-items-center flex-grow-1">
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          @click="mobileMenuOpen = !mobileMenuOpen"
+          aria-label="Navigation menu"
+        >
+          <font-awesome-icon :icon="['fas', 'bars']" />
+        </button>
+        <div v-if="mobileMenuOpen" class="mobile-nav-dropdown">
+          <router-link to="/" exact class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+            {{ lang === "de" ? "Start" : "Home" }}
+          </router-link>
+          <router-link to="/agent-chat" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+            {{ lang === "de" ? "Interview" : "Interview" }}
+          </router-link>
+          <router-link to="/survey" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+            {{ lang === "de" ? "Umfrage" : "Survey" }}
+          </router-link>
+          <router-link v-if="isAdmin" to="/protocols" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+            Protocols
+          </router-link>
+          <router-link v-if="isAdmin" to="/dashboard/researcher" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+            Researcher Dashboard
+          </router-link>
+          <router-link to="/dashboard/teacher" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+            Teacher Dashboard
+          </router-link>
+        </div>
+      </div>
+
+      <!-- DESKTOP: tabs (hidden on xs) -->
+      <nav class="tabs flex-grow-1 d-none d-sm-flex">
         <router-link to="/" exact class="tab" active-class="active">
           {{ lang === "de" ? "Start" : "Home" }}
         </router-link>
@@ -103,7 +136,7 @@
       <div class="admin-area ml-2" style="position: relative">
         <button
           v-if="!isAdmin"
-          class="btn btn-sm btn-secondary admin-lock-btn ml-2"
+          class="btn btn-sm btn-secondary admin-lock-btn ml-2 d-none d-sm-inline-flex align-items-center"
           @click="toggleAdminLogin"
           :title="lang === 'de' ? 'Admin-Login' : 'Admin login'"
         >
@@ -166,6 +199,7 @@ export default Vue.extend({
       showAdminLogin: false,
       adminPasswordInput: "",
       adminLoginError: false,
+      mobileMenuOpen: false,
     };
   },
 
@@ -381,6 +415,7 @@ export default Vue.extend({
   margin-top: 4px;
   margin-bottom: 0;
 }
+<<<<<<< Updated upstream
 /* ── Mobile responsive ─────────────────────────────────────── */
 @media (max-width: 900px) {
   .tabs {
@@ -418,6 +453,49 @@ export default Vue.extend({
     white-space: nowrap;
     flex-shrink: 0;
   }
+=======
+
+/* ── Mobile nav ──────────────────────────────────────── */
+.mobile-menu-wrapper {
+  position: relative;
+}
+
+.mobile-nav-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1050;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.mobile-nav-item {
+  display: block;
+  padding: 10px 16px;
+  color: #333;
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s;
+}
+
+.mobile-nav-item:last-child {
+  border-bottom: none;
+}
+
+.mobile-nav-item:hover {
+  background: #f8f9fa;
+}
+
+.mobile-nav-active {
+  font-weight: 700;
+  background: #f0f4ff;
+  color: #0d6efd;
+>>>>>>> Stashed changes
 }
 </style>
 

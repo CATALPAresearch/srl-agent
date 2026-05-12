@@ -69,7 +69,12 @@
                 <!-- Radar chart -->
                 <div class="col-md-12 mb-1">
                   <div class="sr-radar-wrap">
-                    <canvas ref="radarCanvas" style="max-width: 100%"></canvas>
+                    <!-- Desktop: radar chart -->
+                    <canvas v-show="!isMobile" ref="radarCanvas" style="max-width: 100%"></canvas>
+                    <!-- Mobile: horizontal bar chart -->
+                    <div v-show="isMobile" style="height: 480px; position: relative;">
+                      <canvas ref="mobileBarCanvas"></canvas>
+                    </div>
                     <!-- Invisible hit areas over each axis label -->
                     <span
                       v-for="o in radarLabelOverlays"
@@ -354,6 +359,8 @@ export default Vue.extend({
       radarChart: null,
       radarLabelOverlays: [],
       componentId: Math.random().toString(36).slice(2, 10),
+      isMobile: false,
+      mobileBarChart: null,
     };
   },
 
@@ -378,7 +385,93 @@ export default Vue.extend({
   },
 
   methods: {
+    checkMobile() {
+      this.isMobile = window.innerWidth <= 600;
+    },
+
+    renderMobileBarChart() {
+      const radarData = this.data.radar_data;
+      if (!radarData || !radarData.length) return;
+      const canvas = this.$refs.mobileBarCanvas;
+      if (!canvas) return;
+      if (this.mobileBarChart) this.mobileBarChart.destroy();
+
+      const truncate = (s, n) =>
+        s.length > n ? s.slice(0, n - 1) + "\u2026" : s;
+
+      this.mobileBarChart = new Chart(canvas.getContext("2d"), {
+        type: "horizontalBar",
+        data: {
+          labels: radarData.map((s) => truncate(s.name, 28)),
+          datasets: [
+            {
+              label: this.lang === "de" ? "Du" : "You",
+              data: radarData.map((s) => s.frequency || 0),
+              backgroundColor: "rgba(54, 162, 235, 0.7)",
+              borderColor: "rgba(54, 162, 235, 1)",
+              borderWidth: 1,
+            },
+            {
+              label:
+                this.lang === "de" ? "Kursdurchschnitt" : "Course average",
+              data: radarData.map(
+                (s) => Math.round((s.avg_frequency || 0) * 10) / 10
+              ),
+              backgroundColor: "rgba(255, 153, 0, 0.5)",
+              borderColor: "rgba(255, 153, 0, 0.85)",
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          legend: { display: true, position: "bottom" },
+          scales: {
+            xAxes: [
+              {
+                ticks: {
+                  beginAtZero: true,
+                  max: 4,
+                  stepSize: 1,
+                  callback: (v) => {
+                    const labels =
+                      this.lang === "de"
+                        ? ["", "Selten", "Manchmal", "Oft", "Meistens"]
+                        : ["", "Seldom", "Sometimes", "Often", "Most of time"];
+                    return labels[v] || v;
+                  },
+                },
+              },
+            ],
+            yAxes: [
+              {
+                ticks: { fontSize: 10 },
+              },
+            ],
+          },
+          tooltips: {
+            callbacks: {
+              label: (item, chartData) => {
+                const labels =
+                  this.lang === "de"
+                    ? ["", "Selten", "Manchmal", "Oft", "Meistens"]
+                    : ["", "Seldom", "Sometimes", "Often", "Most of time"];
+                const dsLabel = chartData.datasets[item.datasetIndex].label;
+                const val = item.xLabel;
+                const text = labels[Math.round(val)] || val;
+                return ` ${dsLabel}: ${text} (${val})`;
+              },
+            },
+          },
+        },
+      });
+    },
     renderRadarChart() {
+      if (this.isMobile) {
+        this.$nextTick(() => this.renderMobileBarChart());
+        return;
+      }
       const radarData = this.data.radar_data;
       if (!radarData || !radarData.length) return;
       const canvas = this.$refs.radarCanvas;
@@ -517,11 +610,22 @@ export default Vue.extend({
   },
 
   mounted() {
+    this.checkMobile();
+    this._onResize = () => {
+      const wasMobile = this.isMobile;
+      this.checkMobile();
+      if (wasMobile !== this.isMobile) {
+        this.renderRadarChart();
+      }
+    };
+    window.addEventListener("resize", this._onResize);
     this.loadResults();
   },
 
   beforeDestroy() {
     if (this.radarChart) this.radarChart.destroy();
+    if (this.mobileBarChart) this.mobileBarChart.destroy();
+    window.removeEventListener("resize", this._onResize);
   },
 });
 </script>
@@ -656,6 +760,7 @@ export default Vue.extend({
   transform: translate(-50%, -50%);
   cursor: default;
 }
+<<<<<<< Updated upstream
 /* ── Mobile responsive ─────────────────────────────────────── */
 @media (max-width: 768px) {
   .sr-root {
@@ -668,6 +773,11 @@ export default Vue.extend({
   }
   .sr-label-hit {
     display: none;
+=======
+@media (max-width: 600px) {
+  .sr-radar-wrap {
+    min-height: 480px;
+>>>>>>> Stashed changes
   }
 }
 </style>
