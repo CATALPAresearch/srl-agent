@@ -83,7 +83,7 @@
                       : item.text[lang] || item.text.en
                   }}
                 </td>
-                <td v-for="v in scaleRange" :key="v" class="likert-col" :data-label="v">
+                <td v-for="v in scaleRange" :key="v" class="likert-col" :data-label="v" :data-text="scaleLabel(v)">
                   <label class="likert-radio-label">
                     <input
                       type="radio"
@@ -431,38 +431,75 @@ export default Vue.extend({
     padding: 10px 8px;
   }
 
-  .survey-scale {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  /* Stack table as blocks */
+  .survey-table,
+  .survey-table tbody,
+  .survey-table tr,
+  .survey-table td,
+  .survey-table th {
+    display: block;
+    width: 100%;
   }
 
-  .survey-table {
-    min-width: 480px;
+  /* Hide the original thead completely —
+     labels will be shown inline per-cell via ::before */
+  .survey-table thead {
+    display: none;
   }
 
+  /* Each question row becomes a card */
+  .survey-table tbody tr {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    padding: 10px;
+    background: #fff;
+  }
+
+  /* Question text */
   .item-text-col {
-    width: 45%;
-    font-size: 0.82rem;
+    width: 100% !important;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0 0 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 8px;
   }
 
+  /* Likert options: horizontal row of 5 inside the card */
   .likert-col {
-    width: 11%;
-    min-width: 44px;
+    display: inline-block !important;
+    width: 19% !important;
+    text-align: center;
+    padding: 4px 4px;
+    vertical-align: top;
+    float: left;
   }
 
-  .likert-label {
+  /* Show text label + number above each radio using Vue-rendered data attrs */
+  .survey-table td.likert-col::before {
+    content: attr(data-text) "\A" attr(data-label);
+    white-space: pre-wrap;
     font-size: 0.6rem;
-    white-space: normal;
-    line-height: 1.2;
-  }
-
-  .likert-num {
-    font-size: 0.75rem;
+    color: #555;
+    display: block;
+    text-align: center;
+    margin-bottom: 6px;
+    line-height: 1.3;
+    word-break: break-word;
+    min-height: 36px;
   }
 
   .likert-radio {
-    width: 16px;
-    height: 16px;
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Clearfix */
+  .survey-table tbody tr::after {
+    content: "";
+    display: table;
+    clear: both;
   }
 }
 </style>
