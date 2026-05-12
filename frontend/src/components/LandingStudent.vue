@@ -3,7 +3,7 @@
     <!-- Progress stats -->
     <div class="row justify-content-center mb-4">
       <div class="col-md-10">
-        <div class="row">
+        <div class="row d-none d-sm-flex">
           <!-- Interview progress -->
           <div class="col-sm-4 mb-3">
             <div class="card text-center border-0 shadow-sm h-100">

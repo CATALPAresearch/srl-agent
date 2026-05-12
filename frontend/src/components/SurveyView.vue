@@ -382,6 +382,42 @@ export default Vue.extend({
   white-space: nowrap;
 }
 
+@media (max-width: 600px) {
+  .survey-scale {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .survey-table {
+    min-width: 480px;
+  }
+
+  .item-text-col {
+    width: 45%;
+    font-size: 0.82rem;
+  }
+
+  .likert-col {
+    width: 11%;
+    min-width: 44px;
+  }
+
+  .likert-label {
+    font-size: 0.6rem;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .likert-num {
+    font-size: 0.75rem;
+  }
+
+  .likert-radio {
+    width: 16px;
+    height: 16px;
+  }
+}
+
 .likert-num {
   display: block;
   font-weight: 600;
@@ -417,6 +453,7 @@ export default Vue.extend({
   margin-top: 40px;
   text-align: center;
 }
+<<<<<<< Updated upstream
 /* ── Mobile responsive ─────────────────────────────────────── */
 @media (max-width: 600px) {
   .survey-container {
@@ -465,6 +502,16 @@ export default Vue.extend({
     width: 22px;
     height: 22px;
   }
+=======
+
+/* Selected row: grey highlight, not browser-default blue */
+.survey-table tbody tr:has(input:checked) {
+  background: #e9ecef;
+}
+
+.likert-radio:checked {
+  accent-color: #6c757d;
+>>>>>>> Stashed changes
 }
 </style>
 
