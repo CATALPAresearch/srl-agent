@@ -281,7 +281,6 @@ export default Vue.extend({
         });
         const backendLang = res.data;
         const localLang = localStorage.getItem("srl_lang");
-        // localStorage wins â€” it reflects the user's explicit UI choice
         if (localLang) {
           this.$store.commit("setLanguage", localLang);
         } else if (backendLang) {
@@ -313,7 +312,7 @@ export default Vue.extend({
 
       const ok = window.confirm(
         this.lang === "de"
-          ? "Interview wirklich zurÃ¼cksetzen?"
+          ? "Interview wirklich zur\u00fccksetzen?"
           : "Do you really want to reset the interview?",
       );
       if (!ok) return;
@@ -324,7 +323,6 @@ export default Vue.extend({
           userid: userId,
         });
 
-        // keep-alive caches views; hard reload guarantees a clean UI state.
         window.location.hash = "#/agent-chat";
         window.location.reload();
       } catch (e) {
@@ -415,45 +413,6 @@ export default Vue.extend({
   margin-top: 4px;
   margin-bottom: 0;
 }
-<<<<<<< Updated upstream
-/* ── Mobile responsive ─────────────────────────────────────── */
-@media (max-width: 900px) {
-  .tabs {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .tab {
-    white-space: nowrap;
-    flex-shrink: 0;
-    font-size: 0.82rem;
-    padding: 6px 8px;
-    margin-right: 6px;
-  }
-}
-@media (max-width: 600px) {
-  .tabs {
-    gap: 0;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .tab {
-    margin-right: 8px;
-    padding: 6px 8px;
-    font-size: 0.82rem;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-=======
 
 /* ── Mobile nav ──────────────────────────────────────── */
 .mobile-menu-wrapper {
@@ -495,8 +454,25 @@ export default Vue.extend({
   font-weight: 700;
   background: #f0f4ff;
   color: #0d6efd;
->>>>>>> Stashed changes
+}
+
+/* ── Desktop tab responsive ──────────────────────────── */
+@media (max-width: 900px) {
+  .tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 0.82rem;
+    padding: 6px 8px;
+    margin-right: 6px;
+  }
 }
 </style>
-
-
