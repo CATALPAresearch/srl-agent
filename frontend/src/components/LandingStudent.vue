@@ -1,9 +1,9 @@
-﻿<template>
+<template>
   <div class="landing-student container-fluid py-4">
     <!-- Progress stats -->
     <div class="row justify-content-center mb-4">
       <div class="col-md-10">
-        <div class="row d-none d-sm-flex">
+        <div class="row">
           <!-- Interview progress -->
           <div class="col-sm-4 mb-3">
             <div class="card text-center border-0 shadow-sm h-100">
@@ -38,7 +38,7 @@
               </div>
             </div>
           </div>
-          <!-- Strategies â€” direct link to results -->
+          <!-- Strategies — direct link to results -->
           <div class="col-sm-4 mb-3">
             <component
               :is="interviewState === 'completed' ? 'router-link' : 'div'"
@@ -88,7 +88,7 @@
             <p v-if="lang === 'de'">
               Gemeinsam mit Studierenden, Forschenden und Lehrenden haben wir
               ein System entwickelt, das Erkenntnisse aus der Lernwissenschaft
-              und der KÃ¼nstlichen Intelligenz nutzt, um Ihnen zu helfen, Ihre
+              und der Künstlichen Intelligenz nutzt, um Ihnen zu helfen, Ihre
               Lernstrategien und Studienkompetenzen besser zu verstehen.
             </p>
             <p v-else>
@@ -98,9 +98,9 @@
               learning strategies and study skills.
             </p>
             <p v-if="lang === 'de'">
-              Im nÃ¤chsten Schritt werden Sie etwa
+              Im nächsten Schritt werden Sie etwa
               <strong>10 Minuten</strong> mit dem System chatten und einige
-              Fragen dazu beantworten, wie Sie Ã¼blicherweise in dieser
+              Fragen dazu beantworten, wie Sie üblicherweise in dieser
               Lehrveranstaltung lernen. Kurz nach diesem Interview analysiert
               das System Ihre Antworten und gibt Ihnen
               <strong>personalisiertes Feedback</strong>.
@@ -116,7 +116,7 @@
             <p class="mb-3" v-if="lang === 'de'">
               Unser Ziel ist es, Ihnen zu helfen, besser zu verstehen, wie Sie
               lernen, und neue Strategien zu entdecken, die das Lernen leichter
-              oder effektiver machen kÃ¶nnten. Sie werden entdecken:
+              oder effektiver machen könnten. Sie werden entdecken:
             </p>
             <p class="mb-3" v-else>
               Our goal is to help you better understand how you study and
@@ -125,33 +125,33 @@
             </p>
             <ul class="discover-list list-unstyled mb-4" v-if="lang === 'de'">
               <li>
-                ðŸ§  Die Lernstrategien, die Sie bereits am hÃ¤ufigsten nutzen
+                🧠 Die Lernstrategien, die Sie bereits am häufigsten nutzen
               </li>
               <li>
-                ðŸ” Weitere effektive Strategien, von denen Forschende zeigen,
-                dass sie Studierenden beim Lernen helfen kÃ¶nnen
+                🔍 Weitere effektive Strategien, von denen Forschende zeigen,
+                dass sie Studierenden beim Lernen helfen können
               </li>
               <li>
-                ðŸ“Š Wie Ihr Lernansatz mit Mustern verglichen wird, die in
+                📊 Wie Ihr Lernansatz mit Mustern verglichen wird, die in
                 Studien mit anderen Studierenden gefunden wurden
               </li>
               <li>
-                ðŸ’¡ Praktische Ideen und einfache Tipps, die Sie ausprobieren
-                kÃ¶nnen, um Ihre Lernstrategien zu verbessern oder zu erweitern
+                💡 Praktische Ideen und einfache Tipps, die Sie ausprobieren
+                können, um Ihre Lernstrategien zu verbessern oder zu erweitern
               </li>
             </ul>
             <ul class="discover-list list-unstyled mb-4" v-else>
-              <li>ðŸ§  The learning strategies you already use most often</li>
+              <li>🧠 The learning strategies you already use most often</li>
               <li>
-                ðŸ” Other effective strategies that research shows can help
+                🔍 Other effective strategies that research shows can help
                 students learn
               </li>
               <li>
-                ðŸ“Š How your learning approach compares with patterns found in
+                📊 How your learning approach compares with patterns found in
                 studies of other students
               </li>
               <li>
-                ðŸ’¡ Practical ideas and simple tips you can try to improve or
+                💡 Practical ideas and simple tips you can try to improve or
                 expand your learning strategies
               </li>
             </ul>
@@ -163,14 +163,14 @@
               <p class="mb-3">
                 {{
                   lang === "de"
-                    ? "Um fortzufahren bitten wir Sie um Ihre Einwilligung zur Erhebung und Auswertung Ihrer Antworten. Die Teilnahme ist freiwillig und Sie kÃ¶nnen jederzeit aufhÃ¶ren."
+                    ? "Um fortzufahren bitten wir Sie um Ihre Einwilligung zur Erhebung und Auswertung Ihrer Antworten. Die Teilnahme ist freiwillig und Sie können jederzeit aufhören."
                     : "To continue, we ask for your informed consent to collect and analyze your responses. Participation is completely voluntary, and you can stop at any time."
                 }}
               </p>
               <button class="btn btn-primary" @click="openConsentModal">
                 {{
                   lang === "de"
-                    ? "EinwilligungserklÃ¤rung lesen &amp; zustimmen"
+                    ? "Einwilligungserklärung lesen &amp; zustimmen"
                     : "Read &amp; give consent"
                 }}
               </button>
@@ -201,8 +201,8 @@
                 <p class="text-muted mb-3">
                   {{
                     lang === "de"
-                      ? "Sie haben das Interview noch nicht begonnen. Starten Sie jetzt â€“ es dauert ca. 10 Minuten."
-                      : "You have not started the interview yet. Begin now â€“ it takes about 10 minutes."
+                      ? "Sie haben das Interview noch nicht begonnen. Starten Sie jetzt – es dauert ca. 10 Minuten."
+                      : "You have not started the interview yet. Begin now – it takes about 10 minutes."
                   }}
                 </p>
                 <router-link to="/agent-chat">
@@ -217,7 +217,7 @@
               <!-- State: in progress -->
               <div v-else-if="interviewState === 'in_progress'">
                 <div class="alert alert-warning d-flex align-items-center mb-3">
-                  <span class="mr-2">â³</span>
+                  <span class="mr-2">⏳</span>
                   <span>{{
                     lang === "de"
                       ? "Sie haben ein Interview begonnen, aber noch nicht abgeschlossen."
@@ -238,7 +238,7 @@
               <!-- State: completed -->
               <div v-else-if="interviewState === 'completed'">
                 <div class="alert alert-success d-flex align-items-center mb-3">
-                  <span class="mr-2">âœ…</span>
+                  <span class="mr-2">✅</span>
                   <span>{{
                     lang === "de"
                       ? "Sie haben ein Interview bereits abgeschlossen."
@@ -296,7 +296,7 @@ export default Vue.extend({
           labelEn: "Last interview progress",
         },
         {
-          value: "â€“",
+          value: "–",
           labelDe: "Fragebogen abgeschlossen",
           labelEn: "Survey completed",
         },
@@ -345,7 +345,7 @@ export default Vue.extend({
   methods: {
     openConsentModal() {
       // Reset to 'none' so v-if in ChatInformedConsent matches and
-      // the 'Nein' watcher can detect a change from 'none' â†’ 'no'
+      // the 'Nein' watcher can detect a change from 'none' → 'no'
       this.$store.commit("setInformedConsentAgreement", "none");
       this.showConsentModal = true;
     },
@@ -393,12 +393,12 @@ export default Vue.extend({
         this.progressStats[1].value = `${lastDone} / ${lastTotal}`;
 
         if (data.survey) {
-          this.progressStats[2].value = "\u2713";
+          this.progressStats[2].value = "✓";
         } else {
-          this.progressStats[2].value = "\u2713";
+          this.progressStats[2].value = "–";
         }
       } catch {
-        // backend unreachable or no data â€” keep defaults
+        // backend unreachable or no data — keep defaults
       }
     },
   },
@@ -480,26 +480,4 @@ export default Vue.extend({
 .consent-modal-close:hover {
   color: #343a40;
 }
-/* ── Mobile responsive ─────────────────────────────────────── */
-@media (max-width: 600px) {
-  .landing-student {
-    max-width: 100%;
-    padding: 0 4px;
-  }
-  .stat-value {
-    font-size: 1.3rem;
-  }
-  .consent-modal-box {
-    padding: 18px 16px;
-    width: 96%;
-  }
-}
-/* LTI iframe - reduce padding when viewport is narrow */
-@media (max-width: 480px) {
-  .landing-student {
-    padding: 0 2px;
-  }
-}
 </style>
-
-
