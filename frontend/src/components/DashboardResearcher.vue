@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="rd-root">
     <!-- Header -->
     <div class="rd-header">
@@ -41,7 +41,7 @@
             class="rd-btn rd-btn-primary"
             @click="showDownload = !showDownload"
           >
-            ↓ Download
+            &#8595; Download
           </button>
           <div v-if="showDownload" class="rd-dropdown">
             <button
@@ -75,7 +75,7 @@
 
     <div v-if="isLoading" class="rd-loading">
       <div class="rd-spinner"></div>
-      <p>Loading analytics…</p>
+      <p>Loading analytics&#8230;</p>
     </div>
     <div v-else-if="error" class="rd-error">{{ error }}</div>
 
@@ -101,7 +101,7 @@
           <div class="rd-chart-header">
             <span class="rd-chart-title">Course Share</span>
             <span class="rd-chart-sub"
-              >student distribution across courses · populated from LTI
+              >student distribution across courses &middot; populated from LTI
               <code>context_id</code> / <code>context_title</code></span
             >
           </div>
@@ -114,7 +114,7 @@
               >Will populate once students launch via LTI from Moodle or
               ILIAS.<br />
               Source: <code>context_id</code> and <code>context_title</code> LTI
-              launch parameters → stored in <code>users</code> table.</span
+              launch parameters &rarr; stored in <code>users</code> table.</span
             >
           </div>
         </div>
@@ -280,11 +280,11 @@
             <tbody>
               <tr>
                 <td>Completed</td>
-                <td>{{ stats.avg_turns_completed }}</td>
+                <td>{{ (+stats.avg_turns_completed || 0).toFixed(2) }}</td>
               </tr>
               <tr>
                 <td>Incomplete</td>
-                <td>{{ stats.avg_turns_incomplete }}</td>
+                <td>{{ (+stats.avg_turns_incomplete || 0).toFixed(2) }}</td>
               </tr>
             </tbody>
           </table>
@@ -329,7 +329,7 @@
               </tr>
               <tr v-for="r in stats.response_time_by_step" :key="r.step">
                 <td>{{ r.step }}</td>
-                <td>{{ r.avg_seconds }}</td>
+                <td>{{ (+r.avg_seconds || 0).toFixed(2) }}</td>
               </tr>
             </tbody>
           </table>
@@ -385,7 +385,7 @@
           <div class="rd-chart-header rd-chart-header-row">
             <div>
               <span class="rd-chart-title">Strategy Distribution</span>
-              <span class="rd-chart-sub">absolute counts · RAG detected</span>
+              <span class="rd-chart-sub">absolute counts &middot; RAG detected</span>
             </div>
             <button class="rd-toggle-btn" @click="toggle('strategy')">
               {{ showTable.strategy ? "Show Chart" : "Show Table" }}
@@ -461,7 +461,7 @@
         <div class="rd-chart-card rd-chart-narrow rd-info-card">
           <div class="rd-chart-title">Last Activity</div>
           <div class="rd-big-stat rd-big-stat-sm">
-            {{ stats.last_activity || "—" }}
+            {{ stats.last_activity || "&mdash;" }}
           </div>
           <div class="rd-chart-sub">
             most recent interview started<br /><code
@@ -474,12 +474,12 @@
           <div class="rd-big-stat">
             {{
               stats.avg_response_gap_seconds != null
-                ? stats.avg_response_gap_seconds + "s"
-                : "—"
+                ? (+stats.avg_response_gap_seconds).toFixed(2) + "s"
+                : "&mdash;"
             }}
           </div>
           <div class="rd-chart-sub">
-            avg seconds per turn · includes LLM response time + student reading
+            avg seconds per turn &middot; includes LLM response time + student reading
             &amp; typing time
           </div>
         </div>
@@ -487,9 +487,18 @@
 
       <!-- Survey -->
       <div class="rd-survey-card">
-        <div class="rd-table-title">
-          Self-Report Survey Results
-          <span class="rd-badge-sm">{{ stats.survey_count }} responses</span>
+        <div class="rd-chart-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div class="rd-table-title" style="margin-bottom:0;">
+            Self-Report Survey Results
+            <span class="rd-badge-sm">{{ stats.survey_count }} responses</span>
+          </div>
+          <button
+            v-if="stats.survey_avg_scores && stats.survey_avg_scores.length"
+            class="rd-toggle-btn"
+            @click="toggle('survey')"
+          >
+            {{ showTable.survey ? "Show Chart" : "Show Table" }}
+          </button>
         </div>
         <p
           v-if="!stats.survey_count"
@@ -497,23 +506,37 @@
         >
           No survey responses yet.
         </p>
-        <table
-          v-else-if="stats.survey_avg_scores && stats.survey_avg_scores.length"
-          class="rd-table"
-        >
-          <thead>
-            <tr>
-              <th>Question</th>
-              <th>Avg Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="r in stats.survey_avg_scores" :key="r.question">
-              <td>{{ r.question }}</td>
-              <td>{{ r.avg }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <template v-else-if="stats.survey_avg_scores && stats.survey_avg_scores.length">
+          <!-- Chart view (default) -->
+          <div v-if="!showTable.survey" class="rd-survey-chart-outer">
+            <!-- Fixed axis header -->
+            <div class="rd-survey-axis-header">
+              <div class="rd-survey-axis-label">Avg Score</div>
+              <canvas ref="surveyAxisChart" height="36"></canvas>
+            </div>
+            <!-- Scrollable bars -->
+            <div class="rd-survey-chart-scroll">
+              <div :style="{ height: (stats.survey_avg_scores ? stats.survey_avg_scores.length * 36 + 20 : 400) + 'px', position: 'relative' }">
+                <canvas ref="surveyChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <!-- Table view -->
+          <table v-else class="rd-table rd-table-mt">
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th>Avg Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in stats.survey_avg_scores" :key="r.question">
+                <td :title="r.question">{{ surveyQuestionLabel(r.question) }}</td>
+                <td>{{ Number(r.avg).toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
       </div>
     </div>
   </div>
@@ -553,6 +576,7 @@ export default {
         responseTime: false,
         weekly: false,
         strategy: false,
+        survey: false,
       },
       charts: {
         dropoff: null,
@@ -563,6 +587,8 @@ export default {
         weekly: null,
         responseTime: null,
         course: null,
+        survey: null,
+        surveyAxis: null,
       },
     };
   },
@@ -593,13 +619,13 @@ export default {
         },
         {
           label: "Avg Duration",
-          value: `${this.stats.avg_duration_minutes} min`,
-          sub: `σ ${this.stats.std_duration_minutes} min · var ${this.stats.var_duration_minutes}`,
+          value: `${(+this.stats.avg_duration_minutes || 0).toFixed(2)} min`,
+          sub: `\u03c3 ${(+this.stats.std_duration_minutes || 0).toFixed(2)} min \u00b7 var ${(+this.stats.var_duration_minutes || 0).toFixed(2)}`,
           color: "#2563b0",
         },
         {
           label: "Avg LLM Response",
-          value: `${this.stats.avg_response_time_seconds}s`,
+          value: `${(+this.stats.avg_response_time_seconds || 0).toFixed(2)}s`,
           color: "#2563b0",
         },
         {
@@ -614,17 +640,17 @@ export default {
         },
         {
           label: "Avg Turns (Done)",
-          value: this.stats.avg_turns_completed,
+          value: (+this.stats.avg_turns_completed || 0).toFixed(2),
           color: "#2563b0",
         },
         {
           label: "Avg Turns (Drop)",
-          value: this.stats.avg_turns_incomplete,
+          value: (+this.stats.avg_turns_incomplete || 0).toFixed(2),
           color: "#2563b0",
         },
         {
           label: "Avg Responses",
-          value: this.stats.avg_messages_per_interview,
+          value: (+this.stats.avg_messages_per_interview || 0).toFixed(2),
           color: "#2563b0",
         },
         {
@@ -639,10 +665,65 @@ export default {
     await this.loadStats();
   },
   methods: {
+    surveyQuestionLabel(id) {
+      const map = {
+        "oase_1": "I am confident that I will be able to master the content and assignments in this class.",
+        "oase_2": "I am confident in my ability to successfully persist in this class, even if I find the content difficult.",
+        "oase_3": "I am confident I can put in the effort required to get a high grade in this class.",
+        "oase_4": "I am confident that I can accurately work out what the task is requiring me to do.",
+        "oim_1": "I always find aspects of the content that arouse my curiosity.",
+        "oim_2": "I love learning new things in this class.",
+        "oim_3": "I find studying for this class enjoyable.",
+        "oim_4": "I find it very satisfying when I learn new material in this course.",
+        "oim_5": "I get a sense of achievement when I learn new skills or information.",
+        "oem_1": "I want to do well in this course so I can show off to my friends and family.",
+        "oem_2": "I want to do well because of others real or perceived expectations of me.",
+        "oem_3": "I want to get a better grade than others in my class.",
+        "onae_1": "I feel so helpless that I cannot dedicate all my effort to my studies.",
+        "onae_2": "I consider dropping out because I feel overwhelmed by my studies.",
+        "onae_3": "While studying, I want to distract myself to lower my anxiety level.",
+        "onae_4": "I get so anxious that I don't even want to start studying.",
+        "onae_5": "When I have to study, I start to feel bad.",
+        "ptm_1": "I set short-term (daily or weekly) goals.",
+        "ptm_2": "I set realistic deadlines for learning.",
+        "ptm_3": "I break larger goals into smaller actionable goals.",
+        "ptm_4": "I make a list of detailed actions that I need to complete.",
+        "ptm_5": "I plan out my schedule each week so I have the appropriate amount of time available for study.",
+        "mc_1": "I think about what learning strategies have worked for me in the past when doing similar assignments/types of study.",
+        "mc_2": "I spend time trying to interpret the task to ensure I understand accurately what I need to do.",
+        "mc_3": "I usually self-assess my performance once I finish.",
+        "mc_4": "I look over past feedback I have received and check that I have made improvements in my current learning.",
+        "mc_5": "I think about how I might improve my work by evaluating it against the marking criteria provided by the teacher.",
+        "se_1": "I am able to study for my course without distraction.",
+        "se_2": "I have access to a quiet and distraction-free place to study.",
+        "se_3": "I know where I can study most efficiently for this course.",
+        "oer_1": "I work hard in my study, even when there are more interesting things to do.",
+        "oer_2": "When my study gets difficult, I remain committed to reaching my study goals.",
+        "oer_3": "When my mind begins to wander during a learning session for this course, I make a special effort to keep concentrating.",
+        "oer_4": "No matter how I am feeling, I persevere with my study.",
+        "oss_1": "I try to help other students when they ask a question I can answer.",
+        "oss_2": "I ask for help from knowledgeable others through channels when I am not sure what to do in my class.",
+        "oss_3": "I ask the teacher and/or my peers to clarify information in my course.",
+        "oss_4": "When I have difficulties with my class, I seek assistance from others through means (discussion boards, social media, email, instant messaging etc.).",
+        "oss_5": "I use email, discussion boards, social media, etc., to connect with the teacher and other students when I need help.",
+        "ots_1": "When studying, I create my own examples of the content to make it more meaningful.",
+        "ots_2": "When studying, I organise my thoughts by making summaries of what I am learning.",
+        "ots_3": "When studying, I try and relate the content to what I already know.",
+        "ots_4": "When learning the content, I try and develop my own ideas about it.",
+        "ots_5": "I try and improve my understanding by doing additional work beyond the core content (e.g., doing extra problem-solving activities or extra readings).",
+        "demo_age": "Age group",
+        "demo_years_education": "Years in postsecondary education",
+        "demo_course_importance": "Course importance for career",
+        "demo_course_confidence": "Confidence in course success",
+      };
+      return map[id] || id;
+    },
+
     toggle(key) {
       this.showTable[key] = !this.showTable[key];
       if (!this.showTable[key]) this.$nextTick(() => this.renderCharts());
     },
+
     async loadStats() {
       this.isLoading = true;
       this.showDownload = false;
@@ -680,12 +761,14 @@ export default {
         this.isLoading = false;
       }
     },
+
     clearFilter() {
       this.dateFrom = "";
       this.dateTo = "";
       this.selectedCourse = "";
       this.loadStats();
     },
+
     renderCharts() {
       this.destroyCharts();
       const intTicks = {
@@ -1025,7 +1108,113 @@ export default {
           }),
         });
       }
+
+      // Survey avg scores — fixed axis chart + scrollable bars chart
+      const svCtx = this.$refs.surveyChart;
+      const svAxisCtx = this.$refs.surveyAxisChart;
+      if (
+        svCtx &&
+        this.stats.survey_avg_scores &&
+        this.stats.survey_avg_scores.length
+      ) {
+        const LABEL_WIDTH = 320;
+        const truncate = (s, n) =>
+          s.length > n ? s.slice(0, n - 1) + "\u2026" : s;
+        const labels = this.stats.survey_avg_scores.map((r) =>
+          truncate(this.surveyQuestionLabel(r.question), 52)
+        );
+        const values = this.stats.survey_avg_scores.map((r) =>
+          parseFloat(r.avg)
+        );
+
+        const sharedXAxis = {
+          position: "top",
+          ticks: { beginAtZero: true, max: 5, fontSize: 11, fontColor: "#6b7280" },
+          gridLines: { color: "#f3f4f6" },
+        };
+
+        // Axis-only chart (no data, just draws the x axis)
+        if (svAxisCtx && !this.showTable.survey) {
+          this.charts.surveyAxis = new Chart(svAxisCtx, {
+            type: "horizontalBar",
+            data: {
+              labels: [""],
+              datasets: [{ data: [null], backgroundColor: "transparent" }],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              legend: { display: false },
+              animation: { duration: 0 },
+              scales: {
+                xAxes: [{ ...sharedXAxis }],
+                yAxes: [
+                  {
+                    ticks: { fontSize: 12 },
+                    gridLines: { display: false },
+                    afterFit(s) { s.width = LABEL_WIDTH; },
+                  },
+                ],
+              },
+              tooltips: { enabled: false },
+            },
+          });
+        }
+
+        // Bars-only chart (no x axis shown, scrolls)
+        if (svCtx && !this.showTable.survey) {
+          this.charts.survey = new Chart(svCtx, {
+            type: "horizontalBar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  data: values,
+                  backgroundColor: BLUE,
+                  borderWidth: 0,
+                  barThickness: 18,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              legend: { display: false },
+              scales: {
+                xAxes: [
+                  {
+                    display: false,
+                    ticks: { beginAtZero: true, max: 5 },
+                  },
+                ],
+                yAxes: [
+                  {
+                    ticks: {
+                      fontSize: 12,
+                      fontColor: "#374151",
+                      padding: 8,
+                    },
+                    gridLines: { display: false },
+                    afterFit(s) { s.width = LABEL_WIDTH; },
+                  },
+                ],
+              },
+              tooltips: {
+                callbacks: {
+                  title: (items) => {
+                    const r = this.stats.survey_avg_scores[items[0].index];
+                    return this.surveyQuestionLabel(r.question);
+                  },
+                  label: (item) =>
+                    ` Avg Score: ${parseFloat(item.xLabel).toFixed(2)}`,
+                },
+              },
+            },
+          });
+        }
+      }
     },
+
     destroyCharts() {
       Object.values(this.charts).forEach((c) => {
         if (c) c.destroy();
@@ -1039,8 +1228,11 @@ export default {
         weekly: null,
         responseTime: null,
         course: null,
+        survey: null,
+        surveyAxis: null,
       };
     },
+
     downloadCSV() {
       const rows = [
         ["Metric", "Value"],
@@ -1062,39 +1254,27 @@ export default {
         ["Avg Response Gap (s)", this.stats.avg_response_gap_seconds || ""],
         [],
         ["Drop-off Step", "Count"],
-        ...(this.stats.dropoff_distribution || []).map((s) => [
-          s.step,
-          s.count,
-        ]),
+        ...(this.stats.dropoff_distribution || []).map((s) => [s.step, s.count]),
         [],
         ["Strategy", "Count"],
-        ...(this.stats.strategy_distribution || []).map((s) => [
-          s.name || s.strategy,
-          s.count,
-        ]),
+        ...(this.stats.strategy_distribution || []).map((s) => [s.name || s.strategy, s.count]),
         [],
         ["Funnel Step", "Count"],
         ...(this.stats.completion_funnel || []).map((f) => [f.step, f.count]),
         [],
         ["Week", "Responses", "Users"],
-        ...(this.stats.weekly_activity || []).map((w) => [
-          w.week,
-          w.messages,
-          w.users,
-        ]),
+        ...(this.stats.weekly_activity || []).map((w) => [w.week, w.messages, w.users]),
       ];
       const a = document.createElement("a");
       a.href = URL.createObjectURL(
-        new Blob([rows.map((r) => r.join(",")).join("\n")], {
-          type: "text/csv",
-        }),
+        new Blob([rows.map((r) => r.join(",")).join("\n")], { type: "text/csv" }),
       );
       a.download = "srl_dashboard.csv";
       a.click();
     },
+
     downloadExcel() {
-      let html =
-        "<html><head><meta charset='UTF-8'></head><body><table border='1'>";
+      let html = "<html><head><meta charset='UTF-8'></head><body><table border='1'>";
       html += "<tr><th>Metric</th><th>Value</th></tr>";
       [
         ["Total Students", this.stats.total_students],
@@ -1113,8 +1293,7 @@ export default {
       ].forEach(([k, v]) => {
         html += `<tr><td>${k}</td><td>${v}</td></tr>`;
       });
-      html +=
-        "</table><br><table border='1'><tr><th>Strategy</th><th>Count</th></tr>";
+      html += "</table><br><table border='1'><tr><th>Strategy</th><th>Count</th></tr>";
       (this.stats.strategy_distribution || []).forEach((s) => {
         html += `<tr><td>${s.name || s.strategy}</td><td>${s.count}</td></tr>`;
       });
@@ -1126,6 +1305,7 @@ export default {
       a.download = "srl_dashboard.xls";
       a.click();
     },
+
     downloadPDF() {
       const style = document.createElement("style");
       style.innerHTML = `@media print { body * { visibility: hidden; } #dashboard-content, #dashboard-content * { visibility: visible; } #dashboard-content { position: absolute; left: 0; top: 0; width: 100%; } }`;
@@ -1133,6 +1313,7 @@ export default {
       window.print();
       setTimeout(() => document.head.removeChild(style), 1000);
     },
+
     beforeUnmount() {
       this.destroyCharts();
     },
@@ -1520,6 +1701,76 @@ export default {
   padding: 18px 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   margin-bottom: 16px;
+}
+
+.rd-survey-chart-outer {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #f3f4f6;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rd-survey-axis-header {
+  flex-shrink: 0;
+  background: #fff;
+  border-bottom: 1px solid #f3f4f6;
+  height: 56px;
+  position: relative;
+}
+
+.rd-survey-axis-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+  text-align: center;
+  padding-top: 4px;
+  margin-left: 320px;
+}
+
+.rd-survey-chart-scroll {
+  max-height: 480px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: none;
+  border-radius: 0;
+}
+
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .rd-root {
+    padding: 12px 8px;
+  }
+  .rd-kpi {
+    min-width: 100% !important;
+  }
+  .rd-chart-card {
+    padding: 12px 8px;
+  }
+}
+@media (max-width: 480px) {
+  .rd-header-right {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+/* ── Mobile KPI grid fix ───────────────────────────────────── */
+@media (max-width: 480px) {
+  .rd-kpi-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .rd-kpi {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+  .rd-root {
+    padding: 8px 6px !important;
+  }
 }
 
 @media print {

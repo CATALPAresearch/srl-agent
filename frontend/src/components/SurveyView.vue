@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="survey-container content">
     <!-- ---------- SUBMITTED STATE ---------- -->
     <div v-if="submitted" class="survey-done alert alert-success" role="status">
@@ -15,7 +15,7 @@
     <!-- ---------- LOADING ---------- -->
     <div v-else-if="loading" class="text-center p-4">
       <font-awesome-icon icon="spinner" spin />
-      {{ lang === "de" ? "Lade Fragebogen…" : "Loading survey…" }}
+      {{ lang === "de" ? "Lade Fragebogen\u2026" : "Loading survey\u2026" }}
     </div>
 
     <!-- ---------- ERROR ---------- -->
@@ -83,7 +83,7 @@
                       : item.text[lang] || item.text.en
                   }}
                 </td>
-                <td v-for="v in scaleRange" :key="v" class="likert-col">
+                <td v-for="v in scaleRange" :key="v" class="likert-col" :data-label="v" :data-text="scaleLabel(v)">
                   <label class="likert-radio-label">
                     <input
                       type="radio"
@@ -155,7 +155,6 @@ export default Vue.extend({
     },
 
     lang() {
-      // Use the store language (defaults to German)
       return this.$store.getters.getLanguage || "de";
     },
 
@@ -249,7 +248,6 @@ export default Vue.extend({
         });
         this.survey = res.data;
 
-        // Pre-populate responses keys so Vue reactivity tracks them
         const r = {};
         this.survey.scales.forEach((sc) =>
           sc.items.forEach((it) => {
@@ -416,5 +414,92 @@ export default Vue.extend({
 .survey-done {
   margin-top: 40px;
   text-align: center;
+}
+
+/* Selected row: grey highlight, not browser-default blue */
+.survey-table tbody tr:has(input:checked) {
+  background: #e9ecef;
+}
+
+.likert-radio:checked {
+  accent-color: #6c757d;
+}
+
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 600px) {
+  .survey-container {
+    padding: 10px 8px;
+  }
+
+  /* Stack table as blocks */
+  .survey-table,
+  .survey-table tbody,
+  .survey-table tr,
+  .survey-table td,
+  .survey-table th {
+    display: block;
+    width: 100%;
+  }
+
+  /* Hide the original thead completely —
+     labels will be shown inline per-cell via ::before */
+  .survey-table thead {
+    display: none;
+  }
+
+  /* Each question row becomes a card */
+  .survey-table tbody tr {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    padding: 10px;
+    background: #fff;
+  }
+
+  /* Question text */
+  .item-text-col {
+    width: 100% !important;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0 0 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 8px;
+  }
+
+  /* Likert options: horizontal row of 5 inside the card */
+  .likert-col {
+    display: inline-block !important;
+    width: 19% !important;
+    text-align: center;
+    padding: 4px 4px;
+    vertical-align: top;
+    float: left;
+  }
+
+  /* Show text label + number above each radio using Vue-rendered data attrs */
+  .survey-table td.likert-col::before {
+    content: attr(data-text) "\A" attr(data-label);
+    white-space: pre-wrap;
+    font-size: 0.6rem;
+    color: #555;
+    display: block;
+    text-align: center;
+    margin-bottom: 6px;
+    line-height: 1.3;
+    word-break: break-word;
+    min-height: 36px;
+  }
+
+  .likert-radio {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Clearfix */
+  .survey-table tbody tr::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
 }
 </style>

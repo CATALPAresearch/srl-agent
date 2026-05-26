@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="td-root">
     <!-- Header -->
     <div class="td-header">
@@ -191,13 +191,15 @@
               {{ showTable.weekly ? t("showChart") : t("showTable") }}
             </button>
           </div>
-          <div class="td-canvas-wrap" v-if="!showTable.weekly">
-            <canvas ref="weeklyChart"></canvas>
-            <div
-              v-if="!stats.weekly_activity || !stats.weekly_activity.length"
-              class="td-empty"
-            >
-              {{ t("noData") }}
+          <div class="td-weekly-scroll" v-if="!showTable.weekly">
+            <div class="td-canvas-wrap">
+              <canvas ref="weeklyChart"></canvas>
+              <div
+                v-if="!stats.weekly_activity || !stats.weekly_activity.length"
+                class="td-empty"
+              >
+                {{ t("noData") }}
+              </div>
             </div>
           </div>
           <table v-else class="td-table td-table-mt">
@@ -251,15 +253,15 @@ var TRANSLATIONS = {
     from: "VON",
     to: "BIS",
     apply: "Anwenden",
-    clear: "Zurücksetzen",
-    loading: "Lade Daten…",
+    clear: "ZurÃ¼cksetzen",
+    loading: "Lade Daten\u2026",
     noData: "Noch keine Daten",
     showChart: "Diagramm",
     showTable: "Tabelle",
     // KPI labels
     totalStudents: "Studierende gesamt",
     completedInterviews: "Abgeschlossene Interviews",
-    avgDuration: "Ø Dauer",
+    avgDuration: "Ã˜ Dauer",
     surveyResponses: "Umfrage-Antworten",
     repeatedInterviews: "Wiederholte Interviews",
     // Info card
@@ -271,7 +273,7 @@ var TRANSLATIONS = {
     dropoffSub: "wo Studierende aussteigen",
     funnelTitle: "Abschluss-Trichter",
     funnelSub: "Studierende pro Schritt",
-    weeklyTitle: "Wöchentliche Aktivität",
+    weeklyTitle: "WÃ¶chentliche AktivitÃ¤t",
     weeklySub: "Antworten & aktive Nutzer pro Woche",
     // Table headers
     step: "Schritt",
@@ -297,7 +299,7 @@ var TRANSLATIONS = {
     to: "TO",
     apply: "Apply",
     clear: "Clear",
-    loading: "Loading analytics…",
+    loading: "Loading analytics\u2026",
     noData: "No data yet",
     showChart: "Show Chart",
     showTable: "Show Table",
@@ -666,7 +668,6 @@ export default {
                 backgroundColor: "rgba(37,99,176,0.08)",
                 fill: true,
                 tension: 0.4,
-                yAxisID: "y-responses",
               },
               {
                 label: tr.axisUsers,
@@ -677,7 +678,6 @@ export default {
                 backgroundColor: "rgba(37,99,176,0.04)",
                 fill: true,
                 tension: 0.4,
-                yAxisID: "y-users",
               },
             ],
           },
@@ -685,29 +685,19 @@ export default {
             responsive: true,
             maintainAspectRatio: false,
             legend: { position: "bottom" },
+            tooltips: {
+              mode: "index",
+              intersect: false,
+            },
             scales: {
               yAxes: [
                 {
-                  id: "y-responses",
-                  position: "left",
-                  ticks: intTicks,
+                  ticks: Object.assign({}, intTicks, { maxTicksLimit: 6 }),
                   scaleLabel: {
                     display: true,
                     fontColor: "#9ca3af",
                     fontSize: 11,
-                    labelString: tr.axisResponses,
-                  },
-                },
-                {
-                  id: "y-users",
-                  position: "right",
-                  ticks: intTicks,
-                  gridLines: { drawOnChartArea: false },
-                  scaleLabel: {
-                    display: true,
-                    fontColor: "#9ca3af",
-                    fontSize: 11,
-                    labelString: tr.axisUsers,
+                    labelString: tr.axisResponses + " / " + tr.axisUsers,
                   },
                 },
               ],
@@ -969,6 +959,12 @@ export default {
 .td-canvas-wrap canvas {
   height: 200px !important;
 }
+.td-weekly-scroll .td-canvas-wrap {
+  height: 320px;
+}
+.td-weekly-scroll .td-canvas-wrap canvas {
+  height: 320px !important;
+}
 .td-empty {
   position: absolute;
   top: 50%;
@@ -1049,4 +1045,108 @@ export default {
     border: 1px solid #e5e7eb;
   }
 }
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 480px) {
+  .td-kpis-row {
+    flex-wrap: wrap !important;
+  }
+  .td-kpi {
+    min-width: calc(50% - 8px) !important;
+    flex: 1 1 calc(50% - 8px) !important;
+  }
+}
+@media (max-width: 768px) {
+  .td-root {
+    padding: 12px 8px;
+  }
+  .td-kpi {
+    min-width: 100% !important;
+  }
+  .td-chart-card {
+    padding: 12px 8px;
+  }
+  .td-table {
+    font-size: 0.72rem;
+  }
+  .td-table th,
+  .td-table td {
+    padding: 4px 4px;
+  }
+}
+@media (max-width: 480px) {
+  .td-header-right {
+    display: none;
+  }
+}
+/* ── Mobile KPI grid fix ───────────────────────────────────── */
+@media (max-width: 480px) {
+  .td-kpi-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .td-kpi {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+  .td-root {
+    padding: 8px 6px !important;
+  }
+}
+/* ── Mobile chart layout — stack vertically, no horizontal scroll ── */
+@media (max-width: 768px) {
+  .td-root {
+    overflow-x: hidden;
+  }
+
+  /* Stack all chart rows vertically */
+  .td-charts-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* All cards take full width */
+  .td-chart-card,
+  .td-chart-wide,
+  .td-chart-narrow {
+    flex: unset !important;
+    width: 100% !important;
+  }
+
+  /* KPI grid: 2 columns */
+  .td-kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Bar charts — fixed height, no scroll needed */
+  .td-canvas-wrap {
+    height: 220px;
+    overflow: hidden;
+  }
+
+  .td-canvas-wrap canvas {
+    height: 220px !important;
+  }
+}
+
+/* ── Weekly line chart — horizontal scroll on very small screens ── */
+@media (max-width: 480px) {
+  .td-weekly-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .td-weekly-scroll .td-canvas-wrap {
+    min-width: 480px;
+    overflow: visible;
+  }
+
+  .td-weekly-scroll .td-canvas-wrap canvas {
+    min-width: 480px;
+  }
+}
 </style>
+
+
+
