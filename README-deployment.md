@@ -2,6 +2,18 @@
 
 This document covers local development setup, Docker Compose deployment, and the GitLab CI/CD pipeline.
 
+Servername: catalpa-p-interviews-vm.fernuni-hagen.de
+IP: 132.176.108.172
+OS: RedHat 9.7 (Plow)
+Mailkontakt: niels.seidel@fernuni-hagen.de
+
+Hinterlegte Benutzer\*innen + SSH-Keys sind:
+
+- seidel (Root-Rechte)
+
+ssh srlagent
+/opt/srl-chat/
+
 ---
 
 ## Table of Contents
@@ -20,13 +32,13 @@ This document covers local development setup, Docker Compose deployment, and the
 
 ## Prerequisites
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Python | 3.12 | Backend |
-| Node.js | 18 | Frontend build |
-| Docker + Docker Compose | 24+ | Container runtime |
-| PostgreSQL | 16 + pgvector | Database |
-| Ollama | any | LLM inference endpoint |
+| Tool                    | Version       | Purpose                |
+| ----------------------- | ------------- | ---------------------- |
+| Python                  | 3.12          | Backend                |
+| Node.js                 | 18            | Frontend build         |
+| Docker + Docker Compose | 24+           | Container runtime      |
+| PostgreSQL              | 16 + pgvector | Database               |
+| Ollama                  | any           | LLM inference endpoint |
 
 ---
 
@@ -40,18 +52,18 @@ cp env.example .env
 
 Key variables:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `BASE_URL` | Ollama API base URL | `http://localhost:11434/` |
-| `MODEL` | Ollama model name | `phi3:latest` |
-| `OLLAMA_NUM_PREDICT` | Max tokens per LLM response | `256` |
-| `OLLAMA_NUM_CTX` | Context window size | `2048` |
-| `PG_HOST` | PostgreSQL host | `localhost` |
-| `PG_USER` / `PG_PASSWORD` / `PG_DB` | Database credentials | — |
-| `SECRET_KEY` | Flask session secret | — |
-| `ADMIN_PASSWORD` | Password for admin overlay in the UI | `admin` |
-| `DISABLE_LLM` | Skip LLM calls (UI dev mode) | `false` |
-| `INTERVIEW_PROTOCOL` | Interview config file name (without `.json`) | `interview_default` |
+| Variable                            | Description                                  | Default                   |
+| ----------------------------------- | -------------------------------------------- | ------------------------- |
+| `BASE_URL`                          | Ollama API base URL                          | `http://localhost:11434/` |
+| `MODEL`                             | Ollama model name                            | `phi3:latest`             |
+| `OLLAMA_NUM_PREDICT`                | Max tokens per LLM response                  | `256`                     |
+| `OLLAMA_NUM_CTX`                    | Context window size                          | `2048`                    |
+| `PG_HOST`                           | PostgreSQL host                              | `localhost`               |
+| `PG_USER` / `PG_PASSWORD` / `PG_DB` | Database credentials                         | —                         |
+| `SECRET_KEY`                        | Flask session secret                         | —                         |
+| `ADMIN_PASSWORD`                    | Password for admin overlay in the UI         | `admin`                   |
+| `DISABLE_LLM`                       | Skip LLM calls (UI dev mode)                 | `false`                   |
+| `INTERVIEW_PROTOCOL`                | Interview config file name (without `.json`) | `interview_default`       |
 
 For Docker Compose, change `PG_HOST=postgresql` (the service name).
 
@@ -109,14 +121,14 @@ Set `DISABLE_LLM=true` to skip LLM calls entirely during UI development.
 
 All services are defined in `docker-compose.yml`:
 
-| Service | Image | Role |
-|---------|-------|------|
-| `api` | built from `backend/` | Flask application + gunicorn |
-| `nginx` | `nginx:alpine` | Reverse proxy (port 80/443) |
-| `postgresql` | `pgvector/pgvector:pg16` | Database |
-| `loki` | `grafana/loki:2.9.0` | Log aggregation |
-| `promtail` | `grafana/promtail:2.9.0` | Log shipper |
-| `grafana` | `grafana/grafana:10.2.0` | Log dashboard (port 3000) |
+| Service      | Image                    | Role                         |
+| ------------ | ------------------------ | ---------------------------- |
+| `api`        | built from `backend/`    | Flask application + gunicorn |
+| `nginx`      | `nginx:alpine`           | Reverse proxy (port 80/443)  |
+| `postgresql` | `pgvector/pgvector:pg16` | Database                     |
+| `loki`       | `grafana/loki:2.9.0`     | Log aggregation              |
+| `promtail`   | `grafana/promtail:2.9.0` | Log shipper                  |
+| `grafana`    | `grafana/grafana:10.2.0` | Log dashboard (port 3000)    |
 
 ### First run
 
@@ -177,26 +189,26 @@ lint → test → build → deploy
 
 ### Stage overview
 
-| Job | Stage | Runs when |
-|-----|-------|-----------|
-| `vue-lint` | lint | frontend files changed |
-| `python-lint` | lint | backend files changed |
-| `python-test` | test | backend/tests changed, or on `main` |
-| `vue-build` | test | frontend files changed, or on `main` |
-| `build-push-api` | build | `main` branch or tag |
-| `deploy-production` | deploy | `main` branch, **manual trigger** |
+| Job                 | Stage  | Runs when                            |
+| ------------------- | ------ | ------------------------------------ |
+| `vue-lint`          | lint   | frontend files changed               |
+| `python-lint`       | lint   | backend files changed                |
+| `python-test`       | test   | backend/tests changed, or on `main`  |
+| `vue-build`         | test   | frontend files changed, or on `main` |
+| `build-push-api`    | build  | `main` branch or tag                 |
+| `deploy-production` | deploy | `main` branch, **manual trigger**    |
 
 ### Required CI/CD variables
 
 Set these in **GitLab → Settings → CI/CD → Variables**:
 
-| Variable | Description |
-|----------|-------------|
-| `SSH_PRIVATE_KEY` | Private key for the deploy user on the server |
-| `SSH_KNOWN_HOSTS` | Output of `ssh-keyscan <DEPLOY_HOST>` |
-| `DEPLOY_USER` | SSH user on the server (e.g. `deploy`) |
-| `DEPLOY_HOST` | Server hostname or IP |
-| `DEPLOY_PATH` | Absolute path to the project on the server (e.g. `/opt/srl-chat`) |
+| Variable          | Description                                                       |
+| ----------------- | ----------------------------------------------------------------- |
+| `SSH_PRIVATE_KEY` | Private key for the deploy user on the server                     |
+| `SSH_KNOWN_HOSTS` | Output of `ssh-keyscan <DEPLOY_HOST>`                             |
+| `DEPLOY_USER`     | SSH user on the server (e.g. `deploy`)                            |
+| `DEPLOY_HOST`     | Server hostname or IP                                             |
+| `DEPLOY_PATH`     | Absolute path to the project on the server (e.g. `/opt/srl-chat`) |
 
 The registry variables (`CI_REGISTRY`, `CI_REGISTRY_USER`, `CI_REGISTRY_PASSWORD`) are provided automatically by GitLab.
 
@@ -215,7 +227,13 @@ The registry variables (`CI_REGISTRY`, `CI_REGISTRY_USER`, `CI_REGISTRY_PASSWORD
 
 ### 1. Install Docker
 
+Create a public key pair on the server and add the public key to you git instance (e.g. GitLab or GitHub).
+
+ssh-keygen -t ed25339 -C "your name"
+cat ~/.ssh/id_ed25339.pub
+
 **Red Hat / Rocky Linux / AlmaLinux (RHEL-based):**
+
 ```bash
 sudo dnf install -y dnf-plugins-core
 sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
@@ -226,6 +244,7 @@ newgrp docker
 ```
 
 **Ubuntu / Debian:**
+
 ```bash
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
@@ -272,19 +291,69 @@ REGISTRY=registry.example.com
 
 ### 5. Add the deploy SSH key
 
-Generate a key pair for CI deployments:
+Generate a key pair for CI deployments. Run this as **your own user** (not as `deploy`):
 
 ```bash
 ssh-keygen -t ed25519 -C "gitlab-ci-deploy" -f ~/.ssh/srl_deploy
-cat ~/.ssh/srl_deploy.pub >> /home/deploy/.ssh/authorized_keys
 ```
 
-Add the private key (`~/.ssh/srl_deploy`) as `SSH_PRIVATE_KEY` in GitLab CI/CD variables.  
-Add the server's known hosts entry as `SSH_KNOWN_HOSTS`:
+Create the `.ssh` directory for the `deploy` user and install the public key:
+
+```bash
+sudo mkdir -p /home/deploy/.ssh
+sudo chmod 700 /home/deploy/.ssh
+sudo chown deploy:deploy /home/deploy/.ssh
+
+cat ~/.ssh/srl_deploy.pub | sudo tee -a /home/deploy/.ssh/authorized_keys
+sudo chmod 600 /home/deploy/.ssh/authorized_keys
+sudo chown deploy:deploy /home/deploy/.ssh/authorized_keys
+```
+
+Now store two values in GitLab so the CI pipeline can SSH into the server without a password.
+
+**Where to add variables in GitLab:**  
+Open your GitLab project → **Settings → CI/CD → Variables → Add variable**.
+
+---
+
+**Variable 1 — the private key**
+
+Print the private key on the server:
+
+```bash
+cat ~/.ssh/srl_deploy
+```
+
+Copy the entire output (including the `-----BEGIN...` and `-----END...` lines).  
+In GitLab, add a variable:
+
+| Field | Value |
+|---|---|
+| Key | `SSH_PRIVATE_KEY` |
+| Value | paste the key content |
+| Type | **File** |
+| Protected | yes (if your deploy branch is protected) |
+| Masked | yes |
+
+---
+
+**Variable 2 — the server fingerprint**
+
+This prevents the CI runner from being asked "do you trust this host?" interactively.  
+Run this on any machine that can reach the server (replace with your server's address):
 
 ```bash
 ssh-keyscan <DEPLOY_HOST>
 ```
+
+Copy the full output (one or more lines starting with the server IP/hostname).  
+In GitLab, add a second variable:
+
+| Field | Value |
+|---|---|
+| Key | `SSH_KNOWN_HOSTS` |
+| Value | paste the ssh-keyscan output |
+| Type | **Variable** |
 
 ### 6. Open firewall port (RHEL)
 
