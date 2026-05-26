@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sr-root container-fluid py-4">
     <!-- Header -->
     <div class="row justify-content-center mb-4">
@@ -16,7 +16,7 @@
             <p class="text-muted mb-0">
               <template v-if="lang === 'de'">
                 Vielen Dank, dass du dir die Zeit genommen hast, uns zu
-                erzählen, wie du lernst! Wir haben deine Antworten sorgfältig
+                erz&auml;hlen, wie du lernst! Wir haben deine Antworten sorgf&auml;ltig
                 ausgewertet. Deine Ergebnisse werden nun in den beiden Grafiken
                 unten dargestellt, damit du sie erkunden kannst.
               </template>
@@ -46,11 +46,11 @@
               <p>
                 <template v-if="lang === 'de'">
                   Das Spinnendiagramm zeigt die Lernstrategien, die du beim
-                  Beschreiben deines Lernens erwähnt hast. Höhere Werte
-                  bedeuten, dass du diese Strategie häufiger und regelmäßiger
-                  eingesetzt hast. Es ist völlig normal, dass das Diagramm nicht
-                  vollständig ausgefüllt ist. Jeder lernt anders und niemand
-                  nutzt alle Strategien gleich häufig. Das Diagramm kann dir
+                  Beschreiben deines Lernens erw&auml;hnt hast. H&ouml;here Werte
+                  bedeuten, dass du diese Strategie h&auml;ufiger und regelm&auml;&szlig;iger
+                  eingesetzt hast. Es ist v&ouml;llig normal, dass das Diagramm nicht
+                  vollst&auml;ndig ausgef&uuml;llt ist. Jeder lernt anders und niemand
+                  nutzt alle Strategien gleich h&auml;ufig. Das Diagramm kann dir
                   aber helfen, Strategien zu entdecken, die du seltener
                   verwendest.
                 </template>
@@ -66,10 +66,15 @@
               </p>
 
               <div class="row mt-3">
-                <!-- Radar chart -->
+                <!-- Radar / bar chart -->
                 <div class="col-md-12 mb-1">
                   <div class="sr-radar-wrap">
-                    <canvas ref="radarCanvas" style="max-width: 100%"></canvas>
+                    <!-- Desktop: radar chart -->
+                    <canvas v-show="!isMobile" ref="radarCanvas" style="max-width: 100%"></canvas>
+                    <!-- Mobile: horizontal bar chart -->
+                    <div v-show="isMobile" style="height: 480px; position: relative;">
+                      <canvas ref="mobileBarCanvas"></canvas>
+                    </div>
                     <!-- Invisible hit areas over each axis label -->
                     <span
                       v-for="o in radarLabelOverlays"
@@ -158,16 +163,16 @@
                   <h6 class="font-weight-600 mb-2">
                     {{
                       lang === "de"
-                        ? "Noch nicht erwähnte Strategien"
+                        ? "Noch nicht erw&auml;hnte Strategien"
                         : "Strategies not yet mentioned"
                     }}
                   </h6>
                   <template v-if="lang === 'de'">
                     Die folgenden Strategien wurden in deinen Antworten nicht
-                    erwähnt wurden. Dennoch haben sich Strategien in der
-                    Bildungsforschung für viele Studierende als hilfreich
-                    erwiesen. Vielleicht möchtest du erkunden, ob einige davon
-                    auch für dich funktionieren könnten. Probiere sie aus:
+                    erw&auml;hnt wurden. Dennoch haben sich Strategien in der
+                    Bildungsforschung f&uuml;r viele Studierende als hilfreich
+                    erwiesen. Vielleicht m&ouml;chtest du erkunden, ob einige davon
+                    auch f&uuml;r dich funktionieren k&ouml;nnten. Probiere sie aus:
                   </template>
                   <template v-else>
                     The following strategies were not mentioned in your answers.
@@ -182,8 +187,8 @@
                   >
                     {{
                       lang === "de"
-                        ? "Super – du hast alle Strategien erwähnt!"
-                        : "Great — you mentioned all strategies!"
+                        ? "Super &ndash; du hast alle Strategien erw&auml;hnt!"
+                        : "Great &mdash; you mentioned all strategies!"
                     }}
                   </div>
                   <div v-else class="sr-tag-cloud mt-2">
@@ -216,7 +221,7 @@
 
               <p>
                 <template v-if="lang === 'de'">
-                  Wenn du mehr über eine dieser Strategien erfahren, Tipps zu
+                  Wenn du mehr &uuml;ber eine dieser Strategien erfahren, Tipps zu
                   deren Anwendung erhalten oder etwas im Diagramm unklar ist,
                   dann kannst du hier weitere Fragen stellen.
                 </template>
@@ -239,7 +244,7 @@
               <h5 class="mb-0 sr-section-title">
                 {{
                   lang === "de"
-                    ? "Deine Motivation und Lernüberzeugungen"
+                    ? "Deine Motivation und Lern&uuml;berzeugungen"
                     : "Your Motivation and Learning Beliefs"
                 }}
               </h5>
@@ -248,7 +253,7 @@
               <p>
                 {{
                   lang === "de"
-                    ? "Die zweite Grafik zeigt deine Überzeugungen zu Motivation und Lernfähigkeiten."
+                    ? "Die zweite Grafik zeigt deine &Uuml;berzeugungen zu Motivation und Lernf&auml;higkeiten."
                     : "The second graph shows your beliefs about your motivation and learning skills."
                 }}
               </p>
@@ -258,7 +263,7 @@
                     <strong>So liest du diese Grafik:</strong> Die blaue Linie
                     zeigt deine Antworten und die orangefarbene Linie zeigt die
                     Durchschnittsergebnisse anderer Studierender aus einer
-                    aktuellen Großstudie.
+                    aktuellen Gro&szlig;studie.
                   </template>
                   <template v-else>
                     <strong>How to read this graph:</strong> The blue line shows
@@ -269,28 +274,27 @@
               </ul>
               <p>
                 <template v-if="lang === 'de'">
-                  Dieser Vergleich kann dir helfen, über deine Lerngewohnheiten
-                  und -überzeugungen nachzudenken. Es gibt hier keine „guten"
-                  oder „schlechten" Ergebnisse – es zeigt einfach, wie deine
+                  Dieser Vergleich kann dir helfen, &uuml;ber deine Lerngewohnheiten
+                  und -&uuml;berzeugungen nachzudenken. Es gibt hier keine &bdquo;guten&ldquo;
+                  oder &bdquo;schlechten&ldquo; Ergebnisse &ndash; es zeigt einfach, wie deine
                   Ansichten im Vergleich zu anderen Studierenden einzuordnen
-                  sind. Höhere Werte korrelieren jedoch häufig mit besserem
+                  sind. H&ouml;here Werte korrelieren jedoch h&auml;ufig mit besserem
                   Studienerfolg.
                 </template>
                 <template v-else>
                   This comparison can help you reflect on your learning habits
-                  and beliefs. There are no "good" or "bad" results here — it
+                  and beliefs. There are no "good" or "bad" results here &mdash; it
                   simply shows how your views compare with those of other
                   students. However, higher scores are often correlated with
                   better academic success.
                 </template>
               </p>
-
               <p>
                 <template v-if="lang === 'de'">
                   Wenn du konkrete Fragen hast oder Ideen suchst, wie du deine
-                  Motivation stärken oder bestimmte Lernfähigkeiten (wie
+                  Motivation st&auml;rken oder bestimmte Lernf&auml;higkeiten (wie
                   Metakognition) verbessern kannst, frag gerne im Chat unten.
-                  Wir teilen gerne praktische Tipps und hilfreiche Vorschläge.
+                  Wir teilen gerne praktische Tipps und hilfreiche Vorschl&auml;ge.
                 </template>
                 <template v-else>
                   If you have specific questions, or would like ideas on how to
@@ -302,7 +306,7 @@
               </p>
               <p class="mb-0">
                 <template v-if="lang === 'de'">
-                  Wir hoffen, dass dir diese Ergebnisse helfen, mehr über deinen
+                  Wir hoffen, dass dir diese Ergebnisse helfen, mehr &uuml;ber deinen
                   eigenen Lernprozess zu erfahren und Strategien zu entdecken,
                   die am besten zu dir passen.
                 </template>
@@ -318,7 +322,7 @@
               <p class="text-muted small mb-0">
                 {{
                   lang === "de"
-                    ? "Ist etwas unklar? Möchtest du Tipps zu einer bestimmten Strategie?"
+                    ? "Ist etwas unklar? M&ouml;chtest du Tipps zu einer bestimmten Strategie?"
                     : "Is something unclear? Would you like tips on a specific strategy?"
                 }}
               </p>
@@ -354,6 +358,8 @@ export default Vue.extend({
       radarChart: null,
       radarLabelOverlays: [],
       componentId: Math.random().toString(36).slice(2, 10),
+      isMobile: false,
+      mobileBarChart: null,
     };
   },
 
@@ -378,7 +384,89 @@ export default Vue.extend({
   },
 
   methods: {
+    checkMobile() {
+      this.isMobile = window.innerWidth <= 600;
+    },
+
+    renderMobileBarChart() {
+      const radarData = this.data.radar_data;
+      if (!radarData || !radarData.length) return;
+      const canvas = this.$refs.mobileBarCanvas;
+      if (!canvas) return;
+      if (this.mobileBarChart) this.mobileBarChart.destroy();
+
+      const truncate = (s, n) =>
+        s.length > n ? s.slice(0, n - 1) + "\u2026" : s;
+
+      this.mobileBarChart = new Chart(canvas.getContext("2d"), {
+        type: "horizontalBar",
+        data: {
+          labels: radarData.map((s) => truncate(s.name, 28)),
+          datasets: [
+            {
+              label: this.lang === "de" ? "Du" : "You",
+              data: radarData.map((s) => s.frequency || 0),
+              backgroundColor: "rgba(54, 162, 235, 0.7)",
+              borderColor: "rgba(54, 162, 235, 1)",
+              borderWidth: 1,
+            },
+            {
+              label: this.lang === "de" ? "Kursdurchschnitt" : "Course average",
+              data: radarData.map(
+                (s) => Math.round((s.avg_frequency || 0) * 10) / 10
+              ),
+              backgroundColor: "rgba(255, 153, 0, 0.5)",
+              borderColor: "rgba(255, 153, 0, 0.85)",
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          legend: { display: true, position: "bottom" },
+          scales: {
+            xAxes: [
+              {
+                ticks: {
+                  beginAtZero: true,
+                  max: 4,
+                  stepSize: 1,
+                  callback: (v) => {
+                    const labels =
+                      this.lang === "de"
+                        ? ["", "Selten", "Manchmal", "Oft", "Meistens"]
+                        : ["", "Seldom", "Sometimes", "Often", "Most of time"];
+                    return labels[v] || v;
+                  },
+                },
+              },
+            ],
+            yAxes: [{ ticks: { fontSize: 10 } }],
+          },
+          tooltips: {
+            callbacks: {
+              label: (item, chartData) => {
+                const labels =
+                  this.lang === "de"
+                    ? ["", "Selten", "Manchmal", "Oft", "Meistens"]
+                    : ["", "Seldom", "Sometimes", "Often", "Most of time"];
+                const dsLabel = chartData.datasets[item.datasetIndex].label;
+                const val = item.xLabel;
+                const text = labels[Math.round(val)] || val;
+                return ` ${dsLabel}: ${text} (${val})`;
+              },
+            },
+          },
+        },
+      });
+    },
+
     renderRadarChart() {
+      if (this.isMobile) {
+        this.$nextTick(() => this.renderMobileBarChart());
+        return;
+      }
       const radarData = this.data.radar_data;
       if (!radarData || !radarData.length) return;
       const canvas = this.$refs.radarCanvas;
@@ -504,7 +592,6 @@ export default Vue.extend({
       } finally {
         this.loading = false;
       }
-      // Canvas is only in the DOM once loading is false, so render after.
       await this.$nextTick();
       this.renderRadarChart();
     },
@@ -517,11 +604,22 @@ export default Vue.extend({
   },
 
   mounted() {
+    this.checkMobile();
+    this._onResize = () => {
+      const wasMobile = this.isMobile;
+      this.checkMobile();
+      if (wasMobile !== this.isMobile) {
+        this.renderRadarChart();
+      }
+    };
+    window.addEventListener("resize", this._onResize);
     this.loadResults();
   },
 
   beforeDestroy() {
     if (this.radarChart) this.radarChart.destroy();
+    if (this.mobileBarChart) this.mobileBarChart.destroy();
+    window.removeEventListener("resize", this._onResize);
   },
 });
 </script>
@@ -568,7 +666,6 @@ export default Vue.extend({
   background: #f8f9fa;
 }
 
-/* Survey result bars */
 .sr-survey-grid {
   display: flex;
   flex-direction: column;
@@ -655,5 +752,26 @@ export default Vue.extend({
   height: 26px;
   transform: translate(-50%, -50%);
   cursor: default;
+}
+
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sr-root {
+    padding: 12px 8px;
+    min-height: auto;
+  }
+  .sr-radar-wrap canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  .sr-label-hit {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .sr-radar-wrap {
+    min-height: 480px;
+  }
 }
 </style>

@@ -763,9 +763,36 @@ export default Vue.extend({
   #chat .chat-doc-header {
     flex-direction: column;
     align-items: flex-start;
+    padding: 4px 12px 6px;
+  }
+  #chat .chat-title {
+    font-size: 16px;
+    letter-spacing: -0.1px;
   }
   #chat .chat-meta {
     text-align: left;
+  }
+  #chat .chat-transcript {
+    padding: 14px 12px 10px;
+  }
+  #chat .chat-composer {
+    padding: 8px 12px 12px 6px;
+    min-height: unset;
+  }
+  #chat .chat-textarea {
+    font-size: 14px;
+    min-height: 24px;
+  }
+  #chat .chat-send {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  #chat .chat-body {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  #chat .chat-body.is-bot {
+    font-size: 13px;
   }
 }
 
