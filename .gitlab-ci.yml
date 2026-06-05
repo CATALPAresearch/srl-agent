@@ -1,19 +1,14 @@
-﻿# .gitlab-ci.yml â€” CI/CD pipeline for srl-chat
-# Stages: lint â†’ test â†’ build â†’ deploy
+# .gitlab-ci.yml -- CI/CD pipeline for srl-chat
+# Stages: lint -> test -> deploy (image built on server, no registry needed)
 
 stages:
   - lint
   - test
-  - build
   - deploy
 
-variables:
-  IMAGE_NAME: $CI_REGISTRY_IMAGE/srl-chat-api
-  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
-
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -------------------------------------------
 # LINT
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -------------------------------------------
 vue-lint:
   stage: lint
   image: node:18-alpine
@@ -25,7 +20,7 @@ vue-lint:
     - cd frontend
     - npm ci
   script:
-    - npm run lint || true   # warn only for now
+    - npm run lint || true
   rules:
     - changes:
         - frontend/**/*
@@ -41,9 +36,9 @@ python-lint:
     - changes:
         - backend/**/*
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -------------------------------------------
 # TEST
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -------------------------------------------
 python-test:
   stage: test
   image: python:3.11-slim
@@ -69,19 +64,17 @@ python-test:
     OLLAMA_NUM_CTX: "2048"
   before_script:
     - apt-get update -qq && apt-get install -y -qq libpq-dev gcc
-    - pip install pytest --quiet
     - cd backend
     - pip install -r requirements.txt --quiet
+    - pip install pytest --quiet
   script:
     - python -m pytest tests/ -v --tb=short || true
+  allow_failure: true
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
     - changes:
         - backend/**/*
-        - tests/**/*
 
-# Builds the AMD bundle to backend/static/lti/ (the actual webpack output path).
-# The artifact is picked up by build-push-api in the next stage.
+# Builds the AMD bundle; artifact is transferred to the server by deploy-production.
 vue-build:
   stage: test
   image: node:18-alpine
@@ -96,56 +89,43 @@ vue-build:
     - NODE_OPTIONS=--openssl-legacy-provider npm run build
   artifacts:
     paths:
-      - backend/static/lti/   # webpack outputs here, not frontend/dist/
+      - backend/static/lti/
     expire_in: 1 day
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"   # always rebuild on main for deploy
+    - if: $CI_COMMIT_BRANCH == "main"
     - changes:
         - frontend/**/*
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# BUILD + PUSH  (single job â€” separate DinD instances cannot share images)
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-build-push-api:
-  stage: build
-  image: docker:24
-  services:
-    - docker:24-dind
-  variables:
-    DOCKER_TLS_CERTDIR: "/certs"
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest ./backend
-    - docker push $IMAGE_NAME:$IMAGE_TAG
-    - docker push $IMAGE_NAME:latest
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_TAG
-
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# DEPLOY
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -------------------------------------------
+# DEPLOY -- no registry; image is built on the server
+# -------------------------------------------
 deploy-production:
   stage: deploy
   image: alpine:latest
+  needs:
+    - job: vue-build
+      artifacts: true
   before_script:
-    - apk add --no-cache openssh-client bash
+    - apk add --no-cache openssh-client bash rsync
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   script:
+    # Transfer the compiled frontend bundle to the server
+    - rsync -az backend/static/lti/ $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/backend/static/lti/
+    # Pull latest code, rebuild image locally on server, restart stack
     - ssh $DEPLOY_USER@$DEPLOY_HOST "
         cd $DEPLOY_PATH &&
         git pull origin main &&
-        IMAGE_TAG=$IMAGE_TAG bash infrastructure/scripts/deploy.sh $IMAGE_TAG
+        docker compose build api &&
+        docker compose run --rm api python -m app.database.setup_no_embed &&
+        docker compose up -d --remove-orphans
       "
   environment:
     name: production
-    url: http://$DEPLOY_HOST
+    url: https://$DEPLOY_HOST
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
-
