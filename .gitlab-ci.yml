@@ -1,10 +1,9 @@
 # .gitlab-ci.yml -- CI/CD pipeline for srl-chat
-# Stages: lint -> test -> deploy (image built on server, no registry needed)
+# Stages: lint -> test
 
 stages:
   - lint
   - test
-  - deploy
 
 # -------------------------------------------
 # LINT
@@ -74,7 +73,6 @@ python-test:
     - changes:
         - backend/**/*
 
-# Builds the AMD bundle; artifact is transferred to the server by deploy-production.
 vue-build:
   stage: test
   image: node:18-alpine
@@ -95,37 +93,3 @@ vue-build:
     - if: $CI_COMMIT_BRANCH == "main"
     - changes:
         - frontend/**/*
-
-# -------------------------------------------
-# DEPLOY -- no registry; image is built on the server
-# -------------------------------------------
-deploy-production:
-  stage: deploy
-  image: alpine:latest
-  needs:
-    - job: vue-build
-      artifacts: true
-  before_script:
-    - apk add --no-cache openssh-client bash rsync
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-  script:
-    # Transfer the compiled frontend bundle to the server
-    - rsync -az backend/static/lti/ $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/backend/static/lti/
-    # Pull latest code, rebuild image locally on server, restart stack
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "
-        cd $DEPLOY_PATH &&
-        git pull origin main &&
-        docker compose build api &&
-        docker compose run --rm api python -m app.database.setup_no_embed &&
-        docker compose up -d --remove-orphans
-      "
-  environment:
-    name: production
-    url: https://$DEPLOY_HOST
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: manual
