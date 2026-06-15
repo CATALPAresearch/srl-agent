@@ -200,17 +200,7 @@ lint → test → build → deploy
 
 ### Required CI/CD variables
 
-Set these in **GitLab → Settings → CI/CD → Variables**:
-
-| Variable          | Description                                                       |
-| ----------------- | ----------------------------------------------------------------- |
-| `SSH_PRIVATE_KEY` | Private key for the deploy user on the server                     |
-| `SSH_KNOWN_HOSTS` | Output of `ssh-keyscan <DEPLOY_HOST>`                             |
-| `DEPLOY_USER`     | SSH user on the server (e.g. `deploy`)                            |
-| `DEPLOY_HOST`     | Server hostname or IP                                             |
-| `DEPLOY_PATH`     | Absolute path to the project on the server (e.g. `/opt/srl-chat`) |
-
-The registry variables (`CI_REGISTRY`, `CI_REGISTRY_USER`, `CI_REGISTRY_PASSWORD`) are provided automatically by GitLab.
+No secrets required — the pipeline runs lint and tests only. Deployment is done manually on the server.
 
 ### How a deploy works
 
@@ -227,10 +217,12 @@ The registry variables (`CI_REGISTRY`, `CI_REGISTRY_USER`, `CI_REGISTRY_PASSWORD
 
 ### 1. Install Docker
 
-Create a public key pair on the server and add the public key to you git instance (e.g. GitLab or GitHub).
+Create a public key pair on the server and add the public key to your git instance (e.g. GitLab or GitHub).
 
-ssh-keygen -t ed25339 -C "your name"
-cat ~/.ssh/id_ed25339.pub
+```bash
+ssh-keygen -t ed25519 -C "your name"
+cat ~/.ssh/id_ed25519.pub
+```
 
 **Red Hat / Rocky Linux / AlmaLinux (RHEL-based):**
 
@@ -289,71 +281,18 @@ GRAFANA_PASSWORD=<strong-password>
 REGISTRY=registry.example.com
 ```
 
-### 5. Add the deploy SSH key
+### 5. Give the server git access to the repository
 
-Generate a key pair for CI deployments. Run this as **your own user** (not as `deploy`):
-
-```bash
-ssh-keygen -t ed25519 -C "gitlab-ci-deploy" -f ~/.ssh/srl_deploy
-```
-
-Create the `.ssh` directory for the `deploy` user and install the public key:
+The server needs to pull code from GitLab. Generate a key pair **on the server** and add the public key as a GitLab Deploy Key (read-only).
 
 ```bash
-sudo mkdir -p /home/deploy/.ssh
-sudo chmod 700 /home/deploy/.ssh
-sudo chown deploy:deploy /home/deploy/.ssh
-
-cat ~/.ssh/srl_deploy.pub | sudo tee -a /home/deploy/.ssh/authorized_keys
-sudo chmod 600 /home/deploy/.ssh/authorized_keys
-sudo chown deploy:deploy /home/deploy/.ssh/authorized_keys
+# On the server, as the deploy user
+sudo -u deploy ssh-keygen -t ed25519 -C "srl-chat-server-deploy" -f /home/deploy/.ssh/id_ed25519
+sudo cat /home/deploy/.ssh/id_ed25519.pub
 ```
 
-Now store two values in GitLab so the CI pipeline can SSH into the server without a password.
-
-**Where to add variables in GitLab:**  
-Open your GitLab project → **Settings → CI/CD → Variables → Add variable**.
-
----
-
-**Variable 1 — the private key**
-
-Print the private key on the server:
-
-```bash
-cat ~/.ssh/srl_deploy
-```
-
-Copy the entire output (including the `-----BEGIN...` and `-----END...` lines).  
-In GitLab, add a variable:
-
-| Field | Value |
-|---|---|
-| Key | `SSH_PRIVATE_KEY` |
-| Value | paste the key content |
-| Type | **File** |
-| Protected | yes (if your deploy branch is protected) |
-| Masked | yes |
-
----
-
-**Variable 2 — the server fingerprint**
-
-This prevents the CI runner from being asked "do you trust this host?" interactively.  
-Run this on any machine that can reach the server (replace with your server's address):
-
-```bash
-ssh-keyscan <DEPLOY_HOST>
-```
-
-Copy the full output (one or more lines starting with the server IP/hostname).  
-In GitLab, add a second variable:
-
-| Field | Value |
-|---|---|
-| Key | `SSH_KNOWN_HOSTS` |
-| Value | paste the ssh-keyscan output |
-| Type | **Variable** |
+Copy the output and add it in GitLab:  
+**Settings → Repository → Deploy keys → Add new key** (read-only is sufficient).
 
 ### 6. Open firewall port (RHEL)
 
@@ -385,6 +324,8 @@ After this, deployments are triggered via the GitLab pipeline.
 ## Monitoring (Grafana / Loki)
 
 Grafana is available at `http://<server>:3000` (default credentials: `admin` / value of `GRAFANA_PASSWORD`).
+
+> **Security:** Port 3000 should not be publicly accessible. Restrict it via firewall to trusted IPs only, or proxy it through nginx with HTTP basic auth.
 
 Promtail ships log files from `backend/logs/*.log` to Loki. To query logs in Grafana:
 
