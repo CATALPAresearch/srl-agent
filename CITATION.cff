@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: SRL-Agent
+abstract: >
+  A conversational AI interview tool for assessing self-regulated learning
+  strategies of students. The system guides learners through a structured
+  interview, detects strategies across study contexts, collects frequency
+  ratings, and generates a personalised summary based on Zimmerman &
+  Martinez-Pons' Self-Regulated Learning Interview Schedule.
+authors:
+  - family-names: Seidel
+    given-names: Niels
+    email: niels.seidel@fernuni-hagen.de
+  - family-names: Wetchy
+    given-names: Elisabeth
+  - family-names: Radovic
+    given-names: Slavisa
+doi: 10.17605/OSF.IO/KVTXD
+url: "https://doi.org/10.17605/OSF.IO/KVTXD"
+repository-code: "https://catalpa-gitlab.fernuni-hagen.de/catalpa/srl/MAS-webui/srl-chat"
+version: "1.0.0"
+date-released: "2026-06-12"
+license: MIT
+keywords:
+  - self-regulated learning
+  - conversational AI
+  - LLM
+  - interview
+  - education technology
