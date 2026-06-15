@@ -22,16 +22,11 @@ fi
 
 export IMAGE_TAG="$IMAGE_TAG"
 
-# Pull new image first so migrations run with the new code
+# Pull new image first so the container starts with it
 echo "[deploy] Pulling new API image..."
 docker compose -f "$COMPOSE_FILE" pull api
 
-# Run database migrations with the new image before starting the app
-echo "[deploy] Running database migrations..."
-docker compose -f "$COMPOSE_FILE" run --rm api \
-  python -m app.database.setup_no_embed || true
-
-# Start all services (recreates api with new image)
+# Start all services (recreates api with new image; migrations run inside the container on startup)
 echo "[deploy] Starting services..."
 docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
 
