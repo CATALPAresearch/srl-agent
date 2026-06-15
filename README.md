@@ -101,25 +101,34 @@ docker compose -f develop.docker-compose.yml up postgres-dev api-dev
 
 ## Citation
 
-Cite this software:
+```
+@software{Seidel2026-SRLAgentSoftware,
+  author = {Seidel, Niels and Wetchy, Elisabeth and Radovic, Slavisa and Tiwari, Prasoon and Emsilkh, Abdulrouf},
+  title = {SRL-Agent [Software]},
+  url = {https://doi.org/10.17605/OSF.IO/KVTXD },
+  doi = {10.17605/OSF.IO/KVTXD },
+  version = {1.0.0},
+  date = {2026-06-12},
+}
 
-```text
-tba
+
 ```
 
 ## Research articles and datasets about SRL Chat
 
 Peer-reviewed papers:
 
-- tba
+- Radović, S., Seidel, N., & Wetchy, E. (2025). Implementing the self-regulated learning structured interview protocol with generative AI: A novel approach for evaluating students’ SRL skills. Journal of Research on Technology in Education, 1–18. https://doi.org/10.1080/15391523.2025.2547176
+- Radovic, S., Wetchy, E., & Seidel, N. (2025). An AI-based Chat Agent for Measuring Students’ Self-Regulated Learning Skills. 2025 International Conference on Education Technology and Computers (ICETC)}, 169–173. https://doi.org/10.1109/ICETC66579.2025.11387673
+- tba.
 
 ## Contributors
 
-- Elisabeth Wetchy
 - Niels Seidel (project lead)
+- Elisabeth Wetchy
+- Slavisa Radovic
 - Prasoon Tiwari
 - Abdulrouf Emsilkh
-- Slavisa Radovic
 
 ## License
 
