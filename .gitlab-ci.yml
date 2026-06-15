@@ -19,7 +19,7 @@ vue-lint:
     - cd frontend
     - npm ci
   script:
-    - npm run lint || true
+    - npm run lint
   rules:
     - changes:
         - frontend/**/*
@@ -30,7 +30,7 @@ python-lint:
   before_script:
     - pip install flake8 --quiet
   script:
-    - flake8 backend/app --max-line-length=120 --exclude=__pycache__ || true
+    - flake8 backend/app --max-line-length=120 --exclude=__pycache__
   rules:
     - changes:
         - backend/**/*
@@ -67,8 +67,7 @@ python-test:
     - pip install -r requirements.txt --quiet
     - pip install pytest --quiet
   script:
-    - python -m pytest tests/ -v --tb=short || true
-  allow_failure: true
+    - python -m pytest tests/ -v --tb=short
   rules:
     - changes:
         - backend/**/*
