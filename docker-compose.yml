@@ -1,8 +1,8 @@
 services:
   api:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     image: ${REGISTRY:-local}/srl-chat-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
@@ -86,6 +86,7 @@ services:
       - 3100   # internal only — access via Grafana datasource
     volumes:
       - loki-data:/loki
+      - loki-wal:/wal
       - ./infrastructure/grafana/loki-config.yml:/etc/loki/local-config.yaml:ro
     command: -config.file=/etc/loki/local-config.yaml
     networks:
@@ -123,6 +124,8 @@ volumes:
     name: srl-chat-pgdata
   loki-data:
     name: srl-chat-loki
+  loki-wal:
+    name: srl-chat-loki-wal
   grafana-data:
     name: srl-chat-grafana
   nginx-logs:
