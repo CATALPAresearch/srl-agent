@@ -15,8 +15,8 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --only main --no-root
 
-# Copy application code
-COPY . .
+# Copy application code and pre-built frontend
+COPY . /api/
 
 # Append institution CA cert so requests to internal services work
 RUN cat ./certs/chat-impact-fernuni-hagen-de.pem \
