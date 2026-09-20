@@ -9,13 +9,13 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: srl-chat-api
+  - job_name: srl-agent-api
     static_configs:
       - targets:
           - localhost
         labels:
-          job: srl-chat-api
-          __path__: /var/log/srl-chat/*.log
+          job: srl-agent-api
+          __path__: /var/log/srl-agent/*.log
     pipeline_stages:
       - regex:
           expression: '^\[(?P<timestamp>[^\]]+)\] (?P<level>\w+) in (?P<module>[^:]+): (?P<message>.+)$'

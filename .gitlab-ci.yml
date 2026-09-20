@@ -1,4 +1,4 @@
-# .gitlab-ci.yml -- CI/CD pipeline for srl-chat
+# .gitlab-ci.yml -- CI/CD pipeline for srl-agent
 # Stages: lint -> test
 
 stages:

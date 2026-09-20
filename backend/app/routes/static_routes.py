@@ -39,4 +39,4 @@ def serve_favicon():
 @static_bp.route('/health', methods=['GET'])
 def health():
     from flask import jsonify
-    return jsonify({'status': 'ok', 'service': 'srl-chat'}), 200
+    return jsonify({'status': 'ok', 'service': 'srl-agent'}), 200

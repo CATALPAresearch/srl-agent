@@ -21,7 +21,7 @@ check() {
   fi
 }
 
-echo "=== SRL-Chat Healthcheck ==="
+echo "=== SRL-Agent Healthcheck ==="
 
 # API
 check "Flask API /health" \
