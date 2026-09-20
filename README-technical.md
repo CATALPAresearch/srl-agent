@@ -27,7 +27,7 @@ Typical flow:
 ## 2. Repository Structure
 
 ```text
-srl-chat/
+srl-agent/
 ├── backend/
 │   ├── main.py
 │   ├── pyproject.toml
@@ -186,64 +186,64 @@ docker compose up -d
 
 ### Chat
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /startConversation | Start a new interview session |
-| POST | /reply | Submit a user message |
-| POST | /resetConversation | Reset current session |
-| GET | /conversation | Retrieve conversation history |
+| Method | Path               | Description                   |
+| ------ | ------------------ | ----------------------------- |
+| POST   | /startConversation | Start a new interview session |
+| POST   | /reply             | Submit a user message         |
+| POST   | /resetConversation | Reset current session         |
+| GET    | /conversation      | Retrieve conversation history |
 
 ### Survey
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /survey/`<id>` | Load survey definition |
-| POST | /survey/`<id>`/submit | Submit survey answers |
-| GET | /survey/`<id>`/results | Retrieve survey results |
-| GET | /student/results | Student interview results |
-| GET | /student/interview_runs | Student run list |
+| Method | Path                    | Description               |
+| ------ | ----------------------- | ------------------------- |
+| GET    | /survey/`<id>`          | Load survey definition    |
+| POST   | /survey/`<id>`/submit   | Submit survey answers     |
+| GET    | /survey/`<id>`/results  | Retrieve survey results   |
+| GET    | /student/results        | Student interview results |
+| GET    | /student/interview_runs | Student run list          |
 
 ### Protocol editor
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /protocols | List available protocols |
-| POST | /protocols | Create a new protocol |
-| GET | /protocols/`<name>` | Get a protocol |
-| PUT | /protocols/`<name>` | Update a protocol |
-| DELETE | /protocols/`<name>` | Delete a protocol |
-| GET | /protocols/`<name>`/export | Export protocol as JSON |
-| POST | /protocols/import | Import protocol from JSON |
+| Method | Path                       | Description               |
+| ------ | -------------------------- | ------------------------- |
+| GET    | /protocols                 | List available protocols  |
+| POST   | /protocols                 | Create a new protocol     |
+| GET    | /protocols/`<name>`        | Get a protocol            |
+| PUT    | /protocols/`<name>`        | Update a protocol         |
+| DELETE | /protocols/`<name>`        | Delete a protocol         |
+| GET    | /protocols/`<name>`/export | Export protocol as JSON   |
+| POST   | /protocols/import          | Import protocol from JSON |
 
 ### Dashboard
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /dashboard/stats | Aggregated interview statistics |
-| GET | /dashboard/courses | Course list |
+| Method | Path               | Description                     |
+| ------ | ------------------ | ------------------------------- |
+| GET    | /dashboard/stats   | Aggregated interview statistics |
+| GET    | /dashboard/courses | Course list                     |
 
 ### User
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /user_role/ | Current user role |
-| GET | /user_language/ | Current user language |
+| Method | Path            | Description           |
+| ------ | --------------- | --------------------- |
+| GET    | /user_role/     | Current user role     |
+| GET    | /user_language/ | Current user language |
 
 ### LTI
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /lti/launch | LTI launch handler |
-| GET | /lti/ui | LTI-embedded UI |
+| Method | Path        | Description        |
+| ------ | ----------- | ------------------ |
+| POST   | /lti/launch | LTI launch handler |
+| GET    | /lti/ui     | LTI-embedded UI    |
 
 ### Activity logging
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /log/tab_event | Tab switch event |
-| POST | /log/mouse_traces | Mouse movement trace |
-| POST | /log/page_view | Page view event |
-| POST | /log/interaction | Generic interaction event |
+| Method | Path              | Description               |
+| ------ | ----------------- | ------------------------- |
+| POST   | /log/tab_event    | Tab switch event          |
+| POST   | /log/mouse_traces | Mouse movement trace      |
+| POST   | /log/page_view    | Page view event           |
+| POST   | /log/interaction  | Generic interaction event |
 
 Example requests:
 
@@ -263,25 +263,25 @@ curl -X POST http://localhost:5000/resetConversation \
 
 ## 7. Data Model (Core Tables)
 
-| Table | Description |
-|-------|-------------|
-| users | Registered users |
-| languages | Supported languages |
-| contexts | Interview contexts (study situations) |
-| strategy | SRL strategy catalogue |
-| strategy_translation | Translated strategy labels |
-| strategy_vector | pgvector strategy embeddings (RAG) |
-| strategy_embedding | Embedding metadata |
-| user_strategy | Strategies detected per user run |
-| strategy_evaluation | Manual or automated strategy evaluations |
-| interview_answer | Raw user answers per context |
-| llm_response | LLM outputs stored for audit |
-| state | Per-user conversation state machine |
-| conversation_completed_contexts | Completed context tracking |
-| mouse_traces | Mouse movement logs |
-| archive | Archived conversation snapshots |
-| activity_log | General user interaction events |
-| survey_responses | SRL-O survey answers |
+| Table                           | Description                              |
+| ------------------------------- | ---------------------------------------- |
+| users                           | Registered users                         |
+| languages                       | Supported languages                      |
+| contexts                        | Interview contexts (study situations)    |
+| strategy                        | SRL strategy catalogue                   |
+| strategy_translation            | Translated strategy labels               |
+| strategy_vector                 | pgvector strategy embeddings (RAG)       |
+| strategy_embedding              | Embedding metadata                       |
+| user_strategy                   | Strategies detected per user run         |
+| strategy_evaluation             | Manual or automated strategy evaluations |
+| interview_answer                | Raw user answers per context             |
+| llm_response                    | LLM outputs stored for audit             |
+| state                           | Per-user conversation state machine      |
+| conversation_completed_contexts | Completed context tracking               |
+| mouse_traces                    | Mouse movement logs                      |
+| archive                         | Archived conversation snapshots          |
+| activity_log                    | General user interaction events          |
+| survey_responses                | SRL-O survey answers                     |
 
 ## 8. Testing
 
