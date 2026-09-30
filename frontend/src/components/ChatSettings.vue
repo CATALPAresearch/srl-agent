@@ -47,7 +47,7 @@
             v-model="chatmodus"
             @change="updateChatModus"
           />
-          SRL-Chat als Interview-Agent
+          SRL-Agent als Interview-Agent
         </label>
       </fieldset>
     </div>

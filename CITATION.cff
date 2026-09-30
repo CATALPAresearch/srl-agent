@@ -18,7 +18,7 @@ authors:
     given-names: Slavisa
 doi: 10.17605/OSF.IO/KVTXD
 url: "https://doi.org/10.17605/OSF.IO/KVTXD"
-repository-code: "https://catalpa-gitlab.fernuni-hagen.de/catalpa/srl/MAS-webui/srl-chat"
+repository-code: "https://catalpa-gitlab.fernuni-hagen.de/catalpa/srl/MAS-webui/srl-agent"
 version: "1.0.0"
 date-released: "2026-06-12"
 license: MIT

@@ -3,7 +3,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: ${REGISTRY:-local}/srl-chat-api:${IMAGE_TAG:-latest}
+      network: host
+    image: ${REGISTRY:-local}/srl-agent-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
@@ -86,7 +87,7 @@ services:
     image: grafana/loki:2.9.0
     restart: unless-stopped
     expose:
-      - 3100   # internal only — access via Grafana datasource
+      - 3100 # internal only — access via Grafana datasource
     volumes:
       - loki-data:/loki
       - ./infrastructure/grafana/loki-config.yml:/etc/loki/local-config.yaml:ro
@@ -98,7 +99,7 @@ services:
     image: grafana/promtail:2.9.0
     restart: unless-stopped
     volumes:
-      - ./backend/logs:/var/log/srl-chat:ro,z
+      - ./backend/logs:/var/log/srl-agent:ro,z
       - ./infrastructure/grafana/promtail-config.yml:/etc/promtail/config.yml:ro,z
     command: -config.file=/etc/promtail/config.yml
     networks:
@@ -123,14 +124,14 @@ services:
 
 volumes:
   pgdata:
-    name: srl-chat-pgdata
+    name: srl-agent-pgdata
   loki-data:
-    name: srl-chat-loki
+    name: srl-agent-loki
   grafana-data:
-    name: srl-chat-grafana
+    name: srl-agent-grafana
   nginx-logs:
-    name: srl-chat-nginx-logs
+    name: srl-agent-nginx-logs
 
 networks:
   bot-net:
-    name: srl-chat-bot-net
+    name: srl-agent-bot-net
