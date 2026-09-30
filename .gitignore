@@ -21,3 +21,4 @@ backend/logs
 .idea/
 api/.venv/
 api/migrations/
+README-deployment.md

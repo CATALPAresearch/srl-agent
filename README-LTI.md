@@ -21,12 +21,12 @@ Moodle (Docker) → LTI POST launch → Flask (api/) → Ollama (local) → llam
 
 ## Prerequisites
 
-| Tool | Version | Notes |
-|------|---------|-------|
-| Python | 3.11+ | |
-| Docker Desktop | Latest | For Moodle + PostgreSQL |
-| Ollama | 0.17+ | https://ollama.com |
-| Node.js | 18+ | Only needed to rebuild frontend |
+| Tool           | Version | Notes                           |
+| -------------- | ------- | ------------------------------- |
+| Python         | 3.11+   |                                 |
+| Docker Desktop | Latest  | For Moodle + PostgreSQL         |
+| Ollama         | 0.17+   | https://ollama.com              |
+| Node.js        | 18+     | Only needed to rebuild frontend |
 
 ---
 
@@ -34,7 +34,7 @@ Moodle (Docker) → LTI POST launch → Flask (api/) → Ollama (local) → llam
 
 ```bash
 git clone <repo-url>
-cd srl-chat
+cd srl-agent
 git checkout issue-6-lti-ui
 ```
 
@@ -197,13 +197,13 @@ Note this IP — you will need it in the next step.
 3. Click **Add tool manually** (or edit the existing SRL Agent tool)
 4. Set the following:
 
-| Field | Value |
-|-------|-------|
-| Tool name | SRL Agent |
-| Tool URL | `http://<YOUR-BRIDGE-IP>:5000/lti/launch?v=2` |
-| LTI version | LTI 1.0/1.1 |
-| Consumer key | `moodle_key` |
-| Shared secret | `geheimer_schluessel_123` |
+| Field         | Value                                         |
+| ------------- | --------------------------------------------- |
+| Tool name     | SRL Agent                                     |
+| Tool URL      | `http://<YOUR-BRIDGE-IP>:5000/lti/launch?v=2` |
+| LTI version   | LTI 1.0/1.1                                   |
+| Consumer key  | `moodle_key`                                  |
+| Shared secret | `geheimer_schluessel_123`                     |
 
 Replace `<YOUR-BRIDGE-IP>` with the IP found in step 7 (e.g. `172.23.96.1`).
 
@@ -218,7 +218,7 @@ Replace `<YOUR-BRIDGE-IP>` with the IP found in step 7 (e.g. `172.23.96.1`).
 2. Click the **SRL Agent** activity
 3. Click **Start Interview**
 4. Wait 15–30 seconds for the first LLM response (model loading time)
-5. Type a message like *"Ich studiere Informatik"* and send
+5. Type a message like _"Ich studiere Informatik"_ and send
 
 You should see a real German AI response in the chat UI.
 
