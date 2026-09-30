@@ -3,6 +3,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     image: ${REGISTRY:-local}/srl-agent-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
