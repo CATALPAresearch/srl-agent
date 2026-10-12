@@ -16,7 +16,9 @@
       "Bash(git commit -m ' *)",
       "Bash(python3 -c ' *)",
       "Bash(npx eslint *)",
-      "Bash(curl -sI https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js)"
+      "Bash(curl -sI https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js)",
+      "Bash(python3 -)",
+      "Bash(grep -v \"warn\\\\|Docs\\\\|^$\")"
     ]
   }
 }

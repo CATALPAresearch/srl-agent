@@ -304,7 +304,15 @@ class TestInterviewCompletion:
                 if SLEEP_BETWEEN:
                     time.sleep(SLEEP_BETWEEN)
 
-        # ── 3. Print stats ───────────────────────────────────────────────
+        # ── 3. Detected strategies / frequency ratings ───────────────────
+        with flask_app_instance.app_context():
+            from app.models import UserStrategy
+            rows = UserStrategy.query.filter_by(user_id=TEST_USER, user_client=TEST_CLIENT).all()
+            real = [r for r in rows if r.strategy != "008-001"]
+            unrated = [r.strategy for r in real if r.frequency is None]
+            rated_contexts = {r.context for r in real if r.frequency and r.frequency > 0}
+            all_contexts = {r.context for r in rows}
+
         print("\n" + "=" * 60)
         print("INTERVIEW COMPLETION TEST — STATS")
         print("=" * 60)
@@ -316,6 +324,8 @@ class TestInterviewCompletion:
         for e in stats["errors"]:
             print(f"    • {e}")
         print(f"  Interview done    : {interview_done}")
+        print(f"  Strategies rated  : {sorted((r.strategy, r.frequency) for r in real)}")
+        print(f"  Contexts w/ rating: {len(rated_contexts)} / {len(all_contexts)}")
         print("=" * 60)
 
         assert interview_done, (
@@ -324,3 +334,11 @@ class TestInterviewCompletion:
             f"Errors: {stats['errors']}"
         )
         assert len(stats["errors"]) == 0, f"Errors occurred during interview: {stats['errors']}"
+        # Protocol: every detected strategy must have been asked for its frequency.
+        assert not unrated, f"Strategies detected but never rated: {unrated}"
+        # The scripted answers clearly describe strategies, so detection must work in
+        # most contexts (tolerates occasional LLM misses).
+        assert len(rated_contexts) * 2 >= len(all_contexts) > 0, (
+            f"Strategies rated in only {len(rated_contexts)} of {len(all_contexts)} contexts — "
+            "strategy detection is likely broken"
+        )
