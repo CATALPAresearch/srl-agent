@@ -17,7 +17,7 @@ from .prompts import (
 from .models import User
 from .rag import USE_RAG_STRATEGY, detect_strategies_rag
 
-ABANDON_AFTER_STEPS = 6
+ABANDON_AFTER_STEPS = 2
 logger = logging.getLogger('InterviewAgent')
 
 
@@ -338,14 +338,20 @@ def try_get_json_completion(
             logger.info("@ steps, try_get_json_completion:: LLM response: " + llm_message_raw)
             json_string = re.search(regex, llm_message_raw).group()
             json_output = json.loads(json_string)
-            # Unwrap envelope keys: LLM sometimes wraps fields inside a status key,
-            # e.g. {"complete": {"strategies": [...], "status": "..."}, "in_progress": null}
-            # Only unwrap when the expected fields are NOT already at the top level.
-            if not any(f in json_output for f in expected_fields):
-                for value in json_output.values():
-                    if isinstance(value, dict) and any(f in value for f in expected_fields):
-                        json_output = value
-                        break
+            # Unwrap envelope keys: LLM sometimes wraps the payload inside a status key,
+            # e.g. {"complete": {"strategies":[...], "status":"..."}, "in_progress":null, "comment":"..."}
+            # Prefer the object (top-level or nested) that has the most populated expected fields.
+            def _n_populated(obj):
+                return sum(1 for f in expected_fields if obj.get(f) not in ("", None, [], {}))
+
+            best = json_output
+            best_score = _n_populated(json_output)
+            for value in json_output.values():
+                if isinstance(value, dict):
+                    score = _n_populated(value)
+                    if score > best_score:
+                        best, best_score = value, score
+            json_output = best
             for field in expected_fields:
                 if field not in json_output:
                     json_output[field] = ""
