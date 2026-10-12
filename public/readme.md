@@ -4,7 +4,10 @@ Wie lernen Studierende eigentlich? Planen sie ihre Zeit bewusst, überprüfen si
 
 In diesem Beitrag stellen wir das Projekt vor – einmal für alle, die einfach verstehen wollen, was das Tool macht und wie es im Lehralltag eingesetzt werden kann, und einmal etwas tiefer für alle, die sich für die technische Umsetzung interessieren.
 
-_[Screenshot : Startbildschirm / Willkommensseite von SRL Agent einfügen]_
+<figure>
+  <img src="start-screen.png" width="500" alt="Startseite des SRL Agent" />
+  <figcaption>Abb. 1: Startseite des SRL Agent für Studierende</figcaption>
+</figure>
 
 ---
 
@@ -14,13 +17,27 @@ Selbstreguliertes Lernen gilt als einer der stärksten Erfolgsfaktoren für gute
 
 Genau dabei hilft SRL Agent. Studierende führen ein kurzes, geführtes Gespräch mit dem System – auf Deutsch oder Englisch, ganz wie es passt. Das Tool fragt nach typischen Lernsituationen, etwa wie beim Lernen für eine Prüfung oder beim Schreiben einer Hausarbeit vorgegangen wird, und erkennt daraus automatisch, welche Lernstrategien zum Einsatz kommen. Anschließend geben die Studierenden noch an, wie häufig sie eine Strategie nutzen. Am Ende erhalten sie eine persönliche Zusammenfassung der von ihnen genutzten und noch nicht genutzten Lernstrategien. Der Agent geht dabei flexibel auf die individuellen Antworten der Studierenden ein, stellt bei Bedarf gezielte Rückfragen und greift bereits Gesagtes im weiteren Verlauf wieder auf – so gleicht kein Interview dem anderen.
 
-_[Screenshot interview-agent.png: Beispielhafter Interviewverlauf mit einer Frage und einer Antwort einfügen]_
+<figure>
+  <img src="interview-dialog.png" width="500" alt="Interview-Dialog mit dem SRL Agent" />
+  <figcaption>Abb. 2: Geführtes Interview zu Lernstrategien im Chat</figcaption>
+</figure>
 
 Für Lehrende entsteht daraus ein Dashboard mit einer Übersicht über die Ergebnisse der eigenen Studierenden. So lässt sich auf einen Blick erkennen, wo eine Gruppe insgesamt steht, und die eigene Lehre gezielter darauf abstimmen – zum Beispiel durch zusätzliche Hinweise zur Zeitplanung oder zu Lernstrategien in der Lehrveranstaltung, wenn sich zeigt, dass viele Studierende hier Unterstützung gebrauchen könnten.
 
-_[Screenshot dashboard-teacher.png: Lehrenden-Dashboard mit Ergebnisübersicht einfügen]_
-_[Screenshot onboarding-teacher.png: Ergebnisübersicht/Dashboard für Lehrende]_
-_[Screenshot results-students.png: Ergebnisübersicht für Studierende einfügen]_
+<figure>
+  <img src="lad-teacher.png" width="500" alt="Lehrenden-Dashboard mit Ergebnisübersicht" />
+  <figcaption>Abb. 3: Dashboard für Lehrende mit einer Übersicht über die Ergebnisse des Kurses</figcaption>
+</figure>
+
+<figure>
+  <img src="onboarding-teacher.png" width="500" alt="Onboarding für Lehrende" />
+  <figcaption>Abb. 4: Onboarding für Lehrende</figcaption>
+</figure>
+
+<figure>
+  <img src="lad-student.png" width="500" alt="Ergebnisübersicht für Studierende" />
+  <figcaption>Abb. 5: Persönliche Ergebnisübersicht für Studierende</figcaption>
+</figure>
 
 Wichtig für den Einsatz im Studienalltag: SRL Agent lässt sich direkt in bestehende Lernplattformen wie Moodle oder Ilias einbinden, sodass Studierende es ganz normal im gewohnten Kursraum nutzen können. Vor dem Start werden alle Teilnehmenden über Zweck und Nutzen des Systems informiert und müssen aktiv zustimmen. Am Ende können sie ihre eigenen Ergebnisse einsehen und herunterladen. Der SRL Agent kann im Verlauf eines Semesters auch mehrfach verwendet werden.
 
@@ -59,7 +76,10 @@ In der aktuellen Version von SRL Agent ist auch eine angepasste Variante des SRL
 
 Entwickelt wurde SRL Agent von einem kleinen, interdisziplinären Team: Dr. Niels Seidel (Projektleitung, Entwicklung/Technologie), Dr. Slavisa Radovic (Projektleitung, SRL-Experte), Elisabeth Wetchy (Entwicklerin des initialen Prototypen), Prasoon Tiwari und Abdulrouf Emsilkh.
 
-_[Screenshot dashboard-researcher.png: Dashboard für Forschende]_
+<figure>
+  <img src="lad-researcher.png" width="500" alt="Dashboard für Forschende" />
+  <figcaption>Abb. 6: Dashboard für Forschende</figcaption>
+</figure>
 
 ## Fazit
 
