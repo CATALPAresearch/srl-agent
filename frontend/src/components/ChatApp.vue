@@ -1,9 +1,10 @@
 ﻿<template>
   <div class="chat-app">
     <div class="header-bar d-flex align-items-center px-2 py-1">
-
       <!-- MOBILE: hamburger (visible xs only) -->
-      <div class="mobile-menu-wrapper d-flex d-sm-none align-items-center flex-grow-1">
+      <div
+        class="mobile-menu-wrapper d-flex d-sm-none align-items-center flex-grow-1"
+      >
         <button
           class="btn btn-sm btn-outline-secondary"
           @click="mobileMenuOpen = !mobileMenuOpen"
@@ -12,22 +13,55 @@
           <font-awesome-icon :icon="['fas', 'bars']" />
         </button>
         <div v-if="mobileMenuOpen" class="mobile-nav-dropdown">
-          <router-link to="/" exact class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+          <router-link
+            to="/"
+            exact
+            class="mobile-nav-item"
+            active-class="mobile-nav-active"
+            @click.native="mobileMenuOpen = false"
+          >
             {{ lang === "de" ? "Start" : "Home" }}
           </router-link>
-          <router-link to="/agent-chat" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+          <router-link
+            to="/agent-chat"
+            class="mobile-nav-item"
+            active-class="mobile-nav-active"
+            @click.native="mobileMenuOpen = false"
+          >
             {{ lang === "de" ? "Interview" : "Interview" }}
           </router-link>
-          <router-link to="/survey" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+          <router-link
+            to="/survey"
+            class="mobile-nav-item"
+            active-class="mobile-nav-active"
+            @click.native="mobileMenuOpen = false"
+          >
             {{ lang === "de" ? "Umfrage" : "Survey" }}
           </router-link>
-          <router-link v-if="isAdmin" to="/protocols" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+          <router-link
+            v-if="isAdmin"
+            to="/protocols"
+            class="mobile-nav-item"
+            active-class="mobile-nav-active"
+            @click.native="mobileMenuOpen = false"
+          >
             Protocols
           </router-link>
-          <router-link v-if="isAdmin" to="/dashboard/researcher" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+          <router-link
+            v-if="isAdmin"
+            to="/dashboard/researcher"
+            class="mobile-nav-item"
+            active-class="mobile-nav-active"
+            @click.native="mobileMenuOpen = false"
+          >
             Researcher Dashboard
           </router-link>
-          <router-link to="/dashboard/teacher" class="mobile-nav-item" active-class="mobile-nav-active" @click.native="mobileMenuOpen = false">
+          <router-link
+            to="/dashboard/teacher"
+            class="mobile-nav-item"
+            active-class="mobile-nav-active"
+            @click.native="mobileMenuOpen = false"
+          >
             Teacher Dashboard
           </router-link>
         </div>
@@ -226,11 +260,13 @@ export default Vue.extend({
       this.$store.commit("setLanguage", lang);
       const userId = this.$store.getters.getUser;
       if (userId) {
-        axios.put(`${this.host}/user_language/`, {
-          userid: userId,
-          client: "web",
-          lang,
-        }).catch(() => {});
+        axios
+          .put(`${this.host}/user_language/`, {
+            userid: userId,
+            client: "web",
+            lang,
+          })
+          .catch(() => {});
       }
     },
 
