@@ -84,8 +84,8 @@ export default Vue.extend({
       summaryPollAttempts: 0,
       surveyReturnBaseline: null,
       postSurveyInfoActive: false,
-      _visibilityHandler: null,
-      _mouseMoveHandler: null,
+      visibilityHandler: null,
+      mouseMoveHandler: null,
     };
   },
 
@@ -417,7 +417,7 @@ export default Vue.extend({
     },
 
     setupTabVisibilityTracking: function () {
-      this._visibilityHandler = () => {
+      this.visibilityHandler = () => {
         const event = document.hidden ? "tab_hidden" : "tab_visible";
         const timestamp = Math.floor(Date.now() / 1000);
 
@@ -438,7 +438,7 @@ export default Vue.extend({
 
         console.log("Tab visibility changed:", event, "at", timestamp);
       };
-      document.addEventListener("visibilitychange", this._visibilityHandler);
+      document.addEventListener("visibilitychange", this.visibilityHandler);
     },
 
     openSurvey() {
@@ -484,11 +484,11 @@ export default Vue.extend({
       }, 10000);
 
       // Track mouse position
-      this._mouseMoveHandler = (e) => {
+      this.mouseMoveHandler = (e) => {
         this.lastMouseX = e.clientX;
         this.lastMouseY = e.clientY;
       };
-      document.addEventListener("mousemove", this._mouseMoveHandler);
+      document.addEventListener("mousemove", this.mouseMoveHandler);
     },
 
     stopMouseTracking: function () {
@@ -500,11 +500,11 @@ export default Vue.extend({
   beforeDestroy() {
     this.stopSummaryPolling();
     this.stopMouseTracking();
-    if (this._visibilityHandler) {
-      document.removeEventListener("visibilitychange", this._visibilityHandler);
+    if (this.visibilityHandler) {
+      document.removeEventListener("visibilitychange", this.visibilityHandler);
     }
-    if (this._mouseMoveHandler) {
-      document.removeEventListener("mousemove", this._mouseMoveHandler);
+    if (this.mouseMoveHandler) {
+      document.removeEventListener("mousemove", this.mouseMoveHandler);
     }
   },
 });

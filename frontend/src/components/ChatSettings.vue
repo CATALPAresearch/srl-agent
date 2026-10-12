@@ -84,7 +84,7 @@
       >
         <option disabled value="">-- Bitte wählen --</option>
         <option
-          v-for="(m, index) in $store.getters.getLLMModelList"
+          v-for="m in $store.getters.getLLMModelList"
           :key="m"
           :value="m"
         >
@@ -98,19 +98,13 @@
 <script>
 import Communication from "../classes/communication";
 import { mapGetters } from "vuex";
-import VueMultiselect from "vue-multiselect";
 
 export default {
   name: "RAGChatSettings",
-  components: {
-    VueMultiselect,
-  },
-  props: {
-    documents: Object,
-  },
 
   data() {
     return {
+      documents: [],
       value: [],
       options: [
         {
