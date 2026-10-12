@@ -15,7 +15,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(python3 -c ' *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(curl -sI https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js)"
     ]
   }
 }
