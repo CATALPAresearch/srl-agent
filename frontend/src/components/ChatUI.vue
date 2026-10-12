@@ -178,7 +178,8 @@
                 : 'Type your response…'
             "
             rows="1"
-            :disabled="is_loading"
+            :readonly="is_loading"
+            :aria-busy="is_loading"
             :aria-label="lang === 'de' ? 'Deine Antwort' : 'Your response'"
           />
           <div class="chat-input-actions">
@@ -274,11 +275,16 @@ export default Vue.extend({
   },
   mounted() {
     this.scrollTranscriptToBottom();
+    this.focusInput();
   },
   beforeDestroy() {
     this.clearScrollTimers();
   },
   watch: {
+    // Focus the input once a reply has arrived (also covers the first bot message).
+    is_loading(loading) {
+      if (!loading) this.focusInput();
+    },
     messages: {
       deep: true,
       handler(newMessages) {
@@ -295,6 +301,12 @@ export default Vue.extend({
     ...mapGetters({
       //rag_webservice_host: 'getRAGWebserviceHost',
     }),
+    focusInput() {
+      this.$nextTick(() => {
+        const ta = this.$refs.chatTextarea;
+        if (ta) ta.focus({ preventScroll: true });
+      });
+    },
     handleEnter(event) {
       if (event.shiftKey) {
         return;
