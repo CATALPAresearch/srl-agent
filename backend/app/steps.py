@@ -9,54 +9,40 @@ from .llm import get_llm_response
 from .prompts import (
     get_strategy_analysis_prompt,
     get_format_strategy_prompt,
-    get_frequency_validate_prompt,
-    get_format_frequency_prompt,
     get_intro_prompt,
     get_prompt,
 )
 from .models import User
 from .rag import USE_RAG_STRATEGY, detect_strategies_rag
 
-ABANDON_AFTER_STEPS = 2
+# Max. number of follow-up questions when a user answer contains no usable information
+# (no study subject in the intro, no learning strategy in a context).
+MAX_FOLLOWUPS = 3
+OTHER_STRATEGY = "008-001"
+_NO_STRATEGY = {"", "other", OTHER_STRATEGY}
+_EMPTY_SUBJECT = {"", "null", "none", "unknown", "unbekannt", "n/a"}
+
 logger = logging.getLogger('InterviewAgent')
 
 
 def _user_only_conv(conv):
     """Return only user-role messages from a conversation list.
 
-    Analysis prompts (recognise_strategy, validate_frequency, intro_check) need
-    to know what the USER said, not what the bot replied.  Passing bot messages
-    into these calls creates a confusing role structure and causes the LLM to
-    continue the chat instead of outputting JSON or a clean analysis.
+    Analysis prompts (recognise_strategy, intro_check) need to know what the USER
+    said, not what the bot replied.
     """
     if not conv:
         return []
     return [m for m in conv if isinstance(m, dict) and m.get("role") == "user"]
 
 
-def _json_retry_comment(user: User, step_name: str):
+def _n_user_answers(conv) -> int:
+    return len(_user_only_conv(conv))
+
+
+def _is_de(user: User) -> bool:
     lang = get_language_by_id(user.language_id)
-    is_de = bool(lang and lang.lang_code == "de")
-
-    if step_name == "intro":
-        return (
-            "Ich konnte deine Antwort noch nicht eindeutig zuordnen. In welchem Fach möchtest du deinen Abschluss machen?"
-            if is_de
-            else "I could not map your answer clearly yet. Which subject are you studying?"
-        )
-
-    if step_name == "frequency":
-        return (
-            "Wie häufig nutzt du diese Strategie? Bitte antworte nur mit einer Zahl von 1 bis 4."
-            if is_de
-            else "How often do you use this strategy? Please reply with a number from 1 to 4."
-        )
-
-    return (
-        "Danke. Kannst du bitte genauer beschreiben, welche Lernstrategie du in dieser Situation nutzt?"
-        if is_de
-        else "Thanks. Could you describe more clearly which learning strategy you use in this situation?"
-    )
+    return bool(lang and lang.lang_code == "de")
 
 
 class StepIntroFields(BaseModel):
@@ -71,99 +57,105 @@ class StepStrategieStepperFields(BaseModel):
   status: str
   comment: str
 
-class StepFrequencyStepperFields(BaseModel):
-  """BaseModel of the expected JSON structure of a LLM response regarding a question about a number/frequency"""
-  frequency: str
-  status: str
-  comment: str
 
-
-
+# ---------------------------------------------------------------------------
+# Intro: only asks for the study subject
+# ---------------------------------------------------------------------------
 
 def intro_step(user: User, prev_conversation: list[str]):
-    """
-    The first of the three types of steps. In this step the interview starts with an introduction.
-    """
-    intro_prompt = get_intro_prompt(user, ABANDON_AFTER_STEPS)
+    """Returns (study_subject, status, comment). status: completed | in_progress | abandon."""
+    intro_prompt = get_intro_prompt(user, MAX_FOLLOWUPS + 1)
     system_prompt = get_prompt(user, "system")
 
     json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, intro_prompt + system_prompt,
                                                       expected_fields_model=StepIntroFields,
                                                       prev_conversation=_user_only_conv(prev_conversation),
                                                       user_prompt=None)
-    if not json_valid:
-        return "", "in_progress", _json_retry_comment(user, "intro")
-    if json_output["study_subject"] == "" and len(prev_conversation) >= ABANDON_AFTER_STEPS:
-        json_output["study_subject"] = "unknown"
-        json_output["status"] = "abandon"
-    return json_output["study_subject"], json_output["status"], json_output["comment"]
+    subject = str(json_output.get("study_subject") or "").strip() if json_valid else ""
+    if subject.lower() not in _EMPTY_SUBJECT:
+        return subject, "completed", ""
+
+    if _n_user_answers(prev_conversation) > MAX_FOLLOWUPS:
+        return "unknown", "abandon", ""
+
+    comment = json_output.get("comment") if json_valid else ""
+    if not comment:
+        comment = (
+            "In welchem Fach möchtest du deinen Abschluss machen?"
+            if _is_de(user)
+            else "Which subject are you studying?"
+        )
+    return "", "in_progress", comment
 
 
-
-
+# ---------------------------------------------------------------------------
+# Strategy: identify learning strategies in the answers to the context question
+# ---------------------------------------------------------------------------
 
 def strategy_step(user: User, context: str, prev_conversation: list[str]):
     """
-    The second type of step aims to collect mentioned strategies.
-    Two strategy detection methods are supported: Retrieval Augmented Generation and ChainOfThought
+    Returns (strategies, status, comment).
+      - completed:   >= 1 valid, deduplicated strategy ID detected → ask frequency for each
+      - in_progress: nothing detected yet → one open follow-up question (comment)
+      - abandon:     nothing detected after MAX_FOLLOWUPS follow-ups → strategies = [OTHER_STRATEGY]
+    The decision is made here deterministically; the LLM's own 'status' field is ignored.
     """
     if USE_RAG_STRATEGY:
-        return _strategy_step_rag(user, context, prev_conversation)
-    return _strategy_step_llm(user, context, prev_conversation)
+        raw = _detect_strategies_rag(user, context, prev_conversation)
+    else:
+        raw = _detect_strategies_llm(user, context, prev_conversation)
+
+    detected = [s for s in dict.fromkeys(validate_strategies(raw)) if s not in _NO_STRATEGY]
+    n_answers = _n_user_answers(prev_conversation)
+    logger.info("strategy_step: raw=%s detected=%s user_answers=%d", raw, detected, n_answers)
+
+    if detected:
+        return detected, "completed", ""
+    if n_answers > MAX_FOLLOWUPS:
+        return [OTHER_STRATEGY], "abandon", ""
+    return [], "in_progress", _strategy_conversational_comment(user, context, prev_conversation)
 
 
-def _strategy_step_rag(user: User, context: str, prev_conversation: list[str]):
+def _detect_strategies_rag(user: User, context: str, prev_conversation: list) -> list[str]:
     """Detect strategies via pgvector embedding similarity."""
-    logger.info("[RAG] Using embedding-based strategy detection")
-
-    # Extract user messages from the conversation
-    user_messages = [
-        msg["content"] if isinstance(msg, dict) else str(msg)
-        for msg in prev_conversation
-        if (isinstance(msg, dict) and msg.get("role") == "user") or not isinstance(msg, dict)
-    ]
-
+    user_messages = [m["content"] for m in _user_only_conv(prev_conversation)]
     if not user_messages:
-        return [], "in_progress", get_prompt(user, "system")
-
+        return []
     try:
-        strategies = detect_strategies_rag(user_messages, top_k=3)
+        return detect_strategies_rag(user_messages, top_k=3)
     except Exception as e:
         logger.error("[RAG] Embedding retrieval failed: %s — falling back to LLM", e)
-        return _strategy_step_llm(user, context, prev_conversation)
+        return _detect_strategies_llm(user, context, prev_conversation)
 
-    # Build a conversational comment via a single LLM call
-    system_prompt = get_prompt(user, "system")
-    comment = get_llm_response(
-        system_prompt
-        + f"\nThe student mentioned these learning strategies: {strategies}."
-        + f"\nContext: {context}."
-        + "\nAcknowledge briefly which strategies you recognised and ask about details.",
-        user_prompt=None,
-        temperature=0.2,
-        prev_conversation=prev_conversation,
+
+def _detect_strategies_llm(user: User, context: str, prev_conversation: list) -> list[str]:
+    """LLM chain-of-thought strategy detection. Returns raw strategy IDs (unvalidated)."""
+    reasoning_response = get_llm_response(
+        get_strategy_analysis_prompt(user),
+        user_prompt=None, temperature=0.0,
+        prev_conversation=_user_only_conv(prev_conversation)
     )
-
-    status = "completed"
-    if strategies in ([], ["008-001"]):
-        status = "in_progress" if len(prev_conversation) < ABANDON_AFTER_STEPS else "abandon"
-        if status == "abandon":
-            strategies = ["other"]
-
-    logger.info("[RAG] Detected strategies: %s  status: %s", strategies, status)
-    return strategies, status, comment
+    format_strategy_prompt = get_format_strategy_prompt(
+        user, reasoning_response, _n_user_answers(prev_conversation), context, MAX_FOLLOWUPS + 1
+    )
+    # No conversational system prompt here: its "never name strategies" rule conflicts
+    # with outputting strategy IDs.
+    json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_strategy_prompt,
+                                                      expected_fields_model=StepStrategieStepperFields,
+                                                      prev_conversation=[],
+                                                      user_prompt=None)
+    if not json_valid:
+        return []
+    raw = json_output.get("strategies") or []
+    if isinstance(raw, str):
+        raw = raw.split(",")
+    return [str(s).strip() for s in raw if str(s).strip()]
 
 
 def _strategy_conversational_comment(user: User, context: str, prev_conversation: list) -> str:
-    """Generate a conversational follow-up that responds to the user's actual last message
-    and steers toward describing their learning strategies in the current context.
-    Used when no strategy was detected yet (in_progress) so that the agent doesn't repeat
-    a static prompt but genuinely engages with what the user said.
-    """
-    lang = get_language_by_id(user.language_id)
-    is_de = bool(lang and lang.lang_code == "de")
+    """Open follow-up question when no strategy was detected yet."""
     system = get_prompt(user, "system")
-    if is_de:
+    if _is_de(user):
         guide = (
             f"Gehe kurz auf die letzte Aussage des/der Gesprächspartner*in ein. "
             f"Stelle dann genau eine kurze, offene Frage dazu, was er/sie konkret im Kontext '{context}' tut, wenn er/sie lernt. "
@@ -188,104 +180,58 @@ def _strategy_conversational_comment(user: User, context: str, prev_conversation
     )
 
 
-def _strategy_step_llm(user: User, context: str, prev_conversation: list[str]):
-    """Original LLM chain-of-thought strategy detection."""
-    logger.debug("Retrieving contexts")
-    logger.debug("Retrieving prompt")
-    strategy_analysis_prompt = get_strategy_analysis_prompt(user)
-    logger.debug("Retrieving reasoning response")
-    reasoning_response = get_llm_response(
-        strategy_analysis_prompt,
-        user_prompt=None, temperature=0.0,
-        prev_conversation=_user_only_conv(prev_conversation)
-        )
-    logger.debug("Retrieving prompt")
-    format_strategy_prompt = get_format_strategy_prompt(user, reasoning_response, len(prev_conversation), context,
-                                                        ABANDON_AFTER_STEPS)
-    system_prompt = get_prompt(user, "system")
-    logger.debug("Retrieving JSON")
-    # Format call: reasoning_response already embedded in prompt – no conversation needed.
-    # Do NOT append the conversational system_prompt here: its "never name strategies" rule
-    # conflicts with this call's task of outputting strategy IDs in JSON.
-    json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_strategy_prompt,
-                                                      expected_fields_model=StepStrategieStepperFields,
-                                                      prev_conversation=[],
-                                                      user_prompt=None)
-    if not json_valid:
-        # JSON could not be parsed at all – generate a contextual reply instead of a
-        # static fallback so the agent can respond to what the user actually said.
-        comment = _strategy_conversational_comment(user, context, prev_conversation)
-        return [], "in_progress", comment
+# ---------------------------------------------------------------------------
+# Frequency: parse the 1–4 rating deterministically (no LLM)
+# ---------------------------------------------------------------------------
 
-    # Normalize: LLM sometimes returns strategies as a string instead of a list.
-    strategies_raw = json_output.get("strategies", [])
-    if isinstance(strategies_raw, str):
-        strategies_raw = [s.strip() for s in strategies_raw.split(",") if s.strip()] if strategies_raw else []
-    json_output["strategies"] = strategies_raw
+_NUMBER_WORDS = {
+    "eins": 1, "zwei": 2, "drei": 3, "vier": 4,
+    "one": 1, "two": 2, "three": 3, "four": 4,
+}
+_NUMBER_PATTERN = re.compile(r"\b(\d+|" + "|".join(_NUMBER_WORDS) + r")\b", re.IGNORECASE)
 
-    if json_output["strategies"] not in ([], ["other"]):
-        json_output["status"] = "completed"
-
-    if json_output["strategies"] in ([], ["other"]) and len(prev_conversation) >= ABANDON_AFTER_STEPS:
-        json_output["strategies"] = ["other"]
-        json_output["status"] = "abandon"
-
-    # For in_progress turns the format call used prev_conversation=[] so its comment
-    # is context-blind. Generate a proper conversational response instead so the agent
-    # can react to the user's last message (e.g. clarifying questions).
-    if json_output["status"] == "in_progress":
-        comment = _strategy_conversational_comment(user, context, prev_conversation)
-    else:
-        comment = json_output["comment"]
-
-    return json_output["strategies"], json_output["status"], comment
+_FREQ_HINT_DE = "Bitte antworte mit einer Zahl von 1 bis 4."
+_FREQ_HINT_EN = "Please answer with a number from 1 to 4."
 
 
+def parse_frequency(text: str):
+    """Return the FIRST number in the text (digit or number word) if it is 1–4, else None.
+    '3', 'drei', '3-4', '3 bis 4', 'eins bis zwei' → 3, 3, 3, 3, 1."""
+    match = _NUMBER_PATTERN.search(text or "")
+    if not match:
+        return None
+    token = match.group(1).lower()
+    value = _NUMBER_WORDS.get(token) or int(token)
+    return value if 1 <= value <= 4 else None
 
 
-def frequency_step(user: User, prev_conversation: list[str], conversation_for_strategy_in_context: list[str]):
+def _repeat_frequency_question(user: User, prev_conversation: list) -> str:
+    hint = _FREQ_HINT_DE if _is_de(user) else _FREQ_HINT_EN
+    last_question = next(
+        (m["content"] for m in reversed(prev_conversation or [])
+         if isinstance(m, dict) and m.get("role") == "assistant"),
+        "",
+    )
+    for prefix in (_FREQ_HINT_DE, _FREQ_HINT_EN):
+        if last_question.startswith(prefix):
+            last_question = last_question[len(prefix):].strip()
+    return f"{hint} {last_question}".strip()
+
+
+def frequency_step(user: User, prev_conversation: list):
     """
-    Third type of step aim at collecting information about how often a strategy is applyed by the user. 
-    The use should respond with a number between 1 and 4.
+    Returns (strategy, frequency, status, comment).
+    Valid rating → completed. Otherwise the same question is repeated (in_progress).
     """
-    logger.debug("Retrieving strategy")
-    strategy_for_frequency = user.conversation_state.strategy_for_frequency
+    strategy = user.conversation_state.strategy_for_frequency
+    user_msgs = _user_only_conv(prev_conversation)
+    last_answer = user_msgs[-1]["content"] if user_msgs else ""
+    frequency = parse_frequency(last_answer)
+    logger.info("frequency_step: strategy=%s answer=%r → %s", strategy, last_answer, frequency)
 
-    logger.debug("Retrieving prompt")
-    frequency_validate_prompt = get_frequency_validate_prompt(user, strategy_for_frequency)
-    logger.debug("Retrieving reasoning response")
-    reasoning_response = get_llm_response(
-        frequency_validate_prompt,
-        user_prompt=None,
-        temperature=0.0,
-        # Use the full context conversation (user messages only) so the reasoning
-        # call can actually see the number the user typed (e.g. "3").
-        # conversation_for_strategy_in_context is NOT used here because it is
-        # passed with a positional-arg bug that makes it always empty.
-        prev_conversation=_user_only_conv(prev_conversation)
-        )
-    logger.debug("Retrieving prompt")
-    format_frequency_prompt = get_format_frequency_prompt(user, strategy_for_frequency, reasoning_response)
-    logger.debug("Retrieving JSON")
-    # Format call: reasoning_response already embedded in prompt – no conversation needed.
-    # Do NOT append the conversational system_prompt here: its behavioral rules conflict with
-    # the task of outputting a numeric frequency rating in JSON.
-    json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_frequency_prompt,
-                                                      expected_fields_model=StepFrequencyStepperFields,
-                                                      prev_conversation=[],
-                                                      user_prompt=None
-                                                      )
-    if not json_valid:
-        return [], 0, "in_progress", _json_retry_comment(user, "frequency")
-    if json_output["status"] == "in_progress" and len(prev_conversation) > (ABANDON_AFTER_STEPS * 2):
-        json_output["status"] = "abandon"
-        json_output["frequency"] = 0
-    try:
-        freq_val = int(json_output["frequency"])
-    except (ValueError, TypeError):
-        freq_val = 0
-    return strategy_for_frequency, freq_val, json_output["status"], json_output["comment"]
-
+    if frequency is not None:
+        return strategy, frequency, "completed", ""
+    return strategy, 0, "in_progress", _repeat_frequency_question(user, prev_conversation)
 
 
 def validate_strategies(user_strategies):
@@ -309,15 +255,15 @@ def validate_strategies(user_strategies):
 
 
 def try_get_json_completion(
-        num_attempts, 
-        start_temp, 
-        temp_increase, 
-        system_prompt, 
-        expected_fields_model, 
-        prev_conversation=None, 
+        num_attempts,
+        start_temp,
+        temp_increase,
+        system_prompt,
+        expected_fields_model,
+        prev_conversation=None,
         user_prompt=None
 ):
-    """xxx"""
+    """Call the LLM until it returns parseable JSON. Returns (dict, True) or (raw_text, False)."""
     if prev_conversation is None:
         prev_conversation = []
     expected_fields = list(expected_fields_model.model_fields.keys())
@@ -341,8 +287,6 @@ def try_get_json_completion(
             # Merge fields across all levels: LLM sometimes splits fields between the
             # top-level and a nested status key, e.g.:
             #   {"complete": {"strategies": [...]}, "status": "completed", "comment": "..."}
-            # For each expected field, use the top-level value if populated; otherwise
-            # fall through to any nested dict that has a non-empty value for it.
             merged = dict(json_output)
             for value in json_output.values():
                 if isinstance(value, dict):
@@ -353,7 +297,6 @@ def try_get_json_completion(
             for field in expected_fields:
                 if field not in json_output:
                     json_output[field] = ""
-            # If the LLM put its conversational reply outside the JSON block, use it as comment fallback
             if not json_output.get("comment"):
                 outside_text = llm_message_raw.replace(json_string, "").strip()
                 if outside_text:

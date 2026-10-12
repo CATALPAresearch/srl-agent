@@ -32,11 +32,6 @@ def get_context_prompt(context: str, user) -> str:
     return prompt.replace("${context}", context).replace("${subject}", user.study_subject)
 
 
-def get_frequency_validate_prompt(user, strategy) -> str:
-    prompt = get_prompt(user, "validate_frequency")
-    return prompt.replace("${strategy_for_frequency}", str(strategy))
-
-
 def get_frequency_prompt(user, context: str, strategy: str, student_message: str = "") -> str:
     prompt = get_prompt(user, "frequency")
     # Truncate student_message to avoid excessively long prompts
@@ -47,13 +42,6 @@ def get_frequency_prompt(user, context: str, strategy: str, student_message: str
         .replace("${context}", context)
         .replace("${student_message}", truncated)
     )
-
-
-def get_format_frequency_prompt(user, strategy, reasoning_response: str) -> str:
-    prompt = get_prompt(user, "format_frequency")
-    return prompt.replace(
-        "${strategy_for_frequency}", str(strategy)).replace(
-        "${reasoning_response}", reasoning_response)
 
 
 def get_strategy_analysis_prompt(user) -> str:
