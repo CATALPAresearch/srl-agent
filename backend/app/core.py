@@ -44,7 +44,7 @@ from .database.crud import (
     get_active_run_started_at,
 )
 from .logging_utlis import log_action
-from .steps import strategy_step, frequency_step, validate_strategies, intro_step, _user_only_conv
+from .steps import strategy_step, frequency_step, intro_step, _user_only_conv, OTHER_STRATEGY
 
 logger = logging.getLogger("InterviewAgent")
 _SUMMARY_THREADS = set()
@@ -53,7 +53,7 @@ _STRATEGY_NAME_CACHE = {}
 
 
 def _pending_summary_message(user):
-    user_lang = get_language(user.language_id)
+    user_lang = get_language_by_id(user.language_id)
     if user_lang and user_lang.lang_code == "de":
         return (
             "Das Interview ist abgeschlossen. Bitte fülle jetzt den Fragebogen aus. "
@@ -79,7 +79,7 @@ def _is_pending_summary_message(text):
 
 
 def _summary_fallback_message(user):
-    user_lang = get_language(user.language_id)
+    user_lang = get_language_by_id(user.language_id)
     if user_lang and user_lang.lang_code == "de":
         return (
             "Vielen Dank fuers Ausfuellen des Fragebogens. "
@@ -470,13 +470,12 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
             case "strategy":
                 strategies_mentioned, status, llm_message = strategy_step(user, str(current_context.context),
                                                                           conversation_for_current_context)
-                if status in ("completed", "complete", "abandon"):
+                if status in ("completed", "abandon"):
                     update_current_conversation_step(user, "frequency")
-                    valid_strategies = list(dict.fromkeys(validate_strategies(strategies_mentioned)))
-
-                    for mentioned_strategy in valid_strategies:
+                    # strategies_mentioned is already validated and deduplicated by strategy_step
+                    for mentioned_strategy in strategies_mentioned:
                         store_strategy(user, user_answer_db, current_context.id, mentioned_strategy)
-                        if mentioned_strategy == "008-001":
+                        if mentioned_strategy == OTHER_STRATEGY:
                             update_strategy_with_frequency(user, current_context.id, mentioned_strategy, 0)
                     llm_message, current_context = ask_about_frequency(user, current_context, conversation_for_current_context)
 
@@ -503,19 +502,12 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                     )
 
             case "frequency":
-                conversation_for_strategy_in_context = retrieve_full_conversation(
-                    user,
-                    user.conversation_state.current_context,
-                    user.conversation_state.strategy_for_frequency
-                )
-
                 strategy_rated, rated_frequency, status, llm_message = frequency_step(
                     user,
                     conversation_for_current_context,
-                    conversation_for_strategy_in_context
                 )
 
-                if status in ("completed", "abandon"):
+                if status == "completed":
                     # Store user's answer(s)
                     update_strategy_with_frequency(user, current_context_id, strategy_rated,
                                                    rated_frequency)
