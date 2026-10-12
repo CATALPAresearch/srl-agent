@@ -139,10 +139,11 @@ def _detect_strategies_llm(user: User, context: str, prev_conversation: list) ->
         user, reasoning_response, _n_user_answers(prev_conversation), context, MAX_FOLLOWUPS + 1
     )
     # No conversational system prompt here: its "never name strategies" rule conflicts
-    # with outputting strategy IDs.
+    # with outputting strategy IDs. The user's answers are passed as well so the format
+    # call does not depend solely on how verbose the analysis was.
     json_output, json_valid = try_get_json_completion(5, 0.0, 0.2, format_strategy_prompt,
                                                       expected_fields_model=StepStrategieStepperFields,
-                                                      prev_conversation=[],
+                                                      prev_conversation=_user_only_conv(prev_conversation),
                                                       user_prompt=None)
     if not json_valid:
         return []
