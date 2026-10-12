@@ -160,25 +160,6 @@ class TestGetContextPrompt:
 
 
 # ---------------------------------------------------------------------------
-# get_frequency_validate_prompt
-# ---------------------------------------------------------------------------
-
-class TestGetFrequencyValidatePrompt:
-    def test_strategy_substituted(self):
-        from app.prompts import get_frequency_validate_prompt
-        with _patch_lang("en"):
-            result = get_frequency_validate_prompt(_mock_user(), "001-001")
-        assert "${strategy_for_frequency}" not in result
-        assert "001-001" in result
-
-    def test_returns_string(self):
-        from app.prompts import get_frequency_validate_prompt
-        with _patch_lang("en"):
-            result = get_frequency_validate_prompt(_mock_user(), "some_strategy")
-        assert isinstance(result, str)
-
-
-# ---------------------------------------------------------------------------
 # get_frequency_prompt
 # ---------------------------------------------------------------------------
 
@@ -196,27 +177,6 @@ class TestGetFrequencyPrompt:
         from app.prompts import get_frequency_prompt
         with _patch_lang("en"):
             result = get_frequency_prompt(_mock_user(), context="term papers", strategy="002-001")
-        assert "${" not in result
-
-
-# ---------------------------------------------------------------------------
-# get_format_frequency_prompt
-# ---------------------------------------------------------------------------
-
-class TestGetFormatFrequencyPrompt:
-    def test_strategy_and_reasoning_substituted(self):
-        from app.prompts import get_format_frequency_prompt
-        with _patch_lang("en"):
-            result = get_format_frequency_prompt(_mock_user(), "003-002", "The user said 3.")
-        assert "${strategy_for_frequency}" not in result
-        assert "${reasoning_response}" not in result
-        assert "003-002" in result
-        assert "The user said 3." in result
-
-    def test_all_placeholders_replaced(self):
-        from app.prompts import get_format_frequency_prompt
-        with _patch_lang("en"):
-            result = get_format_frequency_prompt(_mock_user(), "003-002", "answer was 2")
         assert "${" not in result
 
 

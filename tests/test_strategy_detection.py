@@ -159,7 +159,7 @@ _LLM_CASES = _llm_cases()
 
 
 class TestLLMDetection:
-    """Test ``_strategy_step_llm()`` against gold labels.
+    """Test ``_detect_strategies_llm()`` against gold labels.
 
     These tests create a minimal mock ``User`` to drive the LLM pipeline.
     They are much slower than RAG tests.
@@ -173,7 +173,7 @@ class TestLLMDetection:
     )
     def test_llm_detection(self, flask_app, db, case):
         """LLM strategy detection returns the gold strategy."""
-        from app.steps import _strategy_step_llm
+        from app.steps import _detect_strategies_llm
         from app.models import User, Language, ConversationState
 
         with flask_app.app_context():
@@ -214,7 +214,7 @@ class TestLLMDetection:
                 prev_conversation.append({"role": role, "content": msg})
 
             # Run the LLM strategy detection
-            strategies, status, comment = _strategy_step_llm(
+            strategies = _detect_strategies_llm(
                 user,
                 context="writing scientific papers",
                 prev_conversation=prev_conversation,
@@ -222,8 +222,7 @@ class TestLLMDetection:
 
             gold = case["gold_strategy"]
             assert gold in strategies or case["gold_strategy_id"] in strategies, (
-                f"Gold {gold} ({case['gold_strategy_id']}) not in LLM result: "
-                f"{strategies} (status={status})"
+                f"Gold {gold} ({case['gold_strategy_id']}) not in LLM result: {strategies}"
             )
 
 
