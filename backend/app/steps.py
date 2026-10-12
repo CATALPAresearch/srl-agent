@@ -140,7 +140,7 @@ def _strategy_step_rag(user: User, context: str, prev_conversation: list[str]):
         + f"\nContext: {context}."
         + "\nAcknowledge briefly which strategies you recognised and ask about details.",
         user_prompt=None,
-        temperature=0.3,
+        temperature=0.2,
         prev_conversation=prev_conversation,
     )
 
@@ -338,13 +338,14 @@ def try_get_json_completion(
             logger.info("@ steps, try_get_json_completion:: LLM response: " + llm_message_raw)
             json_string = re.search(regex, llm_message_raw).group()
             json_output = json.loads(json_string)
-            # Unwrap envelope keys: LLM sometimes returns {"complete": {...fields...}}
-            # or {"in_progress": {...fields...}} instead of the fields at the top level.
-            if len(json_output) == 1:
-                only_key = next(iter(json_output))
-                inner = json_output[only_key]
-                if isinstance(inner, dict) and any(f in inner for f in expected_fields):
-                    json_output = inner
+            # Unwrap envelope keys: LLM sometimes wraps fields inside a status key,
+            # e.g. {"complete": {"strategies": [...], "status": "..."}, "in_progress": null}
+            # Only unwrap when the expected fields are NOT already at the top level.
+            if not any(f in json_output for f in expected_fields):
+                for value in json_output.values():
+                    if isinstance(value, dict) and any(f in value for f in expected_fields):
+                        json_output = value
+                        break
             for field in expected_fields:
                 if field not in json_output:
                     json_output[field] = ""

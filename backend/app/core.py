@@ -472,7 +472,7 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                                                                           conversation_for_current_context)
                 if status in ("completed", "complete", "abandon"):
                     update_current_conversation_step(user, "frequency")
-                    valid_strategies = validate_strategies(strategies_mentioned)
+                    valid_strategies = list(dict.fromkeys(validate_strategies(strategies_mentioned)))
 
                     for mentioned_strategy in valid_strategies:
                         store_strategy(user, user_answer_db, current_context.id, mentioned_strategy)
