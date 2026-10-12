@@ -253,7 +253,7 @@ var TRANSLATIONS = {
     from: "VON",
     to: "BIS",
     apply: "Anwenden",
-    clear: "ZurÃ¼cksetzen",
+    clear: "Zurücksetzen",
     loading: "Lade Daten\u2026",
     noData: "Noch keine Daten",
     showChart: "Diagramm",

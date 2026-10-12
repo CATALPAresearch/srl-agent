@@ -9,7 +9,9 @@
       "Bash(python -m pytest ../tests/test_strategy_detection.py -v --no-header)",
       "Bash(poetry lock *)",
       "WebFetch(domain:catalpa-gitlab.fernuni-hagen.de)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('/Users/nise/Documents/proj_002_aple/MAS-webui/srl-chat/backend/config/prompts.json'\\)\\); p=d.get\\('de',d.get\\('en',{}\\)\\); print\\(p.get\\('frequency','NOT FOUND'\\)\\)\")",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('/Users/nise/Documents/proj_002_aple/MAS-webui/srl-chat/backend/config/prompts.json'\\)\\); p=d.get\\('en',{}\\); print\\(p.get\\('frequency','NOT FOUND'\\)\\)\")"
     ]
   }
 }
