@@ -1,3 +1,5 @@
+import hashlib
+import os
 import time
 import uuid
 from flask import request, has_request_context
@@ -5,6 +7,13 @@ from app import db
 from .actions import LogAction
 from .models import ActivityLog
 import logging
+
+
+def _hash_ip(ip: str) -> str:
+    """One-way hash of IP address using a server-side salt for pseudonymisation.
+    Same IP always yields the same hash (linkable), but the original cannot be recovered."""
+    salt = os.environ.get("SECRET_KEY", "fallback_secret_key")
+    return hashlib.sha256(f"{salt}:{ip}".encode()).hexdigest()[:16]
 
 logger = logging.getLogger("InterviewAgent")
 
@@ -51,7 +60,7 @@ def log_action(
             extracted_user_agent = user_agent or request.headers.get('User-Agent')
 
             if include_ip and request.remote_addr:
-                ip = request.remote_addr
+                ip = _hash_ip(request.remote_addr)
 
         log_entry = ActivityLog(
             id=str(uuid.uuid4()),
