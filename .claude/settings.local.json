@@ -18,7 +18,8 @@
       "Bash(npx eslint *)",
       "Bash(curl -sI https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js)",
       "Bash(python3 -)",
-      "Bash(grep -v \"warn\\\\|Docs\\\\|^$\")"
+      "Bash(grep -v \"warn\\\\|Docs\\\\|^$\")",
+      "Bash(npm run *)"
     ]
   }
 }
