@@ -36,8 +36,14 @@ const PAGE_NAMES = {
 
 // Redirect unauthenticated users away from admin-only routes
 const ADMIN_ROUTES = new Set(['/protocols', '/dashboard/researcher']);
+// Routes that require informed consent before access is granted
+const CONSENT_ROUTES = new Set(['/agent-chat', '/survey', '/results']);
+const CONSENT_KEY = 'srl_informed_consent';
+
 router.beforeEach((to, _from, next) => {
   if (ADMIN_ROUTES.has(to.path) && sessionStorage.getItem('srl_admin_session') !== '1') {
+    next('/');
+  } else if (CONSENT_ROUTES.has(to.path) && localStorage.getItem(CONSENT_KEY) !== 'yes') {
     next('/');
   } else {
     next();
