@@ -326,7 +326,7 @@ def get_student_results():
 
     peer_rows = db.session.execute(
         sa.text("""
-            SELECT strategy, ROUND(SUM(max_freq)::numeric / :count, 2) AS avg_frequency
+            SELECT strategy, ROUND(AVG(max_freq)::numeric, 2) AS avg_frequency
             FROM (
                 SELECT us.user_id, us.strategy, MAX(us.frequency) AS max_freq
                 FROM user_strategy us
@@ -338,7 +338,7 @@ def get_student_results():
             ) sub
             GROUP BY strategy
         """),
-        {"client": client, "count": completed_count},
+        {"client": client},
     ).all()
     avg_map = {r.strategy: float(r.avg_frequency) for r in peer_rows}
 
