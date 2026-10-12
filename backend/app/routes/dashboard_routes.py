@@ -5,7 +5,7 @@ from flask_cors import cross_origin
 
 from app import app, db
 from ..models import (
-    User, ConversationState, UserStrategy, SurveyResponse, Language,
+    User, ConversationState, SurveyResponse, Language,
 )
 
 dashboard_bp = Blueprint('dashboard', __name__)
@@ -56,10 +56,14 @@ def get_dashboard_stats():
         """)).scalar() or 0
 
         # 2. Completed interviews
+        completed_date_filter = (
+            "AND user_id IN (SELECT DISTINCT user_id FROM interview_answer WHERE 1=1 " + ia_date_filter + ")"
+            if ia_date_filter else ""
+        )
         total_completed = db.session.execute(sa.text(f"""
             SELECT COUNT(*) FROM state
             WHERE interview_completed = true
-            {'AND user_id IN (SELECT DISTINCT user_id FROM interview_answer WHERE 1=1 ' + ia_date_filter + ')' if ia_date_filter else ''}
+            {completed_date_filter}
         """)).scalar() or 0
 
         # 3. Avg interview duration + variance + std deviation
@@ -121,7 +125,7 @@ def get_dashboard_stats():
             ConversationState.current_conversation_step,
             sa.func.count(ConversationState.id).label("count")
         ).filter(
-            ConversationState.interview_completed == False
+            ConversationState.interview_completed.is_(False)
         ).group_by(ConversationState.current_conversation_step).all()
         dropoff_distribution = [
             {"step": row.current_conversation_step or "not_started", "count": row.count}
@@ -162,12 +166,12 @@ def get_dashboard_stats():
         # 9. Avg turns completed vs incomplete
         avg_turns_completed = db.session.query(
             sa.func.avg(ConversationState.current_turn)
-        ).filter(ConversationState.interview_completed == True).scalar()
+        ).filter(ConversationState.interview_completed.is_(True)).scalar()
         avg_turns_completed = round(float(avg_turns_completed), 1) if avg_turns_completed else 0
 
         avg_turns_incomplete = db.session.query(
             sa.func.avg(ConversationState.current_turn)
-        ).filter(ConversationState.interview_completed == False).scalar()
+        ).filter(ConversationState.interview_completed.is_(False)).scalar()
         avg_turns_incomplete = round(float(avg_turns_incomplete), 1) if avg_turns_incomplete else 0
 
         # 10. Language distribution
@@ -311,6 +315,6 @@ def get_dashboard_courses():
             {"id": r[0], "name": r[1] or ("No course (standalone)" if r[0] == "0" else r[0]), "students": r[2]}
             for r in rows
         ]), 200
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         return jsonify([]), 200

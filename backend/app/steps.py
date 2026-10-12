@@ -46,16 +46,17 @@ def _is_de(user: User) -> bool:
 
 
 class StepIntroFields(BaseModel):
-  """BaseModel of the expected JSON structure of a LLM response regarding a study subject"""
-  study_subject: str
-  status: str
-  comment: str
+    """BaseModel of the expected JSON structure of a LLM response regarding a study subject"""
+    study_subject: str
+    status: str
+    comment: str
+
 
 class StepStrategieStepperFields(BaseModel):
-  """BaseModel of the expected JSON structure of a LLM response regarding an open ended question"""
-  strategies: str
-  status: str
-  comment: str
+    """BaseModel of the expected JSON structure of a LLM response regarding an open ended question"""
+    strategies: str
+    status: str
+    comment: str
 
 
 # ---------------------------------------------------------------------------
@@ -159,7 +160,8 @@ def _strategy_conversational_comment(user: User, context: str, prev_conversation
     if _is_de(user):
         guide = (
             f"Gehe kurz auf die letzte Aussage des/der Gesprächspartner*in ein. "
-            f"Stelle dann genau eine kurze, offene Frage dazu, was er/sie konkret im Kontext '{context}' tut, wenn er/sie lernt. "
+            "Stelle dann genau eine kurze, offene Frage dazu, "
+            f"was er/sie konkret im Kontext '{context}' tut, wenn er/sie lernt. "
             "WICHTIG: Nenne niemals Lernstrategien, Lernmethoden oder Strategiekategorien beim Namen, "
             "beschreibe sie nicht und deute sie nicht an — auch nicht als Beispiel. "
             "Stelle keine suggestiven oder führenden Fragen. "
@@ -168,8 +170,10 @@ def _strategy_conversational_comment(user: User, context: str, prev_conversation
     else:
         guide = (
             f"Briefly acknowledge the student's last message. "
-            f"Then ask exactly one short, open-ended question about what the student concretely does when studying in the context '{context}'. "
-            "IMPORTANT: Never name, describe, or hint at any learning strategy, method, or category — not even as an example. "
+            "Then ask exactly one short, open-ended question about what the student concretely does "
+            f"when studying in the context '{context}'. "
+            "IMPORTANT: Never name, describe, or hint at any learning strategy, method, or category "
+            "— not even as an example. "
             "Do not ask leading or suggestive questions. "
             "Write ONLY your next message. Do not simulate a dialogue."
         )

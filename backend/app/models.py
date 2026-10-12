@@ -7,6 +7,8 @@ import numpy as np
 import datetime
 from app import db
 
+_STEPS = "('intro', 'strategy', 'probe', 'frequency', 'complete')"
+
 
 class Language(db.Model):
     __tablename__ = "languages"
@@ -62,9 +64,6 @@ class StrategyTranslation(db.Model):
     language_id: so.Mapped[str] = so.mapped_column(sa.ForeignKey(Language.id))
 
 
-
-
-
 class StrategyVector(db.Model):
     """Legacy HuggingFace 384-dim embeddings (used by database/setup.py)."""
     __tablename__ = "strategy_vector"
@@ -118,7 +117,7 @@ class ConversationState(db.Model):
         cascade="all, delete-orphan")
     current_conversation_step: so.Mapped[str] = so.mapped_column(sa.String(32),
                                                                  sa.CheckConstraint(
-                                                                     "current_conversation_step IN ('intro', 'strategy', 'probe', 'frequency', 'complete')",
+                                                                     "current_conversation_step IN " + _STEPS,
                                                                      name="response_check"),
                                                                  nullable=True)
     __table_args__ = (sa.ForeignKeyConstraint([user_id, user_client],
@@ -149,7 +148,7 @@ class InterviewAnswer(db.Model):
     message: so.Mapped[str] = so.mapped_column(sa.String())
     conversation_step: so.Mapped[str] = so.mapped_column(sa.String(32),
                                                          sa.CheckConstraint(
-                                                             "conversation_step IN ('intro', 'strategy', 'probe', 'frequency', 'complete')",
+                                                             "conversation_step IN " + _STEPS,
                                                              name="step_check"),
                                                          nullable=False)
     strategies: so.Mapped[List["UserStrategy"]] = so.relationship(
@@ -193,7 +192,7 @@ class LlmResponse(db.Model):
     turn: so.Mapped[int] = so.mapped_column(sa.Integer)
     conversation_step: so.Mapped[str] = so.mapped_column(sa.String(32),
                                                          sa.CheckConstraint(
-                                                             "conversation_step IN ('intro', 'strategy', 'probe', 'frequency', 'complete')",
+                                                             "conversation_step IN " + _STEPS,
                                                              name="step_check"),
                                                          nullable=False)
     message_time: so.Mapped[datetime.datetime] = so.mapped_column(
@@ -242,6 +241,7 @@ class SurveyResponse(db.Model):
     __table_args__ = (
         sa.Index("idx_survey_user", "survey_id", "user_id", "user_client"),
     )
+
 
 class ActivityLog(db.Model):
     __tablename__ = "activity_log"

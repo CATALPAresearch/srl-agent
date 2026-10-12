@@ -33,7 +33,7 @@ def populate_contexts():
         interview_context = json.load(file)
     for lang_code in interview_context:
         if get_language(lang_code):
-            app.logger.info(f"Language %s already exists", lang_code)
+            app.logger.info("Language %s already exists", lang_code)
         else:
             app.logger.info("Setting up language %s", lang_code)
             lang_id = str(uuid.uuid4())

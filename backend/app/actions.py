@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class LogAction(str, Enum):
     """
     Enum for all loggable actions in the system.

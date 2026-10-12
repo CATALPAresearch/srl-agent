@@ -317,13 +317,6 @@ def get_student_results():
             freq_map[us.strategy] = max(freq_map.get(us.strategy, 0), int(us.frequency))
 
     # --- Course average: avg frequency per strategy ---
-    completed_count = db.session.scalar(
-        sa.select(sa.func.count())
-        .select_from(ConversationState)
-        .where(ConversationState.user_client == client)
-        .where(ConversationState.interview_completed == True)
-    ) or 1  # avoid divide-by-zero
-
     peer_rows = db.session.execute(
         sa.text("""
             SELECT strategy, ROUND(AVG(max_freq)::numeric, 2) AS avg_frequency

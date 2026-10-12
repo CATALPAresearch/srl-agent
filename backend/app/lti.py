@@ -37,6 +37,7 @@ def launch():
 
     return redirect(f"/lti/ui?userid={quote(userid)}")
 
+
 @lti_bp.route("/ui", methods=["GET"])
 def lti_ui():
     userid = request.args.get("userid", "lti-anonymous")

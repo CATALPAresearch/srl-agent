@@ -429,7 +429,7 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                 study_subject, status, comment = intro_step(user, conversation_for_current_context)
                 logger.info('@intro step, got subject')
                 logger.info(study_subject)
-                logger.info('@intro status: %s',status)
+                logger.info('@intro status: %s', status)
 
                 if status in ("completed", "complete", "abandon"):
                     store_study_subject(user, study_subject)
@@ -457,7 +457,7 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                         turn=turn,
                         step=conversation_step,
                         context=current_context.context,
-                        strategy=user.conversation_state.strategy_for_frequency if user.conversation_state.strategy_for_frequency else "strategy_not_detected",
+                        strategy=user.conversation_state.strategy_for_frequency or "strategy_not_detected",
                         http_status=200
                     )
 
@@ -477,7 +477,9 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                         store_strategy(user, user_answer_db, current_context.id, mentioned_strategy)
                         if mentioned_strategy == OTHER_STRATEGY:
                             update_strategy_with_frequency(user, current_context.id, mentioned_strategy, 0)
-                    llm_message, current_context = ask_about_frequency(user, current_context, conversation_for_current_context)
+                    llm_message, current_context = ask_about_frequency(
+                        user, current_context, conversation_for_current_context
+                    )
 
                     log_action(
                         LogAction.REPLY_LLM,
@@ -486,7 +488,7 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                         turn=turn,
                         step=conversation_step,
                         context=current_context.context if current_context else None,
-                        strategy=user.conversation_state.strategy_for_frequency if user.conversation_state.strategy_for_frequency else "strategy_not_detected",
+                        strategy=user.conversation_state.strategy_for_frequency or "strategy_not_detected",
                         http_status=200
                     )
                 else:
@@ -512,7 +514,9 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                     update_strategy_with_frequency(user, current_context_id, strategy_rated,
                                                    rated_frequency)
                     # check if further strategies need to be checked for frequency
-                    llm_message, current_context = ask_about_frequency(user, current_context, conversation_for_current_context)
+                    llm_message, current_context = ask_about_frequency(
+                        user, current_context, conversation_for_current_context
+                    )
 
                 log_action(
                     LogAction.REPLY_LLM,
@@ -570,7 +574,7 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
 
         return jsonify({
             "message": fallback_text,
-            "complete": bool(user.conversation_state.interview_completed) if user and user.conversation_state else False,
+            "complete": bool(user and user.conversation_state and user.conversation_state.interview_completed),
             "degraded": True,
         }), 200
 
@@ -720,7 +724,7 @@ def move_to_next_context(user, current_context):
         prompt = get_context_prompt(next_context.context, user)
         update_current_conversation_step(user, "strategy")
         llm_message = get_llm_response(prompt + system_prompt,
-                                              prev_conversation=_user_only_conv(conversation_so_far))
+                                       prev_conversation=_user_only_conv(conversation_so_far))
     else:
         update_current_conversation_step(user, "complete")
         # Return a simple pending message now; spawn background generation so the
@@ -803,8 +807,8 @@ def reset_conversation(user):
             value={"status": "started"},
             http_status=200,
             step="complete",
-            context= "delete conversation",
-            strategy= "no strategy"
+            context="delete conversation",
+            strategy="no strategy"
         )
 
         conversation = retrieve_full_conversation(user)

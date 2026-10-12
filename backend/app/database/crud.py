@@ -1,8 +1,7 @@
 import logging
-import numpy as np
 import json
 import datetime
-from app import app, db
+from app import db
 from app.models import (
     Archive,
     ActivityLog,
