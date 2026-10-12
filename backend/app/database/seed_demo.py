@@ -17,7 +17,7 @@ from app.models import (
 app.app_context().push()
 
 CLIENT = "standalone"
-LANG   = "en"
+LANG = "en"
 
 # ── Frequency profiles: code → frequency (0 = not mentioned) ──────────
 # Scale: 1=seldom, 2=sometimes, 3=often, 4=most of the time

@@ -22,7 +22,12 @@
       "Bash(npm run *)",
       "Bash(DISABLE_LLM=true poetry run pytest ../tests/ -q --ignore=../tests/locustfile.py -p no:cacheprovider)",
       "Bash(BASE_URL=http://127.0.0.1:9 timeout 280 poetry run pytest ../tests/test_interview_completion.py -q -p no:cacheprovider)",
-      "Bash(BASE_URL=http://127.0.0.1:9 poetry run pytest ../tests/test_interview_completion.py -q -s -p no:cacheprovider)"
+      "Bash(BASE_URL=http://127.0.0.1:9 poetry run pytest ../tests/test_interview_completion.py -q -s -p no:cacheprovider)",
+      "Bash(pipx run *)",
+      "Read(//tmp/**)",
+      "Bash(awk '{print $1}')",
+      "Bash(echo \"flake8 exit: $?\")",
+      "Read(//Users/nise/Documents/proj_002_aple/MAS-webui/**)"
     ]
   }
 }

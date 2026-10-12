@@ -15,7 +15,9 @@ def _hash_ip(ip: str) -> str:
     salt = os.environ.get("SECRET_KEY", "fallback_secret_key")
     return hashlib.sha256(f"{salt}:{ip}".encode()).hexdigest()[:16]
 
+
 logger = logging.getLogger("InterviewAgent")
+
 
 def log_action(
         action: LogAction,

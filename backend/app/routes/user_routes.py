@@ -53,7 +53,8 @@ def set_user_language():
 @cross_origin()
 def get_translations(lang):
     """Return the translation strings for the given language (used by Discord bot)."""
-    import json, os
+    import json
+    import os
     path = os.path.join(os.path.dirname(__file__), "..", "..", "config", "translations.json")
     with open(os.path.abspath(path), "r", encoding="utf-8") as f:
         data = json.load(f)

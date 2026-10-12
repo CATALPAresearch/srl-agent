@@ -285,6 +285,17 @@ curl -X POST http://localhost:5000/resetConversation \
 
 ## 8. Testing
 
+### Linting (same checks as the GitLab pipeline)
+
+```bash
+# Python (job: python-lint) — run from the repository root
+pipx run flake8 backend/app --max-line-length=120 --exclude=__pycache__
+
+# Vue/JS (job: vue-lint)
+cd frontend
+npm run lint
+```
+
 ### Unit/integration tests (pytest)
 
 ```bash

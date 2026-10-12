@@ -14,7 +14,7 @@ db.session.commit()
 db.create_all()
 print("Tables created.")
 
-from app.config import get_interview_config_path
+from app.config import get_interview_config_path  # noqa: E402
 with open(get_interview_config_path(), "r", encoding="utf-8") as f:
     interview_context = json.load(f)
 

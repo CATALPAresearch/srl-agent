@@ -24,7 +24,6 @@ from functools import lru_cache
 import numpy as np
 import requests
 import sqlalchemy as sa
-from pgvector.sqlalchemy import Vector
 
 from app import db
 from app.models import StrategyEmbedding
@@ -41,6 +40,7 @@ _CONFIG_DIR = pathlib.Path(__file__).resolve().parent.parent / "config"
 _STRATEGIES_PATH = _CONFIG_DIR / "learning_strategies.json"
 _CODE_MAP_PATH = _CONFIG_DIR / "strategy_code_map.json"
 _STRATEGIES_HASH_PATH = _CONFIG_DIR / "learning_strategies.hash"
+
 
 @lru_cache(maxsize=1)
 def _load_code_map() -> dict[str, str]:

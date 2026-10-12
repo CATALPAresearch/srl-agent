@@ -65,12 +65,12 @@ metadata = MetaData(naming_convention=convention)
 db = SQLAlchemy(app, metadata=metadata)
 migrate = Migrate(app, db, render_as_batch=True)
 
-from app import routes, models
-from app.lti import lti_bp
+from app import routes, models  # noqa: E402,F401  (registers routes/models; must follow db setup)
+from app.lti import lti_bp  # noqa: E402
 app.register_blueprint(lti_bp)
 
 # Seed RAG strategy embeddings on startup (when enabled)
-from app.rag import USE_RAG_STRATEGY, seed_strategy_embeddings
+from app.rag import USE_RAG_STRATEGY, seed_strategy_embeddings  # noqa: E402
 if USE_RAG_STRATEGY:
     with app.app_context():
         db.create_all()  # ensure strategy_embedding table exists
@@ -81,5 +81,3 @@ if USE_RAG_STRATEGY:
             seed_strategy_embeddings()
 
     threading.Thread(target=_seed_rag, daemon=True, name="rag-seed").start()
-
-
