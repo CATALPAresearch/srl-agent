@@ -1,9 +1,10 @@
 # .gitlab-ci.yml -- CI/CD pipeline for srl-agent
-# Stages: lint -> test
+# Stages: lint -> test -> deploy
 
 stages:
   - lint
   - test
+  - deploy
 
 # -------------------------------------------
 # LINT
@@ -92,3 +93,19 @@ vue-build:
     - if: $CI_COMMIT_BRANCH == "main"
     - changes:
         - frontend/**/*
+
+# -------------------------------------------
+# DEPLOY: static project page from public/ (GitLab Pages)
+# -------------------------------------------
+pages:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "Publishing public/"
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - public/**/*
