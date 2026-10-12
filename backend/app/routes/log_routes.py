@@ -97,7 +97,7 @@ def log_mouse_traces():
             http_status=200,
         )
 
-        app.logger.info("Stored %d mouse traces for user %s/%s", len(traces), userid, client)
+        # app.logger.info("Stored %d mouse traces for user %s/%s", len(traces), userid, client)
         return jsonify({"status": "stored", "count": len(traces)}), 200
 
     except Exception as e:
