@@ -298,6 +298,10 @@ Targeted runs:
 # Interview completion regression
 poetry run pytest ../tests/test_interview_completion.py -v -s
 
+# ...and additionally fail if strategies are detected in fewer than half of the contexts
+# (requires a reachable LLM; only warns by default)
+REQUIRE_STRATEGY_DETECTION=true poetry run pytest ../tests/test_interview_completion.py -v -s
+
 # Set in browser console to see results in the /results page:
 localStorage.setItem("srl_userid", "test_interview_bot")
 location.reload()

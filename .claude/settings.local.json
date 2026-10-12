@@ -19,7 +19,10 @@
       "Bash(curl -sI https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js)",
       "Bash(python3 -)",
       "Bash(grep -v \"warn\\\\|Docs\\\\|^$\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(DISABLE_LLM=true poetry run pytest ../tests/ -q --ignore=../tests/locustfile.py -p no:cacheprovider)",
+      "Bash(BASE_URL=http://127.0.0.1:9 timeout 280 poetry run pytest ../tests/test_interview_completion.py -q -p no:cacheprovider)",
+      "Bash(BASE_URL=http://127.0.0.1:9 poetry run pytest ../tests/test_interview_completion.py -q -s -p no:cacheprovider)"
     ]
   }
 }
