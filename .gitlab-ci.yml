@@ -110,6 +110,4 @@ pages:
     paths:
       - public
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      changes:
-        - public/**/*
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
