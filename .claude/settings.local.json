@@ -27,7 +27,10 @@
       "Read(//tmp/**)",
       "Bash(awk '{print $1}')",
       "Bash(echo \"flake8 exit: $?\")",
-      "Read(//Users/nise/Documents/proj_002_aple/MAS-webui/**)"
+      "Read(//Users/nise/Documents/proj_002_aple/MAS-webui/**)",
+      "Bash(docker info *)",
+      "Bash(docker pull *)",
+      "Bash(docker run --rm --network ci-sim -v /private/tmp/claude-501/-Users-nise-Documents-proj-002-aple-MAS-webui-srl-chat/23953ce1-43d5-4b00-b6d2-8373db0d840c/scratchpad/ci/repo:/builds/repo -w /builds/repo -e PG_HOST=postgresql -e PG_PORT=5432 -e PG_USER=chat -e PG_PASSWORD=test_password -e PG_DB=srl_chat_test -e BASE_URL=http://localhost:11434 -e API_KEY=test -e MODEL=llama3.2 -e DISABLE_LLM=true -e SECRET_KEY=test_secret -e ADMIN_PASSWORD=test_admin -e OLLAMA_NUM_PREDICT=256 -e OLLAMA_NUM_CTX=2048 python:3.12-slim sh -ec ' *)"
     ]
   }
 }
