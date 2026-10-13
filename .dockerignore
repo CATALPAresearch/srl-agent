@@ -1,0 +1,25 @@
+# Build context is the repository root (see docker-compose.yml → api.build).
+# Keep it small and never ship secrets or local build artefacts into the image.
+.git
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+backend/.venv
+backend/logs
+backend/static/lti/app-lazy.js
+backend/static/lti/app-lazy.js.map
+
+# secrets / local config
+.env
+.env.*
+**/.env
+example.env
+README-deployment.md
+
+# not needed in the API image
+tests
+public
+infrastructure
+moodle
+.github
+.claude

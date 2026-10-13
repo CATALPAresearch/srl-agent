@@ -1,8 +1,9 @@
 services:
   api:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      # repo root, so the image can also build the frontend bundle
+      context: .
+      dockerfile: backend/Dockerfile
       network: host
     image: ${REGISTRY:-local}/srl-agent-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -32,8 +33,7 @@ services:
     volumes:
       - ./backend/logs:/api/logs:z
       - ./backend/config:/api/config:ro,z
-      - ./backend/static:/api/static:ro,z
-      - ./frontend:/frontend:ro,z
+      # static files and the frontend bundle are built into the image (backend/Dockerfile)
     command: >
       sh -c "python -m app.database.setup_no_embed &&
              gunicorn app:app -b 0.0.0.0:5000 --timeout 300 --workers 2"
