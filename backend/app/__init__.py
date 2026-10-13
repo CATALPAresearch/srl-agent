@@ -7,6 +7,10 @@ from logging.config import dictConfig
 import os
 from dotenv import load_dotenv
 
+# logs/ is not versioned; create it so a fresh checkout (CI, new server) can start
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 dictConfig(
     {
         "version": 1,
@@ -23,14 +27,14 @@ dictConfig(
             },
             "fileRotate": {
                 "class": "logging.handlers.RotatingFileHandler",
-                "filename": os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logs", "api.log"),
+                "filename": os.path.join(LOG_DIR, "api.log"),
                 "maxBytes": 1000000,
                 "backupCount": 5,
                 "formatter": "default",
             },
             "consoleFile": {
                 "class": "logging.handlers.RotatingFileHandler",
-                "filename": os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logs", "console.log"),
+                "filename": os.path.join(LOG_DIR, "console.log"),
                 "maxBytes": 1000000,
                 "backupCount": 5,
                 "formatter": "default",
