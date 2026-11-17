@@ -545,6 +545,7 @@
 <script>
 import axios from "axios";
 import Chart from "chart.js";
+import { markRaw } from "vue";
 
 const BLUE = "#2563b0";
 const BLUE_MID = "rgba(37,99,176,0.5)";
@@ -790,7 +791,7 @@ export default {
         const sorted = [...this.courseList]
           .sort((a, b) => b.students - a.students)
           .slice(0, 20);
-        this.charts.course = new Chart(cCtx, {
+        this.charts.course = markRaw(new Chart(cCtx, {
           type: "bar",
           data: {
             labels: sorted.map((c) => c.name),
@@ -818,7 +819,7 @@ export default {
               ],
             },
           }),
-        });
+        }));
       }
 
       // Drop-off
@@ -829,7 +830,7 @@ export default {
         this.stats.dropoff_distribution &&
         this.stats.dropoff_distribution.length
       ) {
-        this.charts.dropoff = new Chart(dCtx, {
+        this.charts.dropoff = markRaw(new Chart(dCtx, {
           type: "bar",
           data: {
             labels: this.stats.dropoff_distribution.map((s) => s.step),
@@ -860,7 +861,7 @@ export default {
               ],
             },
           }),
-        });
+        }));
       }
 
       // Language
@@ -871,7 +872,7 @@ export default {
         this.stats.language_distribution &&
         this.stats.language_distribution.length
       ) {
-        this.charts.language = new Chart(lCtx, {
+        this.charts.language = markRaw(new Chart(lCtx, {
           type: "doughnut",
           data: {
             labels: this.stats.language_distribution.map((l) => l.language),
@@ -889,7 +890,7 @@ export default {
             maintainAspectRatio: false,
             legend: { position: "bottom" },
           },
-        });
+        }));
       }
 
       // Funnel
@@ -900,7 +901,7 @@ export default {
         this.stats.completion_funnel &&
         this.stats.completion_funnel.length
       ) {
-        this.charts.funnel = new Chart(fCtx, {
+        this.charts.funnel = markRaw(new Chart(fCtx, {
           type: "bar",
           data: {
             labels: this.stats.completion_funnel.map((f) => f.step),
@@ -930,13 +931,13 @@ export default {
               ],
             },
           }),
-        });
+        }));
       }
 
       // Turns
       const tCtx = this.$refs.turnsChart;
       if (tCtx && !this.showTable.turns) {
-        this.charts.turns = new Chart(tCtx, {
+        this.charts.turns = markRaw(new Chart(tCtx, {
           type: "bar",
           data: {
             labels: ["Completed", "Incomplete"],
@@ -969,7 +970,7 @@ export default {
               ],
             },
           }),
-        });
+        }));
       }
 
       // Response time
@@ -980,7 +981,7 @@ export default {
         this.stats.response_time_by_step &&
         this.stats.response_time_by_step.length
       ) {
-        this.charts.responseTime = new Chart(rCtx, {
+        this.charts.responseTime = markRaw(new Chart(rCtx, {
           type: "bar",
           data: {
             labels: this.stats.response_time_by_step.map((r) => r.step),
@@ -1009,7 +1010,7 @@ export default {
               ],
             },
           }),
-        });
+        }));
       }
 
       // Weekly
@@ -1020,7 +1021,7 @@ export default {
         this.stats.weekly_activity &&
         this.stats.weekly_activity.length
       ) {
-        this.charts.weekly = new Chart(wCtx, {
+        this.charts.weekly = markRaw(new Chart(wCtx, {
           type: "line",
           data: {
             labels: this.stats.weekly_activity.map((w) => w.week),
@@ -1068,7 +1069,7 @@ export default {
               xAxes: [{ scaleLabel: { ...LABEL_STYLE, labelString: "Week" } }],
             },
           },
-        });
+        }));
       }
 
       // Strategy — show names not codes
@@ -1079,7 +1080,7 @@ export default {
         this.stats.strategy_distribution &&
         this.stats.strategy_distribution.length
       ) {
-        this.charts.strategy = new Chart(sCtx, {
+        this.charts.strategy = markRaw(new Chart(sCtx, {
           type: "horizontalBar",
           data: {
             labels: this.stats.strategy_distribution.map(
@@ -1106,7 +1107,7 @@ export default {
               yAxes: [{ scaleLabel: { display: false } }],
             },
           }),
-        });
+        }));
       }
 
       // Survey avg scores — fixed axis chart + scrollable bars chart
@@ -1135,7 +1136,7 @@ export default {
 
         // Axis-only chart (no data, just draws the x axis)
         if (svAxisCtx && !this.showTable.survey) {
-          this.charts.surveyAxis = new Chart(svAxisCtx, {
+          this.charts.surveyAxis = markRaw(new Chart(svAxisCtx, {
             type: "horizontalBar",
             data: {
               labels: [""],
@@ -1158,12 +1159,12 @@ export default {
               },
               tooltips: { enabled: false },
             },
-          });
+          }));
         }
 
         // Bars-only chart (no x axis shown, scrolls)
         if (svCtx && !this.showTable.survey) {
-          this.charts.survey = new Chart(svCtx, {
+          this.charts.survey = markRaw(new Chart(svCtx, {
             type: "horizontalBar",
             data: {
               labels,
@@ -1210,7 +1211,7 @@ export default {
                 },
               },
             },
-          });
+          }));
         }
       }
     },

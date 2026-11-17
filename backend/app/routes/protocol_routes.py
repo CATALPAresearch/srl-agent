@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify, send_from_directory
 from flask_cors import cross_origin
 
 from ._paths import CONFIG_DIR
+from .admin_routes import admin_required
 
 protocols_bp = Blueprint('protocols', __name__)
 
@@ -15,6 +16,7 @@ _INTERVIEW_DIR = os.path.join(CONFIG_DIR, "interview")
 
 @protocols_bp.route("/protocols", methods=["GET"])
 @cross_origin()
+@admin_required
 def list_protocols():
     """List all available interview protocols."""
     try:
@@ -30,6 +32,7 @@ def list_protocols():
 
 @protocols_bp.route("/protocols/<name>", methods=["GET"])
 @cross_origin()
+@admin_required
 def get_protocol(name):
     """Get a specific interview protocol by name."""
     try:
@@ -46,6 +49,7 @@ def get_protocol(name):
 
 @protocols_bp.route("/protocols", methods=["POST"])
 @cross_origin()
+@admin_required
 def create_protocol():
     """Create a new interview protocol."""
     try:
@@ -67,6 +71,7 @@ def create_protocol():
 
 @protocols_bp.route("/protocols/<name>", methods=["PUT"])
 @cross_origin()
+@admin_required
 def update_protocol(name):
     """Update an existing interview protocol."""
     try:
@@ -84,6 +89,7 @@ def update_protocol(name):
 
 @protocols_bp.route("/protocols/<name>", methods=["DELETE"])
 @cross_origin()
+@admin_required
 def delete_protocol(name):
     """Delete an interview protocol."""
     try:
@@ -101,6 +107,7 @@ def delete_protocol(name):
 
 @protocols_bp.route("/protocols/<name>/export", methods=["GET"])
 @cross_origin()
+@admin_required
 def export_protocol(name):
     """Export a protocol as a downloadable JSON file."""
     try:
@@ -120,6 +127,7 @@ def export_protocol(name):
 
 @protocols_bp.route("/protocols/import", methods=["POST"])
 @cross_origin()
+@admin_required
 def import_protocol():
     """Import a protocol from uploaded JSON."""
     try:

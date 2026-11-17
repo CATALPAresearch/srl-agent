@@ -18,7 +18,7 @@
             exact
             class="mobile-nav-item"
             active-class="mobile-nav-active"
-            @click.native="mobileMenuOpen = false"
+            @click="mobileMenuOpen = false"
           >
             {{ lang === "de" ? "Start" : "Home" }}
           </router-link>
@@ -26,7 +26,7 @@
             to="/agent-chat"
             class="mobile-nav-item"
             active-class="mobile-nav-active"
-            @click.native="mobileMenuOpen = false"
+            @click="mobileMenuOpen = false"
           >
             {{ lang === "de" ? "Interview" : "Interview" }}
           </router-link>
@@ -34,7 +34,7 @@
             to="/survey"
             class="mobile-nav-item"
             active-class="mobile-nav-active"
-            @click.native="mobileMenuOpen = false"
+            @click="mobileMenuOpen = false"
           >
             {{ lang === "de" ? "Umfrage" : "Survey" }}
           </router-link>
@@ -43,7 +43,7 @@
             to="/protocols"
             class="mobile-nav-item"
             active-class="mobile-nav-active"
-            @click.native="mobileMenuOpen = false"
+            @click="mobileMenuOpen = false"
           >
             Protocols
           </router-link>
@@ -52,7 +52,7 @@
             to="/dashboard/researcher"
             class="mobile-nav-item"
             active-class="mobile-nav-active"
-            @click.native="mobileMenuOpen = false"
+            @click="mobileMenuOpen = false"
           >
             Researcher Dashboard
           </router-link>
@@ -60,7 +60,7 @@
             to="/dashboard/teacher"
             class="mobile-nav-item"
             active-class="mobile-nav-active"
-            @click.native="mobileMenuOpen = false"
+            @click="mobileMenuOpen = false"
           >
             Teacher Dashboard
           </router-link>
@@ -214,18 +214,20 @@
         </div>
       </div>
     </div>
-    <keep-alive>
-      <router-view class="chat-app__view" :lang="lang" />
-    </keep-alive>
+    <router-view v-slot="{ Component }">
+      <keep-alive>
+        <component :is="Component" class="chat-app__view" :lang="lang" />
+      </keep-alive>
+    </router-view>
   </div>
 </template>
 
 <script>
-import Vue from "vue";
+import { defineComponent } from "vue";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-export default Vue.extend({
+export default defineComponent({
   name: "ChatApp",
 
   data() {
@@ -285,26 +287,46 @@ export default Vue.extend({
       }
     },
 
-    loginAdmin() {
-      const expected = window.SRL_ADMIN_PASSWORD || "admin";
-      if (this.adminPasswordInput === expected) {
-        this.$store.commit("setAdmin", true);
+    // The password is verified by the server only; the admin state lives in the
+    // server session. sessionStorage just mirrors it for the router guard / UI.
+    setAdminState(isAdmin) {
+      this.$store.commit("setAdmin", isAdmin);
+      if (isAdmin) {
         sessionStorage.setItem("srl_admin_session", "1");
-        this.showAdminLogin = false;
-        this.adminPasswordInput = "";
-        this.adminLoginError = false;
       } else {
-        this.adminLoginError = true;
-        this.adminPasswordInput = "";
+        sessionStorage.removeItem("srl_admin_session");
       }
     },
 
-    logoutAdmin() {
-      this.$store.commit("setAdmin", false);
-      sessionStorage.removeItem("srl_admin_session");
+    async loginAdmin() {
+      const password = this.adminPasswordInput;
+      this.adminPasswordInput = "";
+      try {
+        await axios.post(`${this.host}/admin/login`, { password });
+        this.setAdminState(true);
+        this.showAdminLogin = false;
+        this.adminLoginError = false;
+      } catch (e) {
+        this.setAdminState(false);
+        this.adminLoginError = true;
+      }
+    },
+
+    async logoutAdmin() {
+      await axios.post(`${this.host}/admin/logout`).catch(() => {});
+      this.setAdminState(false);
       const adminRoutes = ["/protocols", "/dashboard/researcher"];
       if (adminRoutes.includes(this.$route.path)) {
         this.$router.push("/");
+      }
+    },
+
+    async loadAdminStatus() {
+      try {
+        const res = await axios.get(`${this.host}/admin/status`);
+        this.setAdminState(Boolean(res.data && res.data.is_admin));
+      } catch (e) {
+        this.setAdminState(false);
       }
     },
 
@@ -371,6 +393,7 @@ export default Vue.extend({
   mounted() {
     this.loadUserLanguage();
     this.loadUserRole();
+    this.loadAdminStatus();
   },
 });
 </script>

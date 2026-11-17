@@ -1,138 +1,84 @@
 const path = require("path");
 const webpack = require("webpack");
-const VueLoaderPlugin = require("vue-loader/lib/plugin");
+const { VueLoaderPlugin } = require("vue-loader");
 const TerserPlugin = require("terser-webpack-plugin");
-// FileManagerPlugin removed — webpack outputs directly to api/static/lti/
-
-// const isDevServer = process.argv.find(v => v.includes('webpack-dev-server'));
 
 module.exports = (env, options) => {
-  exports = {
+  const isProduction = options.mode === "production";
+
+  return {
     entry: "./src/main.js",
     output: {
       path: path.resolve(__dirname, "../backend/static/lti"),
       publicPath: "/static/lti/",
       filename: "app-lazy.js",
-      chunkFilename: "[id].app-lazy.js?v=[hash]",
-      libraryTarget: "amd",
+      chunkFilename: "[id].app-lazy.js?v=[contenthash]",
+      // loaded via require.js (standalone index.html and Moodle)
+      library: { type: "amd" },
     },
     module: {
       rules: [
         {
           test: /\.css$/,
-          use: ["vue-style-loader", "css-loader"],
+          use: ["style-loader", "css-loader"],
         },
         {
           test: /\.vue$/,
           loader: "vue-loader",
-          options: {
-            loaders: {},
-            // Other vue-loader options go here
-          },
         },
         {
           test: /\.js$/,
           loader: "babel-loader",
           exclude: /node_modules/,
         },
-        /*{
-                    test: /\.tsx?$/,
-                    loader: "ts-loader",
-                    exclude: /node_modules/,
-                    options: {
-                        // Tell to ts-loader: if you check .vue file extension, handle it like a ts file
-                        appendTsSuffixTo: [/\.vue$/]
-                    }
-                }*/
       ],
     },
     resolve: {
       alias: {
-        vue$: "vue/dist/vue.esm.js",
         "@": path.resolve(__dirname, "./src/"),
       },
-      extensions: ["*", ".tsx", ".ts", ".js", ".vue", ".json"],
+      extensions: [".tsx", ".ts", ".js", ".vue", ".json"],
     },
     devServer: {
       historyApiFallback: true,
-      noInfo: true,
-      overlay: true,
       headers: {
         "Access-Control-Allow-Origin": "*",
       },
-      disableHostCheck: true,
-      https: true,
-      public: "https://127.0.0.1:8080",
+      allowedHosts: "all",
+      server: "https",
       hot: true,
+      client: { overlay: true },
     },
     performance: {
       hints: false,
     },
-    devtool: "source-map", // '#eval-source-map',
-    plugins: [new VueLoaderPlugin()],
+    devtool: isProduction ? false : "source-map",
+    plugins: [
+      new VueLoaderPlugin(),
+      // Vue 3 compile-time feature flags (esm-bundler build)
+      new webpack.DefinePlugin({
+        __VUE_OPTIONS_API__: JSON.stringify(true),
+        __VUE_PROD_DEVTOOLS__: JSON.stringify(false),
+        __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: JSON.stringify(false),
+      }),
+    ],
     watchOptions: {
       ignored: /node_modules/,
     },
+    optimization: isProduction
+      ? { minimizer: [new TerserPlugin({ parallel: true })] }
+      : {},
     externals: {
-      "core/ajax": {
-        amd: "core/ajax",
-      },
-      "core/str": {
-        amd: "core/str",
-      },
-      "core/modal_factory": {
-        amd: "core/modal_factory",
-      },
-      "core/modal_events": {
-        amd: "core/modal_events",
-      },
-      "core/fragment": {
-        amd: "core/fragment",
-      },
-      "core/yui": {
-        amd: "core/yui",
-      },
-      "core/localstorage": {
-        amd: "core/localstorage",
-      },
-      "core/notification": {
-        amd: "core/notification",
-      },
-      jquery: {
-        amd: "jquery",
-      },
-      jqueryui: {
-        amd: "jqueryui",
-      },
+      "core/ajax": { amd: "core/ajax" },
+      "core/str": { amd: "core/str" },
+      "core/modal_factory": { amd: "core/modal_factory" },
+      "core/modal_events": { amd: "core/modal_events" },
+      "core/fragment": { amd: "core/fragment" },
+      "core/yui": { amd: "core/yui" },
+      "core/localstorage": { amd: "core/localstorage" },
+      "core/notification": { amd: "core/notification" },
+      jquery: { amd: "jquery" },
+      jqueryui: { amd: "jqueryui" },
     },
   };
-
-  if (options.mode === "production") {
-    exports.devtool = false;
-    // http://vue-loader.vuejs.org/en/workflow/production.html
-    exports.plugins = (exports.plugins || []).concat([
-      new webpack.DefinePlugin({
-        "process.env": {
-          NODE_ENV: '"production"',
-        },
-      }),
-      new webpack.LoaderOptionsPlugin({
-        minimize: true,
-      }),
-    ]);
-    exports.optimization = {
-      minimizer: [
-        new TerserPlugin({
-          cache: true,
-          parallel: true,
-          sourceMap: true,
-          terserOptions: {
-            // https://github.com/webpack-contrib/terser-webpack-plugin#terseroptions
-          },
-        }),
-      ],
-    };
-  }
-
-  return exports;
 };

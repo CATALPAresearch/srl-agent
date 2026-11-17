@@ -55,12 +55,12 @@
 
 <script>
 import axios from "axios";
-import Vue from "vue";
+import { defineComponent } from "vue";
 //import { mapGetters } from 'vuex'
 import ChatUI from "./ChatUI.vue";
 import Communication from "../classes/communication";
 
-export default Vue.extend({
+export default defineComponent({
   name: "AgentChat",
   components: {
     ChatUI: ChatUI,
@@ -389,7 +389,7 @@ export default Vue.extend({
         .then((response) => {
           this.is_loading = false;
           console.log("/reply: ", response);
-          this.$set(this.messages, bot_pos, {
+          this.messages[bot_pos] = {
             author: "bot",
             message:
               response.data && typeof response.data.message === "string"
@@ -402,17 +402,17 @@ export default Vue.extend({
             // Results CTA is never shown immediately after interview completion —
             // only after the user has completed the survey and returned here.
             isResultsCTA: false,
-          });
+          };
           this.wait_video_generation = false;
         })
         .catch((error) => {
           this.is_loading = false;
           console.error("Error sending message:", error);
-          this.$set(this.messages, bot_pos, {
+          this.messages[bot_pos] = {
             author: "bot",
             message: "Error: Unable to get a response.",
             id: bot_placeholder.id,
-          });
+          };
         });
     },
 
@@ -497,7 +497,7 @@ export default Vue.extend({
     },
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     this.stopSummaryPolling();
     this.stopMouseTracking();
     if (this.visibilityHandler) {

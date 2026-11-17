@@ -13,7 +13,7 @@ module.exports = {
     sourceType: 'module',
   },
   extends: [
-    'plugin:vue/essential',
+    'plugin:vue/vue3-essential',
   ],
   rules: {
     'no-console': 'off',

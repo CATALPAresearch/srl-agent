@@ -243,6 +243,7 @@
 <script>
 import axios from "axios";
 import Chart from "chart.js";
+import { markRaw } from "vue";
 
 var GREEN = "#2563b0";
 var GREEN_MID = "rgba(37,99,176,0.5)";
@@ -541,7 +542,7 @@ export default {
         this.stats.dropoff_distribution &&
         this.stats.dropoff_distribution.length
       ) {
-        this.charts.dropoff = new Chart(dCtx, {
+        this.charts.dropoff = markRaw(new Chart(dCtx, {
           type: "bar",
           data: {
             labels: this.stats.dropoff_distribution.map(function (s) {
@@ -586,7 +587,7 @@ export default {
               ],
             },
           },
-        });
+        }));
       }
 
       // Funnel
@@ -597,7 +598,7 @@ export default {
         this.stats.completion_funnel &&
         this.stats.completion_funnel.length
       ) {
-        this.charts.funnel = new Chart(fCtx, {
+        this.charts.funnel = markRaw(new Chart(fCtx, {
           type: "bar",
           data: {
             labels: this.stats.completion_funnel.map(function (f) {
@@ -641,7 +642,7 @@ export default {
               ],
             },
           },
-        });
+        }));
       }
 
       // Weekly
@@ -652,7 +653,7 @@ export default {
         this.stats.weekly_activity &&
         this.stats.weekly_activity.length
       ) {
-        this.charts.weekly = new Chart(wCtx, {
+        this.charts.weekly = markRaw(new Chart(wCtx, {
           type: "line",
           data: {
             labels: this.stats.weekly_activity.map(function (w) {
@@ -713,7 +714,7 @@ export default {
               ],
             },
           },
-        });
+        }));
       }
     },
     destroyCharts: function () {

@@ -130,10 +130,10 @@
 </template>
 
 <script>
-import Vue from "vue";
+import { defineComponent } from "vue";
 import axios from "axios";
 
-export default Vue.extend({
+export default defineComponent({
   name: "SurveyView",
 
   data() {
@@ -303,7 +303,7 @@ export default Vue.extend({
     window.addEventListener("keydown", this.handleSecretShortcut);
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     window.removeEventListener("keydown", this.handleSecretShortcut);
   },
 });

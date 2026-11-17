@@ -17,6 +17,7 @@ from ..models import (
     ConversationState, Context, Archive,
 )
 from ._paths import CONFIG_DIR
+from .admin_routes import admin_required
 
 survey_bp = Blueprint('survey', __name__)
 
@@ -430,6 +431,7 @@ def get_student_interview_runs():
 
 @survey_bp.route("/survey/<survey_id>/results", methods=["GET"])
 @cross_origin()
+@admin_required
 def get_survey_results(survey_id):
     """Return all responses for a given survey (admin/research endpoint)."""
     rows = SurveyResponse.query.filter_by(survey_id=survey_id).all()

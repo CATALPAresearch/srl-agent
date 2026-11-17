@@ -1,0 +1,51 @@
+/*!
+ * Chart.js v2.9.4
+ * https://www.chartjs.org
+ * (c) 2020 Chart.js Contributors
+ * Released under the MIT License
+ */
+
+/*!
+ * Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com
+ * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
+ * Copyright 2024 Fonticons, Inc.
+ */
+
+/*!
+ * vue-router v4.6.5
+ * (c) 2026 Eduardo San Martin Morote
+ * @license MIT
+ */
+
+/*!
+ * vue-showdown - Use showdown as a vue component
+ *
+ * @version v4.2.0
+ * @link https://vue-showdown.js.org
+ * @license MIT
+ * @copyright 2018-2023 meteorlxy
+ */
+
+/*!
+ * vuex v4.1.0
+ * (c) 2022 Evan You
+ * @license MIT
+ */
+
+/*! showdown v 2.1.0 - 21-04-2022 */
+
+/**
+* @vue/runtime-dom v3.5.45
+* (c) 2018-present Yuxi (Evan) You and Vue contributors
+* @license MIT
+**/
+
+/**
+* @vue/shared v3.5.45
+* (c) 2018-present Yuxi (Evan) You and Vue contributors
+* @license MIT
+**/
+
+//! moment.js
+
+//! moment.js locale configuration

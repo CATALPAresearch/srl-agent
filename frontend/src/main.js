@@ -1,5 +1,5 @@
 import "bootstrap/dist/css/bootstrap.min.css";
-import Vue from "vue";
+import { createApp } from "vue";
 import { store } from "./store";
 import router from "./router";
 import ChatApp from "./components/ChatApp.vue";
@@ -32,7 +32,6 @@ library.add(
   faUnlock,
   faBars,
 );
-Vue.component("font-awesome-icon", FontAwesomeIcon);
 
 // Set API host: prefer SRL_CONFIG.apiBaseUrl, then current origin
 const _apiBase =
@@ -51,9 +50,8 @@ if (!_configUserId && !_urlUserId) {
 }
 store.commit("setUser", _userId);
 
-new Vue({
-  el: "#app",
-  store,
-  router,
-  render: (h) => h(ChatApp),
-});
+createApp(ChatApp)
+  .use(store)
+  .use(router)
+  .component("font-awesome-icon", FontAwesomeIcon)
+  .mount("#app");

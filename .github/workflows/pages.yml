@@ -24,6 +24,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Build index.html from readme.md
+        run: >
+          docker run --rm -v "$PWD:/data" -u "$(id -u):$(id -g)" pandoc/core:3.6
+          public/readme.md -f markdown -s -c style.css -V lang=de
+          --metadata pagetitle="SRL Agent" -o public/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

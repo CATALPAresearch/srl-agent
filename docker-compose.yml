@@ -27,7 +27,7 @@ services:
       - USE_RAG_STRATEGY=${USE_RAG_STRATEGY:-false}
       - RAG_EMBEDDING_MODEL=${RAG_EMBEDDING_MODEL:-nomic-embed-text}
       - SECRET_KEY=${SECRET_KEY}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}  # no default: admin login is disabled if unset
     expose:
       - 5000
     volumes:

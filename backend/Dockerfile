@@ -1,7 +1,7 @@
 # Build context: repository root (see docker-compose.yml)
 
 # --- Stage 1: build the Vue frontend bundle (webpack → ../backend/static/lti) ---
-FROM node:18-alpine AS frontend
+FROM node:22-alpine AS frontend
 WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund

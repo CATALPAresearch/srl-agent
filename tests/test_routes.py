@@ -393,6 +393,14 @@ class TestDashboard:
 class TestProtocols:
     _created = []  # track names to clean up
 
+    @pytest.fixture(autouse=True)
+    def _login_as_admin(self, client, monkeypatch):
+        """Protocol routes are admin-only; log the shared test client in and out again."""
+        monkeypatch.setenv("ADMIN_PASSWORD", "pytest-admin")
+        assert client.post("/admin/login", json={"password": "pytest-admin"}).status_code == 200
+        yield
+        client.post("/admin/logout")
+
     def test_list_returns_list(self, client):
         resp = client.get("/protocols")
         assert resp.status_code == 200

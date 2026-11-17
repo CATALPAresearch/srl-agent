@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from sqlalchemy import MetaData
 from logging.config import dictConfig
 import os
+import secrets
 from dotenv import load_dotenv
 
 # logs/ is not versioned; create it so a fresh checkout (CI, new server) can start
@@ -55,7 +56,11 @@ dictConfig(
 load_dotenv()
 app = Flask('InterviewAgent')
 app.config.from_object(Config)
-app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret_key")
+app.secret_key = os.environ.get("SECRET_KEY")
+if not app.secret_key:
+    # Never fall back to a known key: it would let anyone forge session cookies (e.g. admin login).
+    app.secret_key = secrets.token_hex(32)
+    app.logger.warning("SECRET_KEY is not set - using a random key; sessions reset on every restart")
 convention = {
     "ix": 'ix_%(column_0_label)s',
     "uq": "uq_%(table_name)s_%(column_0_name)s",
