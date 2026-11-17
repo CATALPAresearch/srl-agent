@@ -3,8 +3,7 @@
  * ========================= */
 const IS_LTI = window.SRL_CLIENT === "lti";
 
-import Vue from "vue";
-import Vuex from "vuex";
+import { createStore } from "vuex";
 import communication from "../classes/communication";
 
 /* =========================
@@ -22,9 +21,7 @@ if (!IS_LTI) {
   }
 }
 
-Vue.use(Vuex);
-
-export const store = new Vuex.Store({
+export const store = createStore({
   state: {
     // admin mode — restored from sessionStorage so it survives page reloads
     isAdmin: sessionStorage.getItem('srl_admin_session') === '1',

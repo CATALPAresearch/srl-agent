@@ -9,10 +9,8 @@ declare global {
     SRL_CONFIG?: {
       apiBaseUrl?: string;
       userId?: string;
-      adminPassword?: string;
     };
     SRL_CLIENT?: string;
     SRL_BACKEND_URL?: string;
-    SRL_ADMIN_PASSWORD?: string;
   }
 }

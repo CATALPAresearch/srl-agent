@@ -210,14 +210,15 @@
   </div>
 </template>
 
-<script lang="ts">
-import Vue from "vue";
+<script>
+import { defineComponent } from "vue";
 import { mapGetters, mapState } from "vuex";
 import Communication from "../classes/communication";
 import { VueShowdown } from "vue-showdown";
 
-export default Vue.extend({
+export default defineComponent({
   name: "ChatUI",
+  emits: ["requestChatResponse", "openSurvey", "openResults", "voiceInput"],
   props: {
     messages: {
       type: Array,
@@ -277,7 +278,7 @@ export default Vue.extend({
     this.scrollTranscriptToBottom();
     this.focusInput();
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.clearScrollTimers();
   },
   watch: {

@@ -295,13 +295,13 @@
 </template>
 
 <script>
-import Vue from "vue";
+import { defineComponent } from "vue";
 import axios from "axios";
 import ChatInformedConsent from "./ChatInformedConsent.vue";
 
 const CONSENT_KEY = "srl_informed_consent";
 
-export default Vue.extend({
+export default defineComponent({
   name: "LandingTeacher",
 
   components: { ChatInformedConsent },

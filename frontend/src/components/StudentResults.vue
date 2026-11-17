@@ -83,11 +83,10 @@
                       class="sr-label-hit"
                       :style="{ left: o.x + 'px', top: o.y + 'px' }"
                     ></span>
-                    <b-popover
+                    <HoverPopover
                       v-for="o in radarLabelOverlays"
                       :key="'rp-' + o.idx"
                       :target="'sr-rl-' + componentId + '-' + o.idx"
-                      triggers="hover focus"
                       placement="auto"
                       @show="
                         logInteraction('strategy_hovered', {
@@ -153,7 +152,7 @@
                           }}
                         </div>
                       </div>
-                    </b-popover>
+                    </HoverPopover>
                   </div>
                 </div>
               </div>
@@ -199,11 +198,10 @@
                       class="sr-strategy-tag"
                       >{{ s.name }}</span
                     >
-                    <b-popover
+                    <HoverPopover
                       v-for="(s, si) in unmentiondStrategies"
                       :key="'tp-' + si"
                       :target="'sr-tag-' + componentId + '-' + si"
-                      triggers="hover focus"
                       placement="top"
                       @show="
                         logInteraction('unmentioned_strategy_hovered', {
@@ -214,7 +212,7 @@
                     >
                       <template #title>{{ s.name }}</template>
                       {{ s.definition || s.description }}
-                    </b-popover>
+                    </HoverPopover>
                   </div>
                 </div>
               </div>
@@ -335,14 +333,14 @@
 </template>
 
 <script>
-import Vue from "vue";
+import { defineComponent, markRaw } from "vue";
 import axios from "axios";
 import Chart from "chart.js";
-import { BPopover } from "bootstrap-vue";
+import HoverPopover from "./HoverPopover.vue";
 
-export default Vue.extend({
+export default defineComponent({
   name: "StudentResults",
-  components: { BPopover },
+  components: { HoverPopover },
 
   data() {
     return {
@@ -398,7 +396,7 @@ export default Vue.extend({
       const truncate = (s, n) =>
         s.length > n ? s.slice(0, n - 1) + "\u2026" : s;
 
-      this.mobileBarChart = new Chart(canvas.getContext("2d"), {
+      this.mobileBarChart = markRaw(new Chart(canvas.getContext("2d"), {
         type: "horizontalBar",
         data: {
           labels: radarData.map((s) => truncate(s.name, 28)),
@@ -459,7 +457,7 @@ export default Vue.extend({
             },
           },
         },
-      });
+      }));
     },
 
     renderRadarChart() {
@@ -484,7 +482,7 @@ export default Vue.extend({
         (s) => Math.round((s.avg_frequency || 0) * 10) / 10,
       );
 
-      this.radarChart = new Chart(canvas.getContext("2d"), {
+      this.radarChart = markRaw(new Chart(canvas.getContext("2d"), {
         type: "radar",
         data: {
           labels: shortLabels,
@@ -528,7 +526,7 @@ export default Vue.extend({
           tooltips: { enabled: false },
           legend: { display: true, position: "bottom" },
         },
-      });
+      }));
       this._buildLabelOverlays();
     },
 
@@ -616,7 +614,7 @@ export default Vue.extend({
     this.loadResults();
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     if (this.radarChart) this.radarChart.destroy();
     if (this.mobileBarChart) this.mobileBarChart.destroy();
     window.removeEventListener("resize", this._onResize);

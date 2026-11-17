@@ -153,7 +153,7 @@ poetry install
 poetry run python -m app.database.setup_no_embed
 
 cd ../frontend
-npm install
+npm install        # requires Node.js >= 22.15 (Vue 3 / webpack 5)
 npm run build
 
 cd ../backend

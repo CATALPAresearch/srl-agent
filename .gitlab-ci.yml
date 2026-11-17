@@ -11,7 +11,7 @@ stages:
 # -------------------------------------------
 vue-lint:
   stage: lint
-  image: node:18-alpine
+  image: node:22-alpine
   cache:
     key: node-$CI_COMMIT_REF_SLUG
     paths:
@@ -79,7 +79,7 @@ python-test:
 
 vue-build:
   stage: test
-  image: node:18-alpine
+  image: node:22-alpine
   cache:
     key: node-$CI_COMMIT_REF_SLUG
     paths:
@@ -88,7 +88,7 @@ vue-build:
     - cd frontend
     - npm ci
   script:
-    - NODE_OPTIONS=--openssl-legacy-provider npm run build
+    - npm run build
   artifacts:
     paths:
       - backend/static/lti/
@@ -103,9 +103,12 @@ vue-build:
 # -------------------------------------------
 pages:
   stage: deploy
-  image: alpine:latest
+  image:
+    name: pandoc/core:3.6
+    entrypoint: [""]
   script:
-    - echo "Publishing public/"
+    # index.html is generated from readme.md (figures use pandoc syntax)
+    - pandoc public/readme.md -f markdown -s -c style.css -V lang=de --metadata pagetitle="SRL Agent" -o public/index.html
   artifacts:
     paths:
       - public
