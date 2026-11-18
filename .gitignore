@@ -31,3 +31,6 @@ backend/static/lti/app-lazy.js.map
 
 pytest_dup*
 pytest_exp*
+
+# local Claude Code settings (per developer)
+.claude/settings.local.json
