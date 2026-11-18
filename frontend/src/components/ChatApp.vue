@@ -40,15 +40,6 @@
           </router-link>
           <router-link
             v-if="isAdmin"
-            to="/protocols"
-            class="mobile-nav-item"
-            active-class="mobile-nav-active"
-            @click="mobileMenuOpen = false"
-          >
-            Protocols
-          </router-link>
-          <router-link
-            v-if="isAdmin"
             to="/dashboard/researcher"
             class="mobile-nav-item"
             active-class="mobile-nav-active"
@@ -81,14 +72,6 @@
         </router-link>
         <router-link to="/survey" class="tab" active-class="active">
           {{ lang === "de" ? "Umfrage" : "Survey" }}
-        </router-link>
-        <router-link
-          v-if="isAdmin"
-          to="/protocols"
-          class="tab"
-          active-class="active"
-        >
-          Protocols
         </router-link>
         <router-link
           v-if="isAdmin"
@@ -315,7 +298,7 @@ export default defineComponent({
     async logoutAdmin() {
       await axios.post(`${this.host}/admin/logout`).catch(() => {});
       this.setAdminState(false);
-      const adminRoutes = ["/protocols", "/dashboard/researcher"];
+      const adminRoutes = ["/dashboard/researcher"];
       if (adminRoutes.includes(this.$route.path)) {
         this.$router.push("/");
       }

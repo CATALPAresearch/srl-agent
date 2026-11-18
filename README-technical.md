@@ -204,17 +204,13 @@ docker compose up -d
 | GET    | /student/results        | Student interview results |
 | GET    | /student/interview_runs | Student run list          |
 
-### Protocol editor
+### Interview protocols
 
-| Method | Path                       | Description               |
-| ------ | -------------------------- | ------------------------- |
-| GET    | /protocols                 | List available protocols  |
-| POST   | /protocols                 | Create a new protocol     |
-| GET    | /protocols/`<name>`        | Get a protocol            |
-| PUT    | /protocols/`<name>`        | Update a protocol         |
-| DELETE | /protocols/`<name>`        | Delete a protocol         |
-| GET    | /protocols/`<name>`/export | Export protocol as JSON   |
-| POST   | /protocols/import          | Import protocol from JSON |
+Protocols are JSON files in `backend/config/interview/` (several may exist). The active one is
+selected with `INTERVIEW_PROTOCOL` in `.env` (file name without `.json`). There is no editor
+and no API to change them: protocols steer the LLM prompts, so they are edited in the
+repository (reviewed and versioned by git) and deployed like code. In Docker the directory is
+mounted read-only.
 
 ### Dashboard
 
@@ -243,7 +239,7 @@ another user's data by passing `userid` explicitly.
 | --------------------------- | ----------------------------------------------------------------- |
 | Any identity                | Own interview, results, survey, language (`/reply`, `/conversation`, `/student/*`, …) |
 | Teacher (verified LTI)      | `/dashboard/stats`, `/dashboard/courses` — own course only        |
-| Admin (`ADMIN_PASSWORD`)    | All dashboards and courses, `/protocols*`, `/survey/<id>/results`, other users' data |
+| Admin (`ADMIN_PASSWORD`)    | All dashboards and courses, `/survey/<id>/results`, other users' data |
 
 Telemetry endpoints (`/log/*`) also require an identity; `/log/interaction` only accepts UI
 interaction actions, never server-side or audit actions.
@@ -252,8 +248,8 @@ interaction actions, never server-side or audit actions.
 that is not on its explicit public list answers with anything but 401 — new endpoints must be
 protected (or consciously added to that list).
 
-**Audit log:** admin logins (incl. failures) and logouts, every admin-only request (protocol
-create/update/delete/import/export, survey export), every dashboard request (with course scope),
+**Audit log:** admin logins (incl. failures) and logouts, every admin-only request (survey
+export), every dashboard request (with course scope),
 denied accesses, admins reading another user's data, and accepted/rejected LTI launches are
 written to `activity_log` (action `audit_*`, hashed client IP) and to the application log (Loki):
 

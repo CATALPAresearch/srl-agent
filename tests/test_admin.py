@@ -11,14 +11,17 @@ import pytest
 
 PASSWORD = "pytest-admin-secret"
 PROTECTED = [
+    ("get", "/survey/oase/results"),
+]
+# The protocol editor was removed: protocols are files in backend/config/interview, changed via git.
+REMOVED = [
     ("get", "/protocols"),
     ("get", "/protocols/interview_default"),
     ("post", "/protocols"),
     ("put", "/protocols/interview_default"),
-    ("delete", "/protocols/some_protocol"),
+    ("delete", "/protocols/interview_default"),
     ("get", "/protocols/interview_default/export"),
     ("post", "/protocols/import"),
-    ("get", "/survey/oase/results"),
 ]
 
 
@@ -70,8 +73,12 @@ class TestProtectedEndpoints:
 
     def test_accessible_after_login(self, fresh_client):
         fresh_client.post("/admin/login", json={"password": PASSWORD})
-        assert fresh_client.get("/protocols").status_code == 200
         assert fresh_client.get("/survey/oase/results").status_code == 200
+
+    @pytest.mark.parametrize("method,path", REMOVED)
+    def test_protocol_endpoints_no_longer_exist(self, fresh_client, method, path):
+        fresh_client.post("/admin/login", json={"password": PASSWORD})
+        assert getattr(fresh_client, method)(path, json={}).status_code in (404, 405)
 
 
 class TestDashboardAccess:
@@ -108,7 +115,7 @@ class TestDashboardAccess:
         """The reported attack: setting srl_admin_session in the browser grants nothing."""
         fresh_client.set_cookie("srl_admin_session", "1")
         assert fresh_client.get("/dashboard/stats").status_code == 401
-        assert fresh_client.get("/protocols").status_code == 401
+        assert fresh_client.get("/survey/oase/results").status_code == 401
 
 
 class TestPasswordNotExposed:

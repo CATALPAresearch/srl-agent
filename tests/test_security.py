@@ -341,23 +341,19 @@ class TestAuditLog:
         ok = _audit_entries("audit_admin_login", since)
         assert ok and ok[-1].user_id == "admin" and ok[-1].http_status == 200
 
-    def test_protocol_write_and_delete_are_audited(self, fresh_client):
+    def test_admin_export_is_audited(self, fresh_client):
         since = int(time.time())
-        name = "pytest_audit_" + uuid.uuid4().hex[:6]
         fresh_client.post("/admin/login", json={"password": ADMIN_PASSWORD})
-        fresh_client.post("/protocols", json={"name": name, "protocol": {}})
-        fresh_client.delete(f"/protocols/{name}")
+        fresh_client.get("/survey/oase/results")
         entries = _audit_entries("audit_admin_request", since)
-        calls = {(e.value["method"], e.value["path"], e.http_status) for e in entries}
-        assert ("POST", "/protocols", 201) in calls
-        assert ("DELETE", f"/protocols/{name}", 200) in calls
-        assert any(e.value.get("name") == name for e in entries)
+        assert any(e.value["path"] == "/survey/oase/results" and e.value.get("survey_id") == "oase"
+                   and e.http_status == 200 for e in entries)
 
     def test_denied_access_is_audited(self, fresh_client):
         since = int(time.time())
-        fresh_client.delete("/protocols/interview_default")
+        fresh_client.get("/survey/oase/results")
         denied = _audit_entries("audit_access_denied", since)
-        assert any(e.value["path"] == "/protocols/interview_default" and e.http_status == 401 for e in denied)
+        assert any(e.value["path"] == "/survey/oase/results" and e.http_status == 401 for e in denied)
 
     def test_dashboard_access_is_audited_with_course(self, fresh_client, auth):
         since = int(time.time())

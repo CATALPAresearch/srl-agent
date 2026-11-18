@@ -95,7 +95,7 @@ class LogAction(str, Enum):
     AUDIT_ADMIN_LOGIN = "audit_admin_login"
     AUDIT_ADMIN_LOGIN_FAILED = "audit_admin_login_failed"
     AUDIT_ADMIN_LOGOUT = "audit_admin_logout"
-    AUDIT_ADMIN_REQUEST = "audit_admin_request"          # any admin-only endpoint (protocols, exports)
+    AUDIT_ADMIN_REQUEST = "audit_admin_request"          # any admin-only endpoint (e.g. survey export)
     AUDIT_DASHBOARD_REQUEST = "audit_dashboard_request"  # dashboard data (admin or teacher, with scope)
     AUDIT_ACCESS_DENIED = "audit_access_denied"
     AUDIT_USER_DATA_READ = "audit_user_data_read"        # admin reading another user's data
