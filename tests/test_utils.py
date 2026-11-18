@@ -322,3 +322,19 @@ class TestLogAction:
 
         with flask_app.app_context():
             log_action(LogAction.START_CONVERSATION, user=None, include_ip=False)
+
+
+# ===========================================================================
+# app/__init__.py — SECRET_KEY
+# ===========================================================================
+
+class TestSecretKey:
+    @pytest.mark.parametrize("value", [None, "", "change-me-in-production", "your-secret-key-here",
+                                       "fallback_secret_key"])
+    def test_missing_or_placeholder_keys_are_rejected(self, value):
+        from app import usable_secret_key
+        assert usable_secret_key(value) is None
+
+    def test_real_key_is_used(self):
+        from app import usable_secret_key
+        assert usable_secret_key("3f9c0b2e7a51d8") == "3f9c0b2e7a51d8"

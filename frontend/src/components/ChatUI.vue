@@ -61,12 +61,12 @@
             }}</span>
           </div>
           <!-- Message body (renders empty string when loading) -->
-          <VueShowdown
+          <!-- LLM output: markdown rendered with marked, sanitized with DOMPurify -->
+          <div
+            class="chat-markdown"
             style="display: inline"
-            :markdown="m.message"
-            flavor="github"
-            :options="{ emoji: true }"
-          />
+            v-html="renderMarkdown(m.message)"
+          ></div>
 
           <div v-if="m.isSurveyCTA" class="chat-inline-cta">
             <button
@@ -219,9 +219,8 @@
 
 <script>
 import { defineComponent } from "vue";
-import { mapGetters, mapState } from "vuex";
-import Communication from "../classes/communication";
-import { VueShowdown } from "vue-showdown";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 export default defineComponent({
   name: "ChatUI",
@@ -254,11 +253,7 @@ export default defineComponent({
       scrollTimers: [],
     };
   },
-  components: {
-    VueShowdown: VueShowdown,
-  },
   computed: {
-    ...mapState(["strings"]),
     lang() {
       return this.$store.getters.getLanguage || "de";
     },
@@ -307,9 +302,10 @@ export default defineComponent({
     },
   },
   methods: {
-    ...mapGetters({
-      //rag_webservice_host: 'getRAGWebserviceHost',
-    }),
+    renderMarkdown(text) {
+      // GitHub-flavoured markdown; DOMPurify strips scripts, event handlers etc. from LLM output
+      return DOMPurify.sanitize(marked.parse(text || "", { gfm: true }));
+    },
     focusInput() {
       this.$nextTick(() => {
         const ta = this.$refs.chatTextarea;
@@ -343,7 +339,6 @@ export default defineComponent({
       textarea.style.height = textarea.scrollHeight + "px"; // Set height dynamically
     },
     copyMessageToClipboard(text, message_index) {
-      const _this = this;
       navigator.clipboard
         .writeText(text)
         .then(() => {
@@ -357,25 +352,9 @@ export default defineComponent({
         .catch((err) => {
           console.error("Failed to copy:", err);
         });
-      Communication.webservice("triggerEvent", {
-        cmid: _this.$store.getters.getCMID,
-        action: "copy_response",
-        value: JSON.stringify({ copied: text, index: message_index }),
-      });
     },
-    sendRating(rating, message_index) {
-      const _this = this;
-      const params = {
-        request: this.messages[message_index - 1],
-        response: this.messages[message_index],
-        rating: rating,
-      };
-      // Note: preserving original action-name logic from previous version.
-      Communication.webservice("triggerEvent", {
-        cmid: _this.$store.getters.getCMID,
-        action: "rate_response_" + (rating == "up" ? "positive" : "negative"),
-        value: JSON.stringify({ index: message_index, rating, params }),
-      });
+    sendRating() {
+      // Ratings were only reported to the former Moodle plugin and are not recorded.
     },
     clearScrollTimers() {
       this.scrollTimers.forEach((timerId) => clearTimeout(timerId));
@@ -414,7 +393,7 @@ export default defineComponent({
 </script>
 
 <style>
-/* ChatUI styles — intentionally not scoped to style VueShowdown rendered content */
+/* ChatUI styles — intentionally not scoped to style the rendered markdown (v-html) */
 /* -----------------------------------------------------------*/
 /* Accessibility */
 #chat .sr-only {

@@ -1,7 +1,6 @@
 const path = require("path");
 const webpack = require("webpack");
 const { VueLoaderPlugin } = require("vue-loader");
-const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = (env, options) => {
   const isProduction = options.mode === "production";
@@ -26,11 +25,6 @@ module.exports = (env, options) => {
           test: /\.vue$/,
           loader: "vue-loader",
         },
-        {
-          test: /\.js$/,
-          loader: "babel-loader",
-          exclude: /node_modules/,
-        },
       ],
     },
     resolve: {
@@ -38,16 +32,6 @@ module.exports = (env, options) => {
         "@": path.resolve(__dirname, "./src/"),
       },
       extensions: [".tsx", ".ts", ".js", ".vue", ".json"],
-    },
-    devServer: {
-      historyApiFallback: true,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-      },
-      allowedHosts: "all",
-      server: "https",
-      hot: true,
-      client: { overlay: true },
     },
     performance: {
       hints: false,
@@ -64,21 +48,6 @@ module.exports = (env, options) => {
     ],
     watchOptions: {
       ignored: /node_modules/,
-    },
-    optimization: isProduction
-      ? { minimizer: [new TerserPlugin({ parallel: true })] }
-      : {},
-    externals: {
-      "core/ajax": { amd: "core/ajax" },
-      "core/str": { amd: "core/str" },
-      "core/modal_factory": { amd: "core/modal_factory" },
-      "core/modal_events": { amd: "core/modal_events" },
-      "core/fragment": { amd: "core/fragment" },
-      "core/yui": { amd: "core/yui" },
-      "core/localstorage": { amd: "core/localstorage" },
-      "core/notification": { amd: "core/notification" },
-      jquery: { amd: "jquery" },
-      jqueryui: { amd: "jqueryui" },
     },
   };
 };

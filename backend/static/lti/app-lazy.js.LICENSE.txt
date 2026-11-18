@@ -6,9 +6,9 @@
  */
 
 /*!
- * Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com
+ * Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
- * Copyright 2024 Fonticons, Inc.
+ * Copyright 2026 Fonticons, Inc.
  */
 
 /*!
@@ -17,22 +17,9 @@
  * @license MIT
  */
 
-/*!
- * vue-showdown - Use showdown as a vue component
- *
- * @version v4.2.0
- * @link https://vue-showdown.js.org
- * @license MIT
- * @copyright 2018-2023 meteorlxy
- */
+/*! @license DOMPurify 3.4.18 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.18/LICENSE */
 
-/*!
- * vuex v4.1.0
- * (c) 2022 Evan You
- * @license MIT
- */
-
-/*! showdown v 2.1.0 - 21-04-2022 */
+/*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */
 
 /**
 * @vue/runtime-dom v3.5.45

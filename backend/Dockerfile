@@ -13,7 +13,7 @@ FROM python:3.12.5-slim
 
 WORKDIR /api
 
-# Install system deps needed by psycopg2 (libpq) and curl (healthcheck)
+# curl for the healthcheck (psycopg[binary] ships its own libpq)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*

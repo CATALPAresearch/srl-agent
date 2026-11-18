@@ -1,5 +1,0 @@
-{ 
-    "watch": ["*"],
-    "exec": "cross-env webpack --mode development --progress --hide-modules" ,
-    "ext": "js json ts proto vue"
-}

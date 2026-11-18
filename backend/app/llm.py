@@ -4,8 +4,6 @@ import time
 import logging
 from urllib.parse import urlsplit
 
-from ollama import Client
-
 BASE_URL = os.getenv("BASE_URL")
 API_KEY = os.getenv("API_KEY")
 MODEL = os.getenv("MODEL")
@@ -114,15 +112,6 @@ def query_embeddings(text_to_embed):
         headers=headers,
         json={"inputs": text_to_embed, "options": {"wait_for_model": True}})
     return response.json()
-
-
-def get_model_names(base_url):
-    client = Client(host=base_url)
-    names = []
-    for model in client.list()['models']:
-        m = dict(model)
-        names.append(m['model'])
-    return names
 
 
 def get_llm_response(

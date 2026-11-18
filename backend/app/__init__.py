@@ -56,13 +56,22 @@ dictConfig(
 load_dotenv()
 app = Flask('InterviewAgent')
 app.config.from_object(Config)
-app.secret_key = os.environ.get("SECRET_KEY")
+# Publicly known placeholder values (docs, example.env, old fallback) count as "not set".
+PLACEHOLDER_SECRET_KEYS = {"change-me-in-production", "your-secret-key-here", "fallback_secret_key"}
+
+
+def usable_secret_key(value):
+    """The configured SECRET_KEY, or None if it is missing or a known placeholder."""
+    return value if value and value not in PLACEHOLDER_SECRET_KEYS else None
+
+
+app.secret_key = usable_secret_key(os.environ.get("SECRET_KEY"))
 if not app.secret_key:
-    # Never fall back to a known key: it would let anyone forge session cookies (e.g. admin login).
+    # Never use a known key: it would let anyone forge identity tokens and admin sessions.
     app.secret_key = secrets.token_hex(32)
     app.logger.error(
-        "SECRET_KEY is not set - using a random per-process key. Identity tokens and sessions "
-        "will NOT work across gunicorn workers or restarts. Set SECRET_KEY in .env!"
+        "SECRET_KEY is not set (or is a placeholder) - using a random per-process key. Identity tokens "
+        "and sessions will NOT work across gunicorn workers or restarts. Set SECRET_KEY in .env!"
     )
 # Session cookie (admin login): never sent on cross-site requests (CSRF), not readable by JS.
 # The LTI iframe does not rely on it; it uses the identity token (app/identity.py).
@@ -75,7 +84,7 @@ convention = {
     "pk": "pk_%(table_name)s"
 }
 
-app.logger.warn(Config)
+app.logger.warning(Config)
 metadata = MetaData(naming_convention=convention)
 db = SQLAlchemy(app, metadata=metadata)
 migrate = Migrate(app, db, render_as_batch=True)

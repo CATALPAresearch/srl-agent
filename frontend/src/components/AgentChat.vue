@@ -3,26 +3,7 @@
     <div class="chat-header w100">
       <h3 class="d-flex justify-content-betweenx xalign-items-center mb-3">
         <span id="chat-title" hidden>Agent-Chat</span>
-        <button
-          hidden
-          @click="$store.commit('toggleShowSettings', 1)"
-          class="btn btn-link settings-icon-button"
-          aria-controls="settings-panel"
-          :aria-expanded="$store.getters.showSettings.toString()"
-          aria-label="Einstellungen öffnen oder schließen"
-          title="Einstellungen"
-          style="margin-top: 0px"
-        >
-          <font-awesome-icon
-            class="settings-icon"
-            icon="cog"
-            aria-hidden="true"
-          />
-        </button>
       </h3>
-      <div id="intro">
-        {{ $store.getters.getPluginSettings.intro }}
-      </div>
     </div>
 
     <button
@@ -56,9 +37,7 @@
 <script>
 import axios from "axios";
 import { defineComponent } from "vue";
-//import { mapGetters } from 'vuex'
 import ChatUI from "./ChatUI.vue";
-import Communication from "../classes/communication";
 
 export default defineComponent({
   name: "AgentChat",
@@ -377,10 +356,6 @@ export default defineComponent({
     },
 
     requestAgentChat: async function (message) {
-      if (this.$store.getters.getChatModus !== "agent-chat") {
-        return;
-      }
-
       this.is_loading = true;
 
       //@ts-ignore
@@ -390,14 +365,6 @@ export default defineComponent({
         id: this.getNextMessageId(),
       };
       this.messages.push(new_message);
-      Communication.webservice("triggerEvent", {
-        cmid: this.$store.getters.getCMID,
-        action: "agent_request",
-        value: JSON.stringify(new_message),
-      });
-
-      // TODO: let admin define the url of the agent webservice
-      //const base = new URL(this.$store.getters.getRAGWebserviceHost);
 
       const bot_placeholder = {
         author: "bot",

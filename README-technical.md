@@ -90,7 +90,8 @@ PG_USER=postgres
 PG_PASSWORD=postgres
 PG_DB=srl_chat
 
-SECRET_KEY=change-me-in-production
+# long random value, e.g. python3 -c "import secrets; print(secrets.token_hex(32))"
+SECRET_KEY=<random-hex>
 
 # JSON file in config/interview/ (without .json extension)
 INTERVIEW_PROTOCOL=interview_default
@@ -173,13 +174,25 @@ For detailed Moodle-centric setup, see [README-LTI.md](README-LTI.md).
 ### Docker Compose
 
 ```bash
-cp env.example .env
+cp example.env .env
 
 # Dev stack
 docker compose -f develop.docker-compose.yml up postgres-dev api-dev
 
 # Prod-like stack
 docker compose build --no-cache
+docker compose up -d
+```
+
+The API image is built with `network: host` (needed on the RedHat server, where firewalld
+blocks pypi/npm from the default build network). Newer Docker Compose versions build via
+`buildx bake` and then stop with *"additional privileges requested: pass --allow=network.host"*.
+Use the classic builder, or grant the privilege explicitly:
+
+```bash
+COMPOSE_BAKE=false docker compose build --no-cache
+# or
+docker buildx bake -f docker-compose.yml --allow=network.host --no-cache api
 docker compose up -d
 ```
 

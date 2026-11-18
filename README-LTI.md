@@ -71,7 +71,7 @@ cp api/.env.example api/.env
 Edit `api/.env`:
 
 ```env
-SECRET_KEY=your-secret-key-here
+SECRET_KEY=<random-hex>   # python3 -c "import secrets; print(secrets.token_hex(32))"
 PG_HOST=localhost
 PG_PORT=5432
 PG_USER=chat
