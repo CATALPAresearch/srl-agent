@@ -98,7 +98,7 @@ def test_lti_launch():
     # Request senden
     try:
         print("Sende Request...")
-        response = requests.post(LAUNCH_URL, data=params)
+        response = requests.post(LAUNCH_URL, data=params, timeout=30)
 
         print(f"Status Code: {response.status_code}")
         print()

@@ -55,28 +55,24 @@ def get_dashboard_stats():
         date_from = _int_arg("date_from")
         date_to = _int_arg("date_to")
 
-        # interview_answer date window, used by message-based statistics
-        ia_date = ""
-        params = {}
-        if date_from is not None:
-            ia_date += " AND message_time >= to_timestamp(:date_from)"
-            params["date_from"] = date_from
-        if date_to is not None:
-            ia_date += " AND message_time <= to_timestamp(:date_to)"
-            params["date_to"] = date_to
+        # All SQL below is static; filters that are not set are passed as NULL.
+        # Date window on interview_answer: (:date_from IS NULL OR ...) AND (:date_to IS NULL OR ...)
+        params = {"course": course, "date_from": date_from, "date_to": date_to}
 
         # users in scope (course + date window); every statistic below is limited to them
-        scope_sql = "SELECT id FROM users WHERE 1=1"
-        if course is not None:
-            scope_sql += " AND context_id = :course"
-            params["course"] = course
-        if ia_date:
-            scope_sql += f" AND id IN (SELECT DISTINCT user_id FROM interview_answer WHERE 1=1 {ia_date})"
-        ids = [r[0] for r in db.session.execute(sa.text(scope_sql), params).fetchall()]
+        ids = [r[0] for r in db.session.execute(sa.text("""
+            SELECT id FROM users
+            WHERE (CAST(:course AS text) IS NULL OR context_id = CAST(:course AS text))
+              AND ((CAST(:date_from AS double precision) IS NULL AND CAST(:date_to AS double precision) IS NULL)
+                   OR id IN (SELECT user_id FROM interview_answer
+                             WHERE (CAST(:date_from AS double precision) IS NULL
+                                    OR message_time >= to_timestamp(CAST(:date_from AS double precision)))
+                               AND (CAST(:date_to AS double precision) IS NULL
+                                    OR message_time <= to_timestamp(CAST(:date_to AS double precision)))))
+        """), params).fetchall()]
         if not ids:
             return jsonify(_EMPTY_STATS), 200
         p = {**params, "ids": ids}
-        in_scope = "user_id = ANY(:ids)"
 
         def scalar(sql):
             return db.session.execute(sa.text(sql), p).scalar()
@@ -88,12 +84,12 @@ def get_dashboard_stats():
         total_students = len(set(ids))
 
         # 2. Completed interviews
-        total_completed = scalar(f"""
-            SELECT COUNT(*) FROM state WHERE interview_completed = true AND {in_scope}
+        total_completed = scalar("""
+            SELECT COUNT(*) FROM state WHERE interview_completed = true AND user_id = ANY(:ids)
         """) or 0
 
         # 3. Avg interview duration + variance + std deviation
-        duration_result = rows(f"""
+        duration_result = rows("""
             SELECT
                 AVG(EXTRACT(epoch FROM last_time) - EXTRACT(epoch FROM first_time)),
                 VARIANCE(EXTRACT(epoch FROM last_time) - EXTRACT(epoch FROM first_time)),
@@ -101,7 +97,11 @@ def get_dashboard_stats():
             FROM (
                 SELECT user_id, MIN(message_time) as first_time, MAX(message_time) as last_time
                 FROM interview_answer
-                WHERE {in_scope} {ia_date}
+                WHERE user_id = ANY(:ids)
+                  AND (CAST(:date_from AS double precision) IS NULL
+                     OR message_time >= to_timestamp(CAST(:date_from AS double precision)))
+                AND (CAST(:date_to AS double precision) IS NULL
+                     OR message_time <= to_timestamp(CAST(:date_to AS double precision)))
                 GROUP BY user_id
             ) t
         """)[0]
@@ -184,9 +184,9 @@ def get_dashboard_stats():
         ]
 
         # 8. Re-attempts
-        reattempt_rows = scalar(f"""
+        reattempt_rows = scalar("""
             SELECT COUNT(*) FROM (
-                SELECT user_id FROM state WHERE {in_scope}
+                SELECT user_id FROM state WHERE user_id = ANY(:ids)
                 GROUP BY user_id HAVING COUNT(*) > 1
             ) t
         """) or 0
@@ -221,37 +221,55 @@ def get_dashboard_stats():
         ]
 
         # 11. Avg messages per interview
-        avg_messages = scalar(f"""
+        avg_messages = scalar("""
             SELECT AVG(msg_count) FROM (
                 SELECT user_id, COUNT(*) as msg_count
-                FROM interview_answer WHERE {in_scope} {ia_date}
+                FROM interview_answer
+                WHERE user_id = ANY(:ids)
+                  AND (CAST(:date_from AS double precision) IS NULL
+                     OR message_time >= to_timestamp(CAST(:date_from AS double precision)))
+                AND (CAST(:date_to AS double precision) IS NULL
+                     OR message_time <= to_timestamp(CAST(:date_to AS double precision)))
                 GROUP BY user_id
             ) t
         """)
         avg_messages = round(float(avg_messages), 1) if avg_messages else 0
 
         # 12. Total messages sent
-        total_messages = scalar(f"""
-            SELECT COUNT(*) FROM interview_answer WHERE {in_scope} {ia_date}
+        total_messages = scalar("""
+            SELECT COUNT(*) FROM interview_answer
+            WHERE user_id = ANY(:ids)
+              AND (CAST(:date_from AS double precision) IS NULL
+                   OR message_time >= to_timestamp(CAST(:date_from AS double precision)))
+              AND (CAST(:date_to AS double precision) IS NULL
+                   OR message_time <= to_timestamp(CAST(:date_to AS double precision)))
         """) or 0
 
         # 13. Completion funnel
         funnel = []
         for step in ['intro', 'strategy', 'frequency', 'complete']:
-            count = db.session.execute(sa.text(f"""
+            count = db.session.execute(sa.text("""
                 SELECT COUNT(DISTINCT user_id) FROM interview_answer
-                WHERE conversation_step = :step AND {in_scope} {ia_date}
+                WHERE conversation_step = :step AND user_id = ANY(:ids)
+                  AND (CAST(:date_from AS double precision) IS NULL
+                     OR message_time >= to_timestamp(CAST(:date_from AS double precision)))
+                AND (CAST(:date_to AS double precision) IS NULL
+                     OR message_time <= to_timestamp(CAST(:date_to AS double precision)))
             """), {**p, "step": step}).scalar() or 0
             funnel.append({"step": step, "count": count})
 
         # 14. Weekly activity
-        weekly_rows = rows(f"""
+        weekly_rows = rows("""
             SELECT
                 DATE_TRUNC('week', message_time) as week,
                 COUNT(*) as messages,
                 COUNT(DISTINCT user_id) as users
             FROM interview_answer
-            WHERE {in_scope} {ia_date}
+            WHERE user_id = ANY(:ids)
+              AND (CAST(:date_from AS double precision) IS NULL
+                   OR message_time >= to_timestamp(CAST(:date_from AS double precision)))
+              AND (CAST(:date_to AS double precision) IS NULL
+                   OR message_time <= to_timestamp(CAST(:date_to AS double precision)))
             GROUP BY DATE_TRUNC('week', message_time)
             ORDER BY week
         """)
@@ -283,20 +301,29 @@ def get_dashboard_stats():
             response_time_by_step = []
 
         # 16. Last activity
-        last_activity = scalar(f"""
-            SELECT MAX(message_time) FROM interview_answer WHERE {in_scope} {ia_date}
+        last_activity = scalar("""
+            SELECT MAX(message_time) FROM interview_answer
+            WHERE user_id = ANY(:ids)
+              AND (CAST(:date_from AS double precision) IS NULL
+                   OR message_time >= to_timestamp(CAST(:date_from AS double precision)))
+              AND (CAST(:date_to AS double precision) IS NULL
+                   OR message_time <= to_timestamp(CAST(:date_to AS double precision)))
         """)
         last_activity_str = last_activity.strftime("%Y-%m-%d %H:%M") if last_activity else None
 
         # 17. Avg time between student responses (thinking time proxy)
         try:
-            gap_result = scalar(f"""
+            gap_result = scalar("""
                 SELECT AVG(gap_seconds) FROM (
                     SELECT
                         EXTRACT(epoch FROM message_time - LAG(message_time)
                             OVER (PARTITION BY user_id ORDER BY message_time)) as gap_seconds
                     FROM interview_answer
-                    WHERE {in_scope} {ia_date}
+                    WHERE user_id = ANY(:ids)
+                      AND (CAST(:date_from AS double precision) IS NULL
+                         OR message_time >= to_timestamp(CAST(:date_from AS double precision)))
+                    AND (CAST(:date_to AS double precision) IS NULL
+                         OR message_time <= to_timestamp(CAST(:date_to AS double precision)))
                 ) t
                 WHERE gap_seconds > 0 AND gap_seconds < 3600
             """)
@@ -343,19 +370,16 @@ def get_dashboard_stats():
 def get_dashboard_courses():
     """Courses from LTI context data: all for admins, only their own for teachers."""
     try:
-        sql = """
+        # teachers: only their own course; admins: all courses (course = NULL)
+        course = None if is_admin() else str(current_identity()["context_id"])
+        rows = db.session.execute(sa.text("""
             SELECT context_id, context_title, COUNT(*) as students
             FROM users
-            WHERE context_id IS NOT NULL {course_filter}
+            WHERE context_id IS NOT NULL
+              AND (CAST(:course AS text) IS NULL OR context_id = CAST(:course AS text))
             GROUP BY context_id, context_title
             ORDER BY students DESC
-        """
-        params = {}
-        course_filter = ""
-        if not is_admin():
-            course_filter = "AND context_id = :course"
-            params["course"] = str(current_identity()["context_id"])
-        rows = db.session.execute(sa.text(sql.format(course_filter=course_filter)), params).fetchall()
+        """), {"course": course}).fetchall()
         return jsonify([
             {"id": r[0], "name": r[1] or ("No course (standalone)" if r[0] == "0" else r[0]), "students": r[2]}
             for r in rows

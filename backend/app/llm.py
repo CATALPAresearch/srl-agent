@@ -110,7 +110,8 @@ def query_embeddings(text_to_embed):
     response = requests.post(
         api_url,
         headers=headers,
-        json={"inputs": text_to_embed, "options": {"wait_for_model": True}})
+        json={"inputs": text_to_embed, "options": {"wait_for_model": True}},
+        timeout=120)  # wait_for_model may take a while, but must not block a worker forever
     return response.json()
 
 

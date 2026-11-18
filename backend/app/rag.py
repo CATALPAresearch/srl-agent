@@ -117,7 +117,9 @@ def seed_strategy_embeddings() -> None:
     with open(_STRATEGIES_PATH, "r", encoding="utf-8") as f:
         strategies = json.load(f)
 
-    current_hash = hashlib.md5(_STRATEGIES_PATH.read_bytes()).hexdigest()
+    # Change detection only (re-seed when the file changed), not a security check.
+    # Kept as MD5 so stored hashes stay valid and no needless re-embedding is triggered.
+    current_hash = hashlib.md5(_STRATEGIES_PATH.read_bytes(), usedforsecurity=False).hexdigest()
     stored_hash = (
         _STRATEGIES_HASH_PATH.read_text(encoding="utf-8").strip()
         if _STRATEGIES_HASH_PATH.exists()
