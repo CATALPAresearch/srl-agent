@@ -1,5 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import { createApp } from "vue";
+import axios from "axios";
 import { store } from "./store";
 import router from "./router";
 import ChatApp from "./components/ChatApp.vue";
@@ -38,20 +39,42 @@ const _apiBase =
   (window.SRL_CONFIG && window.SRL_CONFIG.apiBaseUrl) || window.location.origin;
 store.commit("setApiHost", _apiBase);
 
-// Assign user ID: prefer SRL_CONFIG, then URL param ?userid=, then persisted localStorage ID, then fresh random
-const _configUserId = window.SRL_CONFIG && window.SRL_CONFIG.userId;
-const _urlUserId = new URLSearchParams(window.location.search).get("userid");
-const _persistedUserId = localStorage.getItem("srl_userid");
-const _userId =
-  _configUserId || _urlUserId || _persistedUserId || "user_" + Date.now();
-// Persist so the same user is restored after close/reopen (skip for config/URL-provided IDs)
-if (!_configUserId && !_urlUserId) {
-  localStorage.setItem("srl_userid", _userId);
-}
-store.commit("setUser", _userId);
+// The user id is issued by the server, never chosen by the client: after a verified
+// LTI launch it arrives in SRL_CONFIG.token; standalone users get an anonymous identity
+// whose signed token is kept in localStorage. Every request carries the token.
+const TOKEN_KEY = "srl_identity_token";
 
-createApp(ChatApp)
-  .use(store)
-  .use(router)
-  .component("font-awesome-icon", FontAwesomeIcon)
-  .mount("#app");
+function useToken(token) {
+  axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+}
+
+async function resolveIdentity() {
+  const ltiToken = window.SRL_CONFIG && window.SRL_CONFIG.token;
+  if (ltiToken) {
+    useToken(ltiToken);
+  } else {
+    const stored = localStorage.getItem(TOKEN_KEY);
+    if (stored) useToken(stored);
+  }
+  const res = await axios.post(`${_apiBase}/session/identity`);
+  if (!ltiToken) localStorage.setItem(TOKEN_KEY, res.data.token);
+  useToken(res.data.token);
+  localStorage.removeItem("srl_userid"); // legacy client-chosen id, no longer used
+  return res.data;
+}
+
+function mountApp() {
+  createApp(ChatApp)
+    .use(store)
+    .use(router)
+    .component("font-awesome-icon", FontAwesomeIcon)
+    .mount("#app");
+}
+
+resolveIdentity()
+  .then((identity) => {
+    store.commit("setUser", identity.userid);
+    store.commit("setRole", identity.role);
+  })
+  .catch((e) => console.error("Could not obtain a user identity:", e))
+  .finally(mountApp);

@@ -28,8 +28,55 @@ BACKEND_DIR = pathlib.Path(__file__).resolve().parent.parent / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+from urllib.parse import parse_qs, urlsplit          # noqa: E402
+
+from flask.testing import FlaskClient                # noqa: E402
+
 from app import app, db as _db                       # noqa: E402
+from app.identity import issue_token                 # noqa: E402
 from app.rag import seed_strategy_embeddings          # noqa: E402
+
+
+def identity_headers(uid, role="student", context_id="0"):
+    """Authorization header with a server-issued identity token, as the frontend sends it."""
+    token = issue_token({"uid": uid, "role": role, "context_id": context_id, "source": "test"})
+    return {"Authorization": f"Bearer {token}"}
+
+
+class IdentityClient(FlaskClient):
+    """Test client that acts as the user named in the request.
+
+    The server takes the user id only from the identity token, never from the request.
+    Tests that send a "userid" (JSON body or query string) therefore get a matching
+    token, exactly like the real frontend. Tests that set Authorization themselves
+    (e.g. to check that one user cannot act as another) are left untouched.
+    """
+
+    def open(self, *args, **kwargs):
+        headers = dict(kwargs.get("headers") or {})
+        if "Authorization" not in headers:
+            uid = None
+            body = kwargs.get("json")
+            if isinstance(body, dict):
+                uid = body.get("userid")
+            query = kwargs.get("query_string")
+            if not uid and isinstance(query, dict):
+                uid = query.get("userid")
+            if not uid and args and isinstance(args[0], str):
+                uid = (parse_qs(urlsplit(args[0]).query).get("userid") or [None])[0]
+            if uid:
+                headers.update(identity_headers(uid))
+                kwargs["headers"] = headers
+        return super().open(*args, **kwargs)
+
+
+app.test_client_class = IdentityClient
+
+
+@pytest.fixture
+def auth():
+    """identity_headers(uid, role="student", context_id="0") -> Authorization header."""
+    return identity_headers
 
 
 # ---------------------------------------------------------------------------

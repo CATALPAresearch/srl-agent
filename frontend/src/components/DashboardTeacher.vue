@@ -433,13 +433,8 @@ export default {
     },
     logInteraction: function (action, value) {
       var base = window.SRL_BACKEND_URL || "";
-      var userid =
-        (window.SRL_CONFIG && window.SRL_CONFIG.userId) ||
-        new URLSearchParams(window.location.search).get("userid") ||
-        localStorage.getItem("srl_userid");
       axios
         .post(base + "/log/interaction", {
-          userid: userid,
           client: "web",
           action: action,
           value: value || {},

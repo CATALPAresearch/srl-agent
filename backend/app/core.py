@@ -3,7 +3,7 @@ import os
 import re
 import time
 import threading
-from flask import jsonify, session
+from flask import jsonify
 import logging
 
 from . import db, app
@@ -44,6 +44,7 @@ from .database.crud import (
     get_active_run_started_at,
 )
 from .logging_utlis import log_action
+from .identity import current_identity
 from .steps import strategy_step, frequency_step, intro_step, _user_only_conv, OTHER_STRATEGY
 
 logger = logging.getLogger("InterviewAgent")
@@ -245,8 +246,9 @@ def start_conversation_core(language, client, userid) -> tuple[str, int]:
         user = get_user(userid, client)
 
         if user is None:
-            lti_context_id = session.get("lti_context") or "0"
-            lti_context_title = session.get("lti_context_title")
+            identity = current_identity() or {}
+            lti_context_id = identity.get("context_id") or "0"
+            lti_context_title = identity.get("context_title")
             created_user = first_time_setup(userid, client, language,
                                             context_id=lti_context_id,
                                             context_title=lti_context_title)
@@ -277,8 +279,9 @@ def start_conversation_core(language, client, userid) -> tuple[str, int]:
             reset_conversation(user)
 
             # Keep the same user identity; only reset active run state.
-            user.context_id = session.get("lti_context") or user.context_id or "0"
-            user.context_title = session.get("lti_context_title") or user.context_title
+            identity = current_identity() or {}
+            user.context_id = identity.get("context_id") or user.context_id or "0"
+            user.context_title = identity.get("context_title") or user.context_title
             reset_user_run_state(user)
 
             log_action(

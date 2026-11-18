@@ -10,6 +10,14 @@ from app import db
 _STEPS = "('intro', 'strategy', 'probe', 'frequency', 'complete')"
 
 
+class LtiNonce(db.Model):
+    """oauth_nonce values of accepted LTI launches (replay protection)."""
+    __tablename__ = "lti_nonce"
+    nonce: so.Mapped[str] = so.mapped_column(sa.String(255), primary_key=True)
+    consumer_key: so.Mapped[str] = so.mapped_column(sa.String(255), primary_key=True)
+    timestamp: so.Mapped[int] = so.mapped_column(sa.Integer, index=True)
+
+
 class Language(db.Model):
     __tablename__ = "languages"
     id: so.Mapped[str] = so.mapped_column(sa.String(64), primary_key=True)

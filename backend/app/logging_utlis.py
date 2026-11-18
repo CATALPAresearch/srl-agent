@@ -61,8 +61,10 @@ def log_action(
         if has_request_context():
             extracted_user_agent = user_agent or request.headers.get('User-Agent')
 
-            if include_ip and request.remote_addr:
-                ip = _hash_ip(request.remote_addr)
+            # behind nginx, remote_addr is the proxy; X-Real-IP carries the client address
+            client_ip = request.headers.get("X-Real-IP") or request.remote_addr
+            if include_ip and client_ip:
+                ip = _hash_ip(client_ip)
 
         log_entry = ActivityLog(
             id=str(uuid.uuid4()),

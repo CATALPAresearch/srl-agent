@@ -27,3 +27,6 @@ README-deployment.md
 public/index.html
 backend/static/lti/app-lazy.js.map
 .env.server
+
+pytest_dup*
+pytest_exp*

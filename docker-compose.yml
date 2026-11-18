@@ -28,6 +28,9 @@ services:
       - RAG_EMBEDDING_MODEL=${RAG_EMBEDDING_MODEL:-nomic-embed-text}
       - SECRET_KEY=${SECRET_KEY}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}  # no default: admin login is disabled if unset
+      - LTI_CONSUMER_KEY=${LTI_CONSUMER_KEY}  # LTI launches are rejected if unset
+      - LTI_SHARED_SECRET=${LTI_SHARED_SECRET}
+      - LTI_LAUNCH_URL=${LTI_LAUNCH_URL:-}
     expose:
       - 5000
     volumes:

@@ -53,16 +53,10 @@ router.afterEach((to) => {
   const apiBase =
     (window.SRL_CONFIG && window.SRL_CONFIG.apiBaseUrl) ||
     window.location.origin;
-  const userid =
-    (window.SRL_CONFIG && window.SRL_CONFIG.userId) ||
-    new URLSearchParams(window.location.search).get("userid") ||
-    localStorage.getItem("srl_userid");
-
   const pageName = PAGE_NAMES[to.path] || to.path;
 
   axios
     .post(apiBase + "/log/page_view", {
-      userid,
       client: "web",
       path: to.fullPath,
       page_name: pageName,

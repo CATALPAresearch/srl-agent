@@ -84,13 +84,13 @@ class TestStartConversation:
         )
         assert resp.status_code == 400
 
-    def test_missing_userid_returns_400(self, client):
+    def test_missing_identity_returns_401(self, client):
         resp = client.post(
             "/startConversation",
             json={"client": "pytest", "language": "en"},
             content_type="application/json",
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 401
 
     def test_missing_client_returns_400(self, client):
         resp = client.post(
@@ -147,13 +147,13 @@ class TestReply:
         )
         assert resp.status_code == 400
 
-    def test_reply_missing_userid_returns_400(self, client):
+    def test_reply_missing_identity_returns_401(self, client):
         resp = client.post(
             "/reply",
             json={"client": "pytest", "message": "hi"},
             content_type="application/json",
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -194,9 +194,9 @@ class TestConversation:
         body = resp.get_json()
         assert body["messages"] == []
 
-    def test_missing_userid_returns_400(self, client):
+    def test_missing_identity_returns_401(self, client):
         resp = client.get("/conversation", query_string={"client": "pytest"})
-        assert resp.status_code == 400
+        assert resp.status_code == 401
 
     def test_missing_client_returns_400(self, client):
         resp = client.get("/conversation", query_string={"userid": "someone"})
@@ -557,13 +557,13 @@ class TestSurveySubmit:
         assert body["status"] == "ok"
         assert "id" in body
 
-    def test_submit_missing_userid_returns_500(self, client):
+    def test_submit_missing_identity_returns_401(self, client):
         resp = client.post(
             "/survey/srl-o/submit",
             json={"client": "pytest", "language": "en", "responses": {}},
             content_type="application/json",
         )
-        assert resp.status_code in (400, 500)
+        assert resp.status_code == 401
 
     def test_submit_stores_responses(self, client):
         uid = _uid()
@@ -588,9 +588,9 @@ class TestSurveySubmit:
 # ---------------------------------------------------------------------------
 
 class TestStudentResults:
-    def test_missing_userid_returns_400(self, client):
+    def test_missing_identity_returns_401(self, client):
         resp = client.get("/student/results?client=pytest")
-        assert resp.status_code == 400
+        assert resp.status_code == 401
 
     def test_unknown_user_returns_200_with_empty_strategies(self, client):
         resp = client.get("/student/results?userid=no_such_user_xyz&client=pytest")
@@ -644,9 +644,9 @@ class TestStudentResults:
 # ---------------------------------------------------------------------------
 
 class TestStudentInterviewRuns:
-    def test_missing_userid_returns_400(self, client):
+    def test_missing_identity_returns_401(self, client):
         resp = client.get("/student/interview_runs?client=pytest")
-        assert resp.status_code == 400
+        assert resp.status_code == 401
 
     def test_unknown_user_returns_200(self, client):
         resp = client.get("/student/interview_runs?userid=no_such_user_xyz&client=pytest")

@@ -360,7 +360,7 @@ export default defineComponent({
 
     async resetInterview() {
       const userId =
-        this.$store.getters.getUser || localStorage.getItem("srl_userid");
+        this.$store.getters.getUser;
       if (!userId) {
         alert(
           this.lang === "de" ? "Keine User-ID gefunden." : "No user ID found.",

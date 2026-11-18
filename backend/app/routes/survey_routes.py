@@ -18,6 +18,7 @@ from ..models import (
 )
 from ._paths import CONFIG_DIR
 from .admin_routes import admin_required
+from ..identity import effective_user_id
 
 survey_bp = Blueprint('survey', __name__)
 
@@ -65,7 +66,7 @@ def get_survey(survey_id):
 
     lang = request.args.get('lang')
     if not lang:
-        userid = request.args.get('userid')
+        userid = effective_user_id()
         client = request.args.get('client')
         if userid and client:
             user = get_user(userid, client)
@@ -105,10 +106,14 @@ def submit_survey(survey_id):
     """
     try:
         content = request.json
-        user_id = content["userid"]
-        client = content["client"]
+        user_id = effective_user_id()
+        if not user_id:
+            return jsonify({"error": "no identity - call POST /session/identity first"}), 401
+        client = content.get("client")
         language = content.get("language", "en")
-        responses = content["responses"]
+        responses = content.get("responses")
+        if not client or not isinstance(responses, dict):
+            return jsonify({"error": "client and responses (object) required"}), 400
 
         entry = SurveyResponse(
             id=str(uuid.uuid4()),
@@ -155,11 +160,11 @@ def get_student_results():
     Return interview strategies and survey responses for a single student.
     Query params: userid, client, lang (optional UI language override for radar_data)
     """
-    userid = request.args.get("userid")
+    userid = effective_user_id(request.args.get("userid"), allow_admin_override=True)
     client = request.args.get("client", "standalone")
     ui_lang = request.args.get("lang")   # optional language override for radar labels
     if not userid:
-        return jsonify({"error": "userid required"}), 400
+        return jsonify({"error": "no identity - call POST /session/identity first"}), 401
 
     user_archives = [payload for _, payload in _load_user_archives(userid, client)]
 
@@ -368,10 +373,10 @@ def get_student_results():
 @cross_origin()
 def get_student_interview_runs():
     """Return interview run metadata (active run + archived runs) for one student."""
-    userid = request.args.get("userid")
+    userid = effective_user_id(request.args.get("userid"), allow_admin_override=True)
     client = request.args.get("client", "standalone")
     if not userid:
-        return jsonify({"error": "userid required"}), 400
+        return jsonify({"error": "no identity - call POST /session/identity first"}), 401
 
     archive_rows = _load_user_archives(userid, client)
     archived_runs = []
