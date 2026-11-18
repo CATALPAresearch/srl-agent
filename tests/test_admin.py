@@ -72,6 +72,39 @@ class TestProtectedEndpoints:
         assert fresh_client.get("/survey/oase/results").status_code == 200
 
 
+class TestDashboardAccess:
+    """Aggregated course data: admins or teachers (LTI role in the signed session) only."""
+
+    PATHS = ["/dashboard/stats", "/dashboard/courses"]
+
+    @pytest.mark.parametrize("path", PATHS)
+    def test_anonymous_is_rejected(self, fresh_client, path):
+        assert fresh_client.get(path).status_code == 401
+
+    @pytest.mark.parametrize("path", PATHS)
+    def test_lti_student_is_rejected(self, fresh_client, path):
+        with fresh_client.session_transaction() as s:
+            s["lti_role"] = "student"
+        assert fresh_client.get(path).status_code == 401
+
+    @pytest.mark.parametrize("path", PATHS)
+    def test_lti_teacher_is_allowed(self, fresh_client, path):
+        with fresh_client.session_transaction() as s:
+            s["lti_role"] = "teacher"
+        assert fresh_client.get(path).status_code == 200
+
+    @pytest.mark.parametrize("path", PATHS)
+    def test_admin_is_allowed(self, fresh_client, path):
+        fresh_client.post("/admin/login", json={"password": PASSWORD})
+        assert fresh_client.get(path).status_code == 200
+
+    def test_forged_client_flag_has_no_effect(self, fresh_client):
+        """The reported attack: setting srl_admin_session in the browser grants nothing."""
+        fresh_client.set_cookie("srl_admin_session", "1")
+        assert fresh_client.get("/dashboard/stats").status_code == 401
+        assert fresh_client.get("/protocols").status_code == 401
+
+
 class TestPasswordNotExposed:
     def test_index_page_does_not_contain_password(self, fresh_client):
         resp = fresh_client.get("/")

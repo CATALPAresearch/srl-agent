@@ -7,12 +7,14 @@ from app import app, db
 from ..models import (
     User, ConversationState, SurveyResponse, Language,
 )
+from .admin_routes import staff_required
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
 
 @dashboard_bp.route("/dashboard/stats", methods=["GET"])
 @cross_origin()
+@staff_required
 def get_dashboard_stats():
     """Return aggregated statistics for the researcher dashboard.
     Optional query params: date_from, date_to (Unix timestamps)
@@ -300,6 +302,7 @@ def get_dashboard_stats():
 
 @dashboard_bp.route("/dashboard/courses", methods=["GET"])
 @cross_origin()
+@staff_required
 def get_dashboard_courses():
     """Return list of distinct courses from LTI context data."""
     try:

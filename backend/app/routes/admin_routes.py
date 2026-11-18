@@ -26,6 +26,16 @@ def admin_required(view):
     return wrapper
 
 
+def staff_required(view):
+    """Admins or teachers (role from the signed LTI session) only - for aggregated course data."""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if not (is_admin() or session.get("lti_role") == "teacher"):
+            return jsonify({"error": "admin or teacher login required"}), 401
+        return view(*args, **kwargs)
+    return wrapper
+
+
 @admin_bp.route("/admin/login", methods=["POST"])
 def admin_login():
     expected = os.environ.get("ADMIN_PASSWORD", "")
