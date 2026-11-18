@@ -510,7 +510,14 @@ export default {
           }, 150);
         })
         .catch(function (e) {
-          self.error = "Failed to load: " + e.message;
+          if (e.response && e.response.status === 401) {
+            self.error =
+              self.lang === "en"
+                ? "This dashboard is only available to teachers (via Moodle) and admins."
+                : "Dieses Dashboard ist nur für Lehrende (über Moodle) und Admins verfügbar.";
+          } else {
+            self.error = "Failed to load: " + e.message;
+          }
         })
         .finally(function () {
           self.isLoading = false;

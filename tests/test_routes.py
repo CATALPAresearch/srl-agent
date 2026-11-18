@@ -345,6 +345,14 @@ class TestUserRole:
 # ---------------------------------------------------------------------------
 
 class TestDashboard:
+    @pytest.fixture(autouse=True)
+    def _login_as_admin(self, client, monkeypatch):
+        """Dashboard data is admin/teacher-only; log the shared test client in and out again."""
+        monkeypatch.setenv("ADMIN_PASSWORD", "pytest-admin")
+        assert client.post("/admin/login", json={"password": "pytest-admin"}).status_code == 200
+        yield
+        client.post("/admin/logout")
+
     def test_stats_returns_expected_keys(self, client):
         resp = client.get("/dashboard/stats")
         assert resp.status_code == 200
