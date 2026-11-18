@@ -9,14 +9,18 @@ third-party cookies inside the Moodle iframe.
 
 Identity: {"uid", "role" ("student"|"teacher"), "context_id", "context_title", "source"}
 """
+import hashlib
 import secrets
+import time
 
 from flask import request, session
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
-from app import app
+from app import app, db
+from .models import AdminSession
 
 TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 180  # standalone users keep their interview for a semester
+ADMIN_SESSION_SECONDS = 60 * 60 * 8  # admin sessions end after a working day, logout ends them at once
 
 
 def _serializer() -> URLSafeTimedSerializer:
@@ -53,8 +57,39 @@ def new_standalone_identity() -> dict:
     }
 
 
+def _admin_session_key(session_id: str) -> str:
+    return hashlib.sha256(session_id.encode()).hexdigest()
+
+
+def start_admin_session() -> None:
+    """Mark the caller's session as admin, backed by a server-side row that logout can delete."""
+    now = int(time.time())
+    db.session.query(AdminSession).filter(AdminSession.expires_at <= now).delete()  # housekeeping
+    session_id = secrets.token_urlsafe(32)
+    db.session.add(AdminSession(token_hash=_admin_session_key(session_id), created_at=now,
+                                expires_at=now + ADMIN_SESSION_SECONDS))
+    db.session.commit()
+    session["is_admin"] = True
+    session["admin_sid"] = session_id
+
+
+def end_admin_session() -> None:
+    """Revoke the caller's admin session server-side (a copied cookie stops working too)."""
+    session_id = session.pop("admin_sid", None)
+    session.pop("is_admin", None)
+    if isinstance(session_id, str):
+        db.session.query(AdminSession).filter(
+            AdminSession.token_hash == _admin_session_key(session_id)).delete()
+        db.session.commit()
+
+
 def is_admin() -> bool:
-    return session.get("is_admin") is True
+    """True only for a signed session cookie whose admin session still exists server-side."""
+    session_id = session.get("admin_sid")
+    if session.get("is_admin") is not True or not isinstance(session_id, str):
+        return False
+    admin_session = db.session.get(AdminSession, _admin_session_key(session_id))
+    return admin_session is not None and admin_session.expires_at > int(time.time())
 
 
 def effective_user_id(requested=None, allow_admin_override=False):

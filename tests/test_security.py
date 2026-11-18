@@ -24,6 +24,9 @@ CONSUMER_KEY = "pytest_key"
 SHARED_SECRET = "pytest secret/&"
 ADMIN_PASSWORD = "pytest-admin-secret"
 
+# rolled back after each test: failed admin logins must not pile up (login throttling)
+pytestmark = pytest.mark.usefixtures("isolated_db")
+
 
 def _uid(prefix="sec"):
     return f"{prefix}_{uuid.uuid4().hex[:10]}"

@@ -16,7 +16,7 @@ from .logging_utlis import _hash_ip
 from .models import ActivityLog
 
 
-def _client_ip():
+def client_ip():
     # The API is only reachable through nginx, which sets X-Real-IP to the real client address.
     return request.headers.get("X-Real-IP") or request.remote_addr
 
@@ -30,7 +30,7 @@ def audit(action: LogAction, http_status=None, **details):
         value = {"admin": admin, "role": identity.get("role") if identity else None, **details}
         if has_request_context():
             value.update(method=request.method, path=request.path)
-            ip = _client_ip()
+            ip = client_ip()
             user_agent = request.headers.get("User-Agent")
         else:
             ip, user_agent = None, None

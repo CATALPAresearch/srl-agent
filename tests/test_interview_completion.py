@@ -193,12 +193,17 @@ def _choose_answer(bot_message: str) -> str:
 @pytest.fixture(scope="module")
 def client():
     from app.routes import chat_routes
-    # the scripted test answers much faster than a person; the per-minute limit would stop it
+    # the scripted test answers much faster than a person; the per-minute limit would stop it.
+    # Restore it afterwards, otherwise later tests (test_limits.py) see the raised limit.
+    previous_limit = chat_routes.MAX_MESSAGES_PER_MINUTE
     chat_routes.MAX_MESSAGES_PER_MINUTE = 10_000
     flask_app_instance.config["TESTING"] = True
-    with flask_app_instance.app_context():
-        _db.create_all()
-        yield flask_app_instance.test_client()
+    try:
+        with flask_app_instance.app_context():
+            _db.create_all()
+            yield flask_app_instance.test_client()
+    finally:
+        chat_routes.MAX_MESSAGES_PER_MINUTE = previous_limit
 
 
 # ---------------------------------------------------------------------------

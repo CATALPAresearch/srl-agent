@@ -10,6 +10,9 @@ import uuid
 import pytest
 
 PASSWORD = "pytest-admin-secret"
+
+# rolled back after each test: failed admin logins must not pile up (login throttling)
+pytestmark = pytest.mark.usefixtures("isolated_db")
 PROTECTED = [
     ("get", "/survey/oase/results"),
 ]

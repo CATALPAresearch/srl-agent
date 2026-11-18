@@ -20,8 +20,10 @@ import sys
 import csv
 import json
 import pathlib
+import uuid
 
 import pytest
+import sqlalchemy as sa
 
 # Ensure backend/ is importable
 BACKEND_DIR = pathlib.Path(__file__).resolve().parent.parent / "backend"
@@ -105,6 +107,147 @@ def db(flask_app):
 def client(flask_app):
     """Return a Flask test client for the entire test session."""
     return flask_app.test_client()
+
+
+# ---------------------------------------------------------------------------
+# Authorization test suite (tests/unit, tests/api)
+#
+# Identity in this app: a bearer token signed with SECRET_KEY (app/identity.py) for
+# students/teachers, the signed Flask session cookie for admins (POST /admin/login).
+# Convention for foreign objects: a userid sent by the client is ignored, every
+# request acts on the caller's own identity (no 403/404 for other users' objects).
+# ---------------------------------------------------------------------------
+
+AUTHZ_ADMIN_PASSWORD = "authz-test-admin-password"
+
+
+@pytest.fixture
+def admin_password():
+    """The ADMIN_PASSWORD that client_as configures for the test."""
+    return AUTHZ_ADMIN_PASSWORD
+
+
+@pytest.fixture
+def isolated_db(flask_app):
+    """Run the test inside an outer transaction that is rolled back afterwards.
+
+    The app commits on its own (request teardown, logging); with
+    join_transaction_mode="create_savepoint" those commits only release savepoints.
+    """
+    engines = _db.engines
+    engine = engines[None]
+    factory_kw = _db.session.session_factory.kw
+    original_kw = dict(factory_kw)
+    connection = engine.connect()
+    outer = connection.begin()
+    _db.session.remove()
+    engines[None] = connection
+    _db.session.configure(join_transaction_mode="create_savepoint")
+    # Start without failed admin logins (login throttling). Only inside the rolled-back
+    # transaction - the real audit log is never changed.
+    _db.session.execute(sa.text("DELETE FROM activity_log WHERE action = 'audit_admin_login_failed'"))
+    _db.session.commit()
+    try:
+        yield
+    finally:
+        _db.session.remove()
+        engines[None] = engine
+        factory_kw.clear()
+        factory_kw.update(original_kw)
+        outer.rollback()
+        connection.close()
+
+
+class AuthzUser:
+    """A test actor. `token_claims` is None for actors without identity token."""
+
+    def __init__(self, name, token_claims=None, admin=False):
+        self.name = name
+        self.token_claims = token_claims
+        self.admin = admin
+
+    @property
+    def uid(self):
+        return self.token_claims["uid"] if self.token_claims else None
+
+    def __repr__(self):
+        return f"<{self.name}>"
+
+
+def _uid(prefix):
+    return f"authz_{prefix}_{uuid.uuid4().hex[:10]}"
+
+
+@pytest.fixture
+def make_user():
+    """Factory per role: student (standalone), lti_student, teacher, admin, anonymous,
+    unknown_role. Teachers/LTI students belong to a course (context_id)."""
+    def factory(role, course="authz_course_a"):
+        if role == "anonymous":
+            return AuthzUser("anonymous")
+        if role == "admin":
+            return AuthzUser("admin", admin=True)
+        if role == "student":
+            return AuthzUser("student", {"uid": _uid("student"), "role": "student",
+                                         "context_id": "0", "source": "standalone"})
+        if role == "lti_student":
+            return AuthzUser("lti_student", {"uid": f"{course}:{_uid('s')}", "role": "student",
+                                             "context_id": course, "source": "lti"})
+        if role == "teacher":
+            return AuthzUser("teacher", {"uid": f"{course}:{_uid('t')}", "role": "teacher",
+                                         "context_id": course, "source": "lti"})
+        if role == "unknown_role":
+            return AuthzUser("unknown_role", {"uid": _uid("x"), "role": "superuser",
+                                              "context_id": course, "source": "lti"})
+        raise ValueError(role)
+    return factory
+
+
+@pytest.fixture
+def client_as(flask_app, monkeypatch):
+    """client_as(user) -> test client acting as `user` through the real auth path:
+    a signed identity token (test SECRET_KEY) and/or a real admin login."""
+    from flask.testing import FlaskClient as PlainClient  # no auto-identity magic
+
+    monkeypatch.setenv("ADMIN_PASSWORD", AUTHZ_ADMIN_PASSWORD)
+    monkeypatch.setenv("DISABLE_LLM", "true")
+
+    def make(user):
+        c = PlainClient(flask_app, use_cookies=True)
+        if user.token_claims:
+            c.environ_base["HTTP_AUTHORIZATION"] = "Bearer " + issue_token(user.token_claims)
+        if user.admin:
+            assert c.post("/admin/login", json={"password": AUTHZ_ADMIN_PASSWORD}).status_code == 200
+        return c
+    return make
+
+
+@pytest.fixture
+def owned_interview(client_as):
+    """Give a user real owned data: a started interview, one answer, a survey response."""
+    def create(user):
+        c = client_as(user)
+        assert c.post("/startConversation", json={"client": "web", "language": "de"}).status_code == 200
+        assert c.post("/reply", json={"client": "web", "message": "Ich schreibe Zusammenfassungen."}).status_code == 200
+        assert c.post("/survey/srl-o/submit",
+                      json={"client": "web", "language": "de", "responses": {"q1": 4}}).status_code == 201
+        return user
+    return create
+
+
+AUTHZ_TABLES = ["users", "state", "interview_answer", "llm_response", "user_strategy",
+                "survey_responses", "archive", "mouse_traces", "lti_nonce"]
+
+
+@pytest.fixture
+def db_snapshot(flask_app):
+    """db_snapshot() -> row counts of all user-data tables (activity_log without audit rows)."""
+    def snapshot():
+        counts = {t: _db.session.execute(sa.text(f"SELECT COUNT(*) FROM {t}")).scalar() for t in AUTHZ_TABLES}
+        counts["activity_log (non-audit)"] = _db.session.execute(
+            sa.text("SELECT COUNT(*) FROM activity_log WHERE action NOT LIKE 'audit_%'")).scalar()
+        return counts
+    return snapshot
 
 
 # ---------------------------------------------------------------------------

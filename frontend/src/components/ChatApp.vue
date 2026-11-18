@@ -179,7 +179,14 @@
               :placeholder="lang === 'de' ? 'Passwort' : 'Password'"
               @keyup.enter="loginAdmin"
             />
-            <p v-if="adminLoginError" class="admin-login-error">
+            <p v-if="adminLoginError === 'throttled'" class="admin-login-error">
+              {{
+                lang === "de"
+                  ? "Zu viele Fehlversuche. Bitte in 15 Minuten erneut versuchen."
+                  : "Too many failed attempts. Please try again in 15 minutes."
+              }}
+            </p>
+            <p v-else-if="adminLoginError" class="admin-login-error">
               {{ lang === "de" ? "Falsches Passwort." : "Wrong password." }}
             </p>
             <div class="d-flex justify-content-between mt-2">
@@ -291,7 +298,8 @@ export default defineComponent({
         this.adminLoginError = false;
       } catch (e) {
         this.setAdminState(false);
-        this.adminLoginError = true;
+        // 429: login throttled after repeated failures (server-side brute-force protection)
+        this.adminLoginError = e.response && e.response.status === 429 ? "throttled" : "wrong";
       }
     },
 

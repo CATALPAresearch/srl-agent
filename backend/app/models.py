@@ -18,6 +18,15 @@ class LtiNonce(db.Model):
     timestamp: so.Mapped[int] = so.mapped_column(sa.Integer, index=True)
 
 
+class AdminSession(db.Model):
+    """Server-side admin sessions. The session cookie only carries the random session id;
+    logout deletes the row, so a copied cookie stops working (see identity.is_admin)."""
+    __tablename__ = "admin_session"
+    token_hash: so.Mapped[str] = so.mapped_column(sa.String(64), primary_key=True)  # sha256 of the id
+    created_at: so.Mapped[int] = so.mapped_column(sa.Integer)
+    expires_at: so.Mapped[int] = so.mapped_column(sa.Integer, index=True)
+
+
 class Language(db.Model):
     __tablename__ = "languages"
     id: so.Mapped[str] = so.mapped_column(sa.String(64), primary_key=True)

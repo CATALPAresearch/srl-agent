@@ -257,11 +257,21 @@ another user's data by passing `userid` explicitly.
 Telemetry endpoints (`/log/*`) also require an identity; `/log/interaction` only accepts UI
 interaction actions, never server-side or audit actions.
 
+**Admin sessions** are stored server-side (table `admin_session`); the session cookie only
+carries a random session id. Logout deletes the session, so a copied cookie stops working too.
+Admin sessions end after 8 hours (`ADMIN_SESSION_SECONDS` in `app/identity.py`).
+
+**Admin login throttling:** after 5 failed logins from one IP within 15 minutes, or 50 failed
+logins overall (guessing from many IPs), `/admin/login` answers `429` with `Retry-After: 900`,
+without checking the password, until the window has passed. While the global limit is reached,
+the real admin has to wait too. The limits are constants in `app/routes/admin_routes.py`. To
+lift a lockout early, delete the recent `audit_admin_login_failed` rows from `activity_log`.
+
 `tests/test_security.py` calls every registered endpoint without credentials and fails if one
 that is not on its explicit public list answers with anything but 401 — new endpoints must be
 protected (or consciously added to that list).
 
-**Audit log:** admin logins (incl. failures) and logouts, every admin-only request (survey
+**Audit log:** admin logins (incl. failures and throttled attempts) and logouts, every admin-only request (survey
 export), every dashboard request (with course scope),
 denied accesses, admins reading another user's data, and accepted/rejected LTI launches are
 written to `activity_log` (action `audit_*`, hashed client IP) and to the application log (Loki):
@@ -275,7 +285,7 @@ FROM activity_log WHERE action LIKE 'audit_%' ORDER BY timestamp DESC LIMIT 100;
 | ------ | ----------------- | -------------------------------------------------- |
 | POST   | /session/identity | Get (or create anonymous) identity + token         |
 | GET    | /session/identity | Current identity (401 without token)               |
-| POST   | /admin/login      | Admin login (server-side check, session cookie)    |
+| POST   | /admin/login      | Admin login (server-side check, 429 when throttled) |
 | POST   | /admin/logout     | Admin logout                                       |
 | GET    | /admin/status     | Whether the session is admin                       |
 
@@ -376,6 +386,21 @@ poetry run pytest ../tests/ -v -k llm
 # Aggregate metrics
 poetry run pytest ../tests/ -v -k aggregate
 ```
+
+### Authorization tests
+
+```bash
+cd backend
+poetry run pytest ../tests/unit ../tests/api -v -rxX
+```
+
+- `tests/unit/test_policies.py`: policy functions (`current_identity`, `is_admin`, `is_teacher`, `effective_user_id`, course scope).
+- `tests/api/test_permission_matrix.py`: role × endpoint matrix. Every route needs an entry in `ENDPOINTS`; the guard test fails for new routes without one.
+- `tests/api/test_authentication.py`: 401 cases (missing, malformed, forged and expired tokens; admin session).
+- `tests/api/test_object_access.py`: access to other users' data (IDOR) and course scoping of lists.
+- `tests/api/test_privilege_escalation.py`: role, user id, course or admin flag in the payload.
+
+These tests use real signed tokens and a real admin login (fixtures `make_user` and `client_as` in `tests/conftest.py`). Each test runs in a transaction that is rolled back afterwards (`isolated_db`). Known weaknesses are marked `xfail(strict=True)`: when one gets fixed, the test turns XPASS and fails until the marker is removed.
 
 ### Curl smoke tests
 

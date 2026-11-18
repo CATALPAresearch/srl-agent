@@ -94,6 +94,7 @@ class LogAction(str, Enum):
     # ============ Security audit (server-side only, see app/audit.py) ============
     AUDIT_ADMIN_LOGIN = "audit_admin_login"
     AUDIT_ADMIN_LOGIN_FAILED = "audit_admin_login_failed"
+    AUDIT_ADMIN_LOGIN_THROTTLED = "audit_admin_login_throttled"  # rejected without checking the password
     AUDIT_ADMIN_LOGOUT = "audit_admin_logout"
     AUDIT_ADMIN_REQUEST = "audit_admin_request"          # any admin-only endpoint (e.g. survey export)
     AUDIT_DASHBOARD_REQUEST = "audit_dashboard_request"  # dashboard data (admin or teacher, with scope)
