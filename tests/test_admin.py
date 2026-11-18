@@ -5,6 +5,8 @@ never be shipped to the browser.
 Uses the Flask test client (needs the test DB like test_routes.py).
 """
 
+import uuid
+
 import pytest
 
 PASSWORD = "pytest-admin-secret"
@@ -73,7 +75,7 @@ class TestProtectedEndpoints:
 
 
 class TestDashboardAccess:
-    """Aggregated course data: admins or teachers (LTI role in the signed session) only."""
+    """Aggregated course data: admins, or teachers from a verified LTI launch only."""
 
     PATHS = ["/dashboard/stats", "/dashboard/courses"]
 
@@ -82,21 +84,25 @@ class TestDashboardAccess:
         assert fresh_client.get(path).status_code == 401
 
     @pytest.mark.parametrize("path", PATHS)
-    def test_lti_student_is_rejected(self, fresh_client, path):
-        with fresh_client.session_transaction() as s:
-            s["lti_role"] = "student"
-        assert fresh_client.get(path).status_code == 401
+    def test_student_is_rejected(self, fresh_client, auth, path):
+        headers = auth("stud_" + uuid.uuid4().hex[:6], role="student", context_id="c1")
+        assert fresh_client.get(path, headers=headers).status_code == 401
 
     @pytest.mark.parametrize("path", PATHS)
-    def test_lti_teacher_is_allowed(self, fresh_client, path):
-        with fresh_client.session_transaction() as s:
-            s["lti_role"] = "teacher"
-        assert fresh_client.get(path).status_code == 200
+    def test_teacher_is_allowed(self, fresh_client, auth, path):
+        headers = auth("teach_" + uuid.uuid4().hex[:6], role="teacher", context_id="c1")
+        assert fresh_client.get(path, headers=headers).status_code == 200
 
     @pytest.mark.parametrize("path", PATHS)
     def test_admin_is_allowed(self, fresh_client, path):
         fresh_client.post("/admin/login", json={"password": PASSWORD})
         assert fresh_client.get(path).status_code == 200
+
+    def test_session_cookie_role_is_not_trusted(self, fresh_client):
+        """The old lti_role session key grants nothing anymore."""
+        with fresh_client.session_transaction() as s:
+            s["lti_role"] = "teacher"
+        assert fresh_client.get("/dashboard/stats").status_code == 401
 
     def test_forged_client_flag_has_no_effect(self, fresh_client):
         """The reported attack: setting srl_admin_session in the browser grants nothing."""

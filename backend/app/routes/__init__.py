@@ -12,6 +12,7 @@ The actual route handlers live in routes/*_routes.py:
     routes/log_routes.py       /log/tab_event  /log/mouse_traces
     routes/protocol_routes.py  /protocols
     routes/admin_routes.py     /admin/login  /admin/logout  /admin/status
+    routes/identity_routes.py  /session/identity
 """
 import json
 
@@ -26,6 +27,7 @@ from .dashboard_routes import dashboard_bp
 from .log_routes import logs_bp
 from .protocol_routes import protocols_bp
 from .admin_routes import admin_bp
+from .identity_routes import identity_bp
 
 CORS(app)
 
@@ -49,5 +51,5 @@ def teardown_request(exception):
     db.session.remove()
 
 
-for _bp in [static_bp, chat_bp, user_bp, survey_bp, dashboard_bp, logs_bp, protocols_bp, admin_bp]:
+for _bp in [static_bp, chat_bp, user_bp, survey_bp, dashboard_bp, logs_bp, protocols_bp, admin_bp, identity_bp]:
     app.register_blueprint(_bp)

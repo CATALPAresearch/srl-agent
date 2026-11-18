@@ -203,7 +203,7 @@ Note this IP — you will need it in the next step.
 | Tool URL      | `http://<YOUR-BRIDGE-IP>:5000/lti/launch?v=2` |
 | LTI version   | LTI 1.0/1.1                                   |
 | Consumer key  | `moodle_key`                                  |
-| Shared secret | `geheimer_schluessel_123`                     |
+| Shared secret | `geheimer_schluessel_123` (dev only; use a long random secret in production) |
 
 Replace `<YOUR-BRIDGE-IP>` with the IP found in step 7 (e.g. `172.23.96.1`).
 
@@ -274,7 +274,8 @@ These are non-critical logging warnings. The conversation still works. Run the S
 
 ## Known Limitations
 
-- LTI OAuth signature is not verified (known gap, planned for follow-up)
+- Launches are verified (OAuth 1.0 HMAC-SHA1 signature, timestamp, nonce). `LTI_CONSUMER_KEY` and
+  `LTI_SHARED_SECRET` in `.env` must match the consumer key / shared secret of the Moodle tool
 - The bridge IP changes on every Docker network restart and must be updated manually in Moodle
 - Responses take 15–30 seconds due to CPU-only inference (no GPU)
 - The built Vue.js bundle (`api/static/lti/app-lazy.js`) is committed to the repo so Node.js is not required to run the demo

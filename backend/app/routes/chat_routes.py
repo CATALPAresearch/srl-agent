@@ -11,6 +11,7 @@ from ..core import start_conversation_core, reply_core, reset_conversation
 from ..database.crud import get_user, get_language_by_id
 from ..actions import LogAction
 from ..logging_utlis import log_action
+from ..identity import effective_user_id
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -23,9 +24,11 @@ def delete_message():
     try:
         content = request.json or {}
         client = content.get("client")
-        userid = content.get("userid")
-        if not userid or not client:
-            return jsonify({"error": "userid and client required"}), 400
+        userid = effective_user_id()
+        if not userid:
+            return jsonify({"error": "no identity - call POST /session/identity first"}), 401
+        if not client:
+            return jsonify({"error": "client required"}), 400
         app.logger.info("Resetting conversation for user: %s - %s", userid, client)
         user = get_user(userid, client)
         if not user:
@@ -63,11 +66,11 @@ def start_conversation_flask():
     language = None
     try:
         content = request.json or {}
-        userid = content.get("userid")
+        userid = effective_user_id()
         client = content.get("client")
         language = content.get("language")
         if not userid:
-            return jsonify({"error": "userid required"}), 400
+            return jsonify({"error": "no identity - call POST /session/identity first"}), 401
         if not client:
             return jsonify({"error": "client required"}), 400
         if not language:
@@ -125,10 +128,10 @@ def reply():
     try:
         content = request.json or {}
         client_id = content.get("client")
-        userid = content.get("userid")
+        userid = effective_user_id()
         user_message = content.get("message")
         if not userid:
-            return jsonify({"error": "userid required"}), 400
+            return jsonify({"error": "no identity - call POST /session/identity first"}), 401
         if not client_id:
             return jsonify({"error": "client required"}), 400
         if not user_message:
@@ -167,9 +170,11 @@ def get_conversation():
     Query params: userid, client
     Response: { "messages": [{"author": "user"|"bot", "message": "...", "id": <int>}, ...] }
     """
-    userid = request.args.get("userid")
+    userid = effective_user_id(request.args.get("userid"), allow_admin_override=True)
     client = request.args.get("client")
-    if not userid or not client:
+    if not userid:
+        return jsonify({"error": "no identity - call POST /session/identity first"}), 401
+    if not client:
         return jsonify({"messages": []}), 400
 
     try:

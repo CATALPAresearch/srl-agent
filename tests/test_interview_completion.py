@@ -38,6 +38,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from app import app as flask_app_instance, db as _db  # noqa: E402
 from app.database.crud import get_user                 # noqa: E402
+from app.identity import issue_token                    # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Test user
@@ -202,10 +203,13 @@ def client():
 # ---------------------------------------------------------------------------
 
 def _post(client, path: str, payload: dict) -> tuple[int, dict | str]:
+    # the server takes the user only from a server-issued identity token
+    token = issue_token({"uid": TEST_USER, "role": "student", "context_id": "0", "source": "test"})
     resp = client.post(
         path,
         data=json.dumps(payload),
         content_type="application/json",
+        headers={"Authorization": f"Bearer {token}"},
     )
     try:
         data = json.loads(resp.data)
@@ -236,7 +240,7 @@ class TestInterviewCompletion:
         # ── 0. Shuffle answer pool for variety ───────────────────────────
         seed = int(time.time())
         _build_answer_pool(seed=seed)
-        print(f"\n[USER] {TEST_USER}  →  http://localhost:5000/#/results?userid={TEST_USER}")
+        print(f"\n[USER] {TEST_USER}  →  http://localhost:5000/#/results?userid={TEST_USER}  (admin login required)")
         print(f"[SEED] Answer pool seed: {seed}  (re-run with same seed to reproduce)")
 
         # ── 1. Start conversation ────────────────────────────────────────

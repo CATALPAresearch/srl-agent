@@ -90,3 +90,27 @@ class LogAction(str, Enum):
     DASHBOARD_FILTER_APPLIED = "dashboard_filter_applied"
     DASHBOARD_FILTER_CLEARED = "dashboard_filter_cleared"
     SURVEY_ITEM_ANSWERED = "survey_item_answered"
+
+    # ============ Security audit (server-side only, see app/audit.py) ============
+    AUDIT_ADMIN_LOGIN = "audit_admin_login"
+    AUDIT_ADMIN_LOGIN_FAILED = "audit_admin_login_failed"
+    AUDIT_ADMIN_LOGOUT = "audit_admin_logout"
+    AUDIT_ADMIN_REQUEST = "audit_admin_request"          # any admin-only endpoint (protocols, exports)
+    AUDIT_DASHBOARD_REQUEST = "audit_dashboard_request"  # dashboard data (admin or teacher, with scope)
+    AUDIT_ACCESS_DENIED = "audit_access_denied"
+    AUDIT_USER_DATA_READ = "audit_user_data_read"        # admin reading another user's data
+    AUDIT_LTI_LAUNCH = "audit_lti_launch"
+    AUDIT_LTI_LAUNCH_REJECTED = "audit_lti_launch_rejected"
+
+
+# Actions a browser may report via POST /log/interaction (everything else is server-side only)
+CLIENT_INTERACTION_ACTIONS = frozenset({
+    LogAction.STRATEGY_HOVERED,
+    LogAction.UNMENTIONED_STRATEGY_HOVERED,
+    LogAction.DASHBOARD_KPI_HOVERED,
+    LogAction.DASHBOARD_CHART_TOGGLED,
+    LogAction.DASHBOARD_TABLE_ROW_HOVERED,
+    LogAction.DASHBOARD_FILTER_APPLIED,
+    LogAction.DASHBOARD_FILTER_CLEARED,
+    LogAction.SURVEY_ITEM_ANSWERED,
+})

@@ -162,9 +162,10 @@ poetry run python main.py
 
 ### LTI deployment
 
-- Launch endpoint: /lti/launch
-- UI endpoint: /lti/ui
-- Configure LMS external tool with launch URL, key, and secret
+- Launch endpoint: /lti/launch (renders the UI directly after a verified launch)
+- Configure the LMS external tool with launch URL, consumer key and shared secret, and set the same
+  values as `LTI_CONSUMER_KEY` / `LTI_SHARED_SECRET` in `.env`. Every launch must carry a valid
+  OAuth 1.0 HMAC-SHA1 signature; unsigned, tampered, expired or replayed launches are rejected (401).
 - Ensure HTTPS in production LMS setups
 
 For detailed Moodle-centric setup, see [README-LTI.md](README-LTI.md).
@@ -229,12 +230,51 @@ docker compose up -d
 | GET    | /user_role/     | Current user role     |
 | GET    | /user_language/ | Current user language |
 
+### Identity & access control
+
+The client never chooses its user id. The server issues an identity — after a verified LTI
+launch, or anonymously for standalone users via `POST /session/identity` — as a token signed
+with `SECRET_KEY`; the frontend sends it as `Authorization: Bearer <token>` (a token instead of
+a cookie, because browsers block third-party cookies in the Moodle iframe). All user data
+endpoints act on that identity and ignore any `userid` in the request; only admins may read
+another user's data by passing `userid` explicitly.
+
+| Who                         | Can access                                                        |
+| --------------------------- | ----------------------------------------------------------------- |
+| Any identity                | Own interview, results, survey, language (`/reply`, `/conversation`, `/student/*`, …) |
+| Teacher (verified LTI)      | `/dashboard/stats`, `/dashboard/courses` — own course only        |
+| Admin (`ADMIN_PASSWORD`)    | All dashboards and courses, `/protocols*`, `/survey/<id>/results`, other users' data |
+
+Telemetry endpoints (`/log/*`) also require an identity; `/log/interaction` only accepts UI
+interaction actions, never server-side or audit actions.
+
+`tests/test_security.py` calls every registered endpoint without credentials and fails if one
+that is not on its explicit public list answers with anything but 401 — new endpoints must be
+protected (or consciously added to that list).
+
+**Audit log:** admin logins (incl. failures) and logouts, every admin-only request (protocol
+create/update/delete/import/export, survey export), every dashboard request (with course scope),
+denied accesses, admins reading another user's data, and accepted/rejected LTI launches are
+written to `activity_log` (action `audit_*`, hashed client IP) and to the application log (Loki):
+
+```sql
+SELECT to_timestamp(timestamp), action, user_id, http_status, value
+FROM activity_log WHERE action LIKE 'audit_%' ORDER BY timestamp DESC LIMIT 100;
+```
+
+| Method | Path              | Description                                        |
+| ------ | ----------------- | -------------------------------------------------- |
+| POST   | /session/identity | Get (or create anonymous) identity + token         |
+| GET    | /session/identity | Current identity (401 without token)               |
+| POST   | /admin/login      | Admin login (server-side check, session cookie)    |
+| POST   | /admin/logout     | Admin logout                                       |
+| GET    | /admin/status     | Whether the session is admin                       |
+
 ### LTI
 
 | Method | Path        | Description        |
 | ------ | ----------- | ------------------ |
-| POST   | /lti/launch | LTI launch handler |
-| GET    | /lti/ui     | LTI-embedded UI    |
+| POST   | /lti/launch | Verified LTI launch → UI with identity token |
 
 ### Activity logging
 
@@ -313,9 +353,9 @@ poetry run pytest ../tests/test_interview_completion.py -v -s
 # (requires a reachable LLM; only warns by default)
 REQUIRE_STRATEGY_DETECTION=true poetry run pytest ../tests/test_interview_completion.py -v -s
 
-# Set in browser console to see results in the /results page:
-localStorage.setItem("srl_userid", "test_interview_bot")
-location.reload()
+# To view a test user's results: log in as admin, then open
+#   http://localhost:5000/#/results?userid=<test user id>
+# (only admins may read another user's data)
 
 
 # RAG

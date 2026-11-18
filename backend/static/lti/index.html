@@ -4,24 +4,27 @@
   <meta charset="UTF-8" />
   <title>SRL Agent</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
   <style>
     html, body {
       margin: 0;
       height: 100%;
-      overflow: hidden;
     }
-    #OpenChatApp {
+    #app {
       height: 100%;
     }
   </style>
 </head>
 <body>
-  <div id="OpenChatApp"></div>
+  <div id="app"></div>
+  <script>
+    // Filled by the backend after a verified LTI launch (backend/app/lti.py):
+    // server-issued identity incl. signed token; never derived from the URL.
+    window.SRL_CLIENT = "lti";
+    window.SRL_CONFIG = __SRL_CONFIG__;
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.8/require.min.js"></script>
   <script>
-    window.SRL_CLIENT = "lti";
-    window.SRL_USERID = "__LTI_USERID__";
-
     require.config({
       baseUrl: "/static/lti",
       waitSeconds: 30,
@@ -29,17 +32,8 @@
         core: "/static/lti/core"
       }
     });
-    require(["app-lazy"], function(m) {
-      console.log("SRL Agent LTI UI loaded, user:", window.SRL_USERID);
-      m.initOpenChat({
-        page_instance_id: 1,
-        system_name: "SRL Agent",
-        course_id: 1,
-        is_admin: false,
-        course_module_id: 1,
-        context_id: 1,
-        user_id: window.SRL_USERID,
-      });
+    require(["app-lazy"], function () {
+      console.log("SRL Agent LTI UI loaded");
     });
   </script>
 </body>

@@ -1,9 +1,10 @@
 """User-info routes: language, role."""
-from flask import Blueprint, request, session, jsonify
+from flask import Blueprint, request, jsonify
 from flask_cors import cross_origin
 
 from app import db
 from ..database.crud import get_user, get_language_by_id, get_language
+from ..identity import current_identity, effective_user_id
 
 user_bp = Blueprint('user', __name__)
 
@@ -16,7 +17,7 @@ def get_user_language():
         "client": client identifier
         "userid": user ID
     """
-    userid = request.args.get('userid')
+    userid = effective_user_id()
     client = request.args.get('client')
     user = get_user(userid, client)
     if user:
@@ -33,11 +34,13 @@ def set_user_language():
     JSON body: { "userid": "...", "client": "...", "lang": "de"|"en" }
     """
     content = request.json or {}
-    userid = content.get("userid")
+    userid = effective_user_id()
     client = content.get("client")
     lang_code = content.get("lang")
-    if not userid or not client or not lang_code:
-        return jsonify({"error": "userid, client and lang required"}), 400
+    if not userid:
+        return jsonify({"error": "no identity - call POST /session/identity first"}), 401
+    if not client or not lang_code:
+        return jsonify({"error": "client and lang required"}), 400
     user = get_user(userid, client)
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -69,8 +72,8 @@ def get_translations(lang):
 def get_user_role():
     """
     Return the role ('student' or 'teacher') for the requesting user.
-    Priority: LTI session role → default 'student'.
-    Query params: userid, client (reserved for future DB lookup).
+    Role from the server-issued identity (verified LTI launch) → default 'student'.
     """
-    role = session.get("lti_role", "student")
+    identity = current_identity() or {}
+    role = identity.get("role", "student")
     return role, 200

@@ -5,8 +5,9 @@ from flask_cors import cross_origin
 from app import app, db
 from ..models import MouseTrace
 from ..database.crud import get_user
-from ..actions import LogAction
+from ..actions import CLIENT_INTERACTION_ACTIONS, LogAction
 from ..logging_utlis import log_action
+from ..identity import effective_user_id
 
 logs_bp = Blueprint('logs', __name__)
 
@@ -26,7 +27,9 @@ def log_tab_event():
     """
     try:
         content = request.json
-        userid = content.get("userid")
+        userid = effective_user_id()
+        if not userid:
+            return jsonify({"error": "no identity - call POST /session/identity first"}), 401
         client = content.get("client")
         event = content.get("event")
         timestamp = content.get("timestamp")
@@ -68,7 +71,9 @@ def log_mouse_traces():
     """
     try:
         content = request.json
-        userid = content.get("userid")
+        userid = effective_user_id()
+        if not userid:
+            return jsonify({"error": "no identity - call POST /session/identity first"}), 401
         client = content.get("client")
         session_id = content.get("session_id")
         traces = content.get("traces", [])
@@ -121,7 +126,9 @@ def log_page_view():
     """
     try:
         content = request.json
-        userid = content.get("userid")
+        userid = effective_user_id()
+        if not userid:
+            return jsonify({"error": "no identity - call POST /session/identity first"}), 401
         client = content.get("client")
         path = content.get("path")
         timestamp = content.get("timestamp")
@@ -163,7 +170,9 @@ def log_interaction():
     """
     try:
         content = request.json
-        userid = content.get("userid")
+        userid = effective_user_id()
+        if not userid:
+            return jsonify({"error": "no identity - call POST /session/identity first"}), 401
         client = content.get("client")
         action_str = content.get("action")
         value = content.get("value") or {}
@@ -176,6 +185,8 @@ def log_interaction():
             action = LogAction(action_str)
         except ValueError:
             return jsonify({"error": f"Unknown action: {action_str}"}), 400
+        if action not in CLIENT_INTERACTION_ACTIONS:
+            return jsonify({"error": f"Action not allowed from clients: {action_str}"}), 400
 
         if timestamp:
             value["timestamp"] = timestamp

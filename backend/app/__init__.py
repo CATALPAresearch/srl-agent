@@ -60,7 +60,13 @@ app.secret_key = os.environ.get("SECRET_KEY")
 if not app.secret_key:
     # Never fall back to a known key: it would let anyone forge session cookies (e.g. admin login).
     app.secret_key = secrets.token_hex(32)
-    app.logger.warning("SECRET_KEY is not set - using a random key; sessions reset on every restart")
+    app.logger.error(
+        "SECRET_KEY is not set - using a random per-process key. Identity tokens and sessions "
+        "will NOT work across gunicorn workers or restarts. Set SECRET_KEY in .env!"
+    )
+# Session cookie (admin login): never sent on cross-site requests (CSRF), not readable by JS.
+# The LTI iframe does not rely on it; it uses the identity token (app/identity.py).
+app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_HTTPONLY=True)
 convention = {
     "ix": 'ix_%(column_0_label)s',
     "uq": "uq_%(table_name)s_%(column_0_name)s",
