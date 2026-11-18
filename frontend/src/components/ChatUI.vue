@@ -178,10 +178,17 @@
                 : 'Type your response…'
             "
             rows="1"
+            :maxlength="maxChars"
             :readonly="is_loading"
             :aria-busy="is_loading"
             :aria-label="lang === 'de' ? 'Deine Antwort' : 'Your response'"
           />
+          <span
+            v-if="chat_message.length > maxChars * 0.9"
+            class="chat-char-count"
+            aria-live="polite"
+            >{{ chat_message.length }} / {{ maxChars }}</span
+          >
           <div class="chat-input-actions">
             <button
               type="button"
@@ -240,6 +247,7 @@ export default defineComponent({
   data() {
     return {
       chat_message: "",
+      maxChars: 2000, // same limit as the server (/reply)
       error_msg: "",
       copied: false,
       copiedIndex: null,
@@ -700,6 +708,13 @@ export default defineComponent({
 }
 #chat .chat-textarea::placeholder {
   color: #a19e99;
+}
+
+#chat .chat-char-count {
+  align-self: center;
+  font-size: 0.75rem;
+  color: #6c757d;
+  white-space: nowrap;
 }
 
 #chat .chat-input-actions {

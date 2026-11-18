@@ -1,5 +1,5 @@
 """Static file serving routes."""
-from flask import Blueprint, send_from_directory
+from flask import Blueprint, abort, current_app, send_from_directory
 
 from ._paths import FRONTEND_DIR, LTI_STATIC_DIR, STATIC_DIR
 
@@ -20,6 +20,8 @@ def serve_frontend_assets(filename):
 @static_bp.route('/static/lti/<path:filename>')
 def serve_lti_static(filename):
     """Serve LTI static assets (AMD bundle + core stubs for Moodle LTI mode)."""
+    if filename.endswith(".map") and not current_app.debug:
+        abort(404)  # source maps would expose the readable frontend source; local debug mode only
     return send_from_directory(LTI_STATIC_DIR, filename)
 
 

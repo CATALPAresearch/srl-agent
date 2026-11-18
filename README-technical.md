@@ -392,3 +392,40 @@ Then open: http://localhost:8089
 - Rotate logs (`backend/logs/api.log` rotates at 1 MB, 5 backups kept).
 - Keep interview protocol and prompts versioned; changes directly affect LLM behavior.
 - `SECRET_KEY` must be changed from the default before any production deployment.
+
+### Abuse limits (LLM budget)
+
+Every `/reply` triggers several LLM calls, so it is limited:
+
+| Limit | Where | Value |
+| --- | --- | --- |
+| Message length | API (413 `message_too_long`) and input field | 2000 characters |
+| Messages per user | API (429 `rate_limited`, `Retry-After: 60`) | 10 per minute |
+| Messages per interview | API (429 `interview_quota_reached`) | 50 |
+| Requests per client IP | nginx (429) | `/reply` 60/min (burst 30); `/startConversation`, `/resetConversation`, `/session/identity` 20/min (burst 40) |
+| Request body | nginx (413) | 32 KB for the endpoints above |
+
+The per-user limits live in `backend/app/routes/chat_routes.py`; the UI shows a message when one
+is reached. The per-IP limits are deliberately generous (many students may share one IP via the
+campus network or VPN) and mainly stop mass abuse with freshly created anonymous identities.
+
+LLM credentials (`API_KEY`, `EMBEDDING_TOKEN`) stay on the server and are only sent as
+`Authorization` header; they are never sent over plain `http://` to a non-local host
+(use an `https://` `BASE_URL`).
+
+### Grafana (logs)
+
+Grafana is not published through nginx: the logs contain interview content and audit data. It
+listens on `127.0.0.1:3000` of the server only. Access it through an SSH tunnel:
+
+```bash
+ssh -L 3000:localhost:3000 <user>@<server>
+# then open http://localhost:3000/grafana/
+```
+
+`GRAFANA_PASSWORD` must be set in `.env` (docker compose refuses to start otherwise). Grafana only
+applies it when its data volume is created; to change the password of an existing installation:
+
+```bash
+docker compose exec grafana grafana cli admin reset-admin-password '<new password>'
+```
