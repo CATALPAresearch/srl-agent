@@ -127,6 +127,32 @@ export default defineComponent({
         : "Thank you for filling out the survey. I am generating your summary now and will show it here automatically as soon as it is ready.";
     },
 
+    // Limits enforced by the server (and nginx) for /reply, shown in the chat.
+    replyErrorMessage: function (error) {
+      const de = (this.$store.getters.getLanguage || "de") === "de";
+      const res = error && error.response;
+      const code = res && res.data && res.data.error;
+      const limit = res && res.data && res.data.limit;
+      if (code === "message_too_long") {
+        return de
+          ? `Deine Nachricht ist zu lang (höchstens ${limit} Zeichen). Bitte kürze sie und sende sie erneut.`
+          : `Your message is too long (at most ${limit} characters). Please shorten it and send it again.`;
+      }
+      if (code === "interview_quota_reached") {
+        return de
+          ? `Für dieses Interview ist die Höchstzahl von ${limit} Nachrichten erreicht. Du kannst über die Startseite ein neues Interview beginnen.`
+          : `This interview has reached the maximum of ${limit} messages. You can start a new interview from the start page.`;
+      }
+      if (res && res.status === 429) {
+        return de
+          ? "Du hast gerade sehr viele Nachrichten gesendet (höchstens 10 pro Minute). Bitte warte einen Moment und sende deine Nachricht dann erneut."
+          : "You have sent a lot of messages just now (at most 10 per minute). Please wait a moment and send your message again.";
+      }
+      return de
+        ? "Es konnte gerade keine Antwort erzeugt werden. Bitte versuche es erneut."
+        : "Unable to get a response right now. Please try again.";
+    },
+
     getPendingSummaryMessage: function () {
       const lang = this.$store.getters.getLanguage || "de";
       return lang === "de"
@@ -410,7 +436,7 @@ export default defineComponent({
           console.error("Error sending message:", error);
           this.messages[bot_pos] = {
             author: "bot",
-            message: "Error: Unable to get a response.",
+            message: this.replyErrorMessage(error),
             id: bot_placeholder.id,
           };
         });

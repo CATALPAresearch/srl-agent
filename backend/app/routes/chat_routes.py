@@ -8,12 +8,42 @@ import datetime
 
 from app import app, db
 from ..core import start_conversation_core, reply_core, reset_conversation
-from ..database.crud import get_user, get_language_by_id
+from ..database.crud import get_user, get_language_by_id, get_active_run_started_at
+from ..models import InterviewAnswer
 from ..actions import LogAction
 from ..logging_utlis import log_action
 from ..identity import effective_user_id
 
 chat_bp = Blueprint('chat', __name__)
+
+# Limits for /reply (each reply triggers several LLM calls): protects the LLM budget against abuse.
+MAX_MESSAGE_CHARS = 2000
+MAX_MESSAGES_PER_MINUTE = 10
+MAX_MESSAGES_PER_INTERVIEW = 50
+
+
+def _reply_limit_error(user, user_message):
+    """Return an error response if a limit is exceeded, else None. Codes are shown in the UI."""
+    if len(user_message) > MAX_MESSAGE_CHARS:
+        return jsonify({"error": "message_too_long", "limit": MAX_MESSAGE_CHARS}), 413
+    if user is None:
+        return None
+    mine = sa.and_(InterviewAnswer.user_id == user.id, InterviewAnswer.user_client == user.client)
+    last_minute = db.session.scalar(
+        sa.select(sa.func.count()).select_from(InterviewAnswer).where(
+            mine, InterviewAnswer.message_time >= sa.text("LOCALTIMESTAMP - interval '1 minute'"))
+    )
+    if last_minute >= MAX_MESSAGES_PER_MINUTE:
+        resp = jsonify({"error": "rate_limited", "limit": MAX_MESSAGES_PER_MINUTE, "retry_after": 60})
+        resp.headers["Retry-After"] = "60"
+        return resp, 429
+    run_query = sa.select(sa.func.count()).select_from(InterviewAnswer).where(mine)
+    run_started_at = get_active_run_started_at(user)
+    if run_started_at is not None:
+        run_query = run_query.where(InterviewAnswer.message_time >= run_started_at)
+    if db.session.scalar(run_query) >= MAX_MESSAGES_PER_INTERVIEW:
+        return jsonify({"error": "interview_quota_reached", "limit": MAX_MESSAGES_PER_INTERVIEW}), 429
+    return None
 
 
 @chat_bp.route("/resetConversation", methods=["POST", "OPTIONS"])
@@ -134,8 +164,11 @@ def reply():
             return jsonify({"error": "no identity - call POST /session/identity first"}), 401
         if not client_id:
             return jsonify({"error": "client required"}), 400
-        if not user_message:
+        if not user_message or not isinstance(user_message, str):
             return jsonify({"error": "message required"}), 400
+        limited = _reply_limit_error(get_user(userid, client_id), user_message)
+        if limited:
+            return limited
 
         llm_response, status = reply_core(client_id, userid, user_message)
         return llm_response, status

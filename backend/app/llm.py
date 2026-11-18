@@ -2,6 +2,7 @@ import os
 import requests
 import time
 import logging
+from urllib.parse import urlsplit
 
 from ollama import Client
 
@@ -18,6 +19,28 @@ except ValueError:
     OLLAMA_NUM_CTX = 2048
 EMBEDDING_URL = os.getenv("EMBEDDING_URL", "https://huggingface.co/")
 EMBEDDING_TOKEN = os.getenv("EMBEDDING_TOKEN", "")
+
+
+def safe_to_send_secret(url: str) -> bool:
+    """Credentials only travel over HTTPS (or to a local / Docker-internal host)."""
+    parts = urlsplit(url or "")
+    host = parts.hostname or ""
+    if not host:
+        return False
+    return parts.scheme == "https" or host in ("localhost", "127.0.0.1", "::1") or "." not in host
+
+
+def bearer_headers(token: str, url: str) -> dict:
+    if not token:
+        return {}
+    if not safe_to_send_secret(url):
+        logging.getLogger("InterviewAgent").error(
+            "Refusing to send credentials over unencrypted HTTP to %s - use an https:// URL",
+            urlsplit(url or "").hostname)
+        return {}
+    return {"Authorization": f"Bearer {token}"}
+
+
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 logger = logging.getLogger('InterviewAgent')
 _OPENAI_MODEL_CACHE = None
@@ -85,7 +108,7 @@ def _resolve_openai_model(base, headers):
 
 def query_embeddings(text_to_embed):
     api_url = f"{EMBEDDING_URL}{EMBEDDING_MODEL}"
-    headers = {"Authorization": f"Bearer {EMBEDDING_TOKEN}"}
+    headers = bearer_headers(EMBEDDING_TOKEN, EMBEDDING_URL)
     response = requests.post(
         api_url,
         headers=headers,
@@ -163,7 +186,7 @@ def get_llm_response(
 
 def get_response(messages, temperature, top_k=25, top_p=0.3, repeat_penalty=1.1, max_tokens=512):
     """Call LLM via HTTP. Supports Ollama (/api/chat) and OpenAI-compatible servers (/v1/chat/completions)."""
-    headers = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
+    headers = bearer_headers(API_KEY, BASE_URL)
     base = BASE_URL.rstrip("/")
     is_openai_compat = "/v1" in base
 

@@ -56,6 +56,17 @@ class TestStaticRoutes:
         resp = client.get("/static/favicon.ico")
         assert resp.status_code in (200, 404)  # 404 is acceptable if file absent in test env
 
+    def test_source_maps_are_never_served(self, client):
+        """A source map would expose the readable frontend source (security report H2)."""
+        from app.routes._paths import LTI_STATIC_DIR
+        path = os.path.join(LTI_STATIC_DIR, "pytest-probe.js.map")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write('{"version":3,"sources":["secret.js"]}')
+        try:
+            assert client.get("/static/lti/pytest-probe.js.map").status_code == 404
+        finally:
+            os.remove(path)
+
 
 # ---------------------------------------------------------------------------
 # /startConversation
