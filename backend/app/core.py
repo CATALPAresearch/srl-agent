@@ -572,8 +572,9 @@ def reply_core(client, userid, user_message) -> tuple[str, int]:
                         "Sorry, I had an internal issue just now. "
                         "Could you briefly repeat your last answer?"
                     )
-        except Exception:
-            pass
+        except Exception as lang_error:  # keep the German fallback, but do not hide the second failure
+            db.session.rollback()
+            logger.warning("reply_core fallback: could not determine user language: %s", lang_error)
 
         return jsonify({
             "message": fallback_text,

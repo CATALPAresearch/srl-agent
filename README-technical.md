@@ -158,8 +158,12 @@ npm install        # requires Node.js >= 22.15 (Vue 3 / webpack 5)
 npm run build
 
 cd ../backend
-poetry run python main.py
+poetry run python main.py                  # http://127.0.0.1:5000, debugger off
+FLASK_DEBUG=1 poetry run python main.py    # with debugger + auto reload (local only)
 ```
+
+`main.py` listens on `127.0.0.1` only. Use `HOST=<ip>` to reach it from other devices, but never
+together with `FLASK_DEBUG=1`: the Werkzeug debugger allows running code from the browser.
 
 ### LTI deployment
 
